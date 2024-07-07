@@ -42,24 +42,26 @@ func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetwee
 // dumpTimeSig prints the time signatures the song uses in concise form.
 func dumpTimeSig(prefix string, song *sequencer.Song) {
 	var start int
+	var startTicks int64
 	var sig *[2]uint8
-	gotSig := func(bar int, barSig *[2]uint8) {
+	gotSig := func(bar int, absTicks int64, barLen uint8, barSig *[2]uint8) {
 		if barSig == nil || sig == nil || *barSig != *sig {
 			if bar != start {
 				plural := "s"
 				if bar-start == 1 {
 					plural = ""
 				}
-				log.Printf("%s: %d: %d bar%s of %d/%d", prefix, start, bar-start, plural, sig[0], sig[1])
+				log.Printf("%s: %d @ %d: %d bar%s of %d/%d", prefix, start, startTicks, bar-start, plural, sig[0], sig[1])
 			}
 			start = bar
+			startTicks = absTicks
 			sig = barSig
 		}
 	}
 	for i, bar := range song.Bars() {
-		gotSig(i, &bar.TimeSig)
+		gotSig(i, bar.AbsTicks, bar.Len(), &bar.TimeSig)
 	}
-	gotSig(len(song.Bars()), nil)
+	gotSig(len(song.Bars()), -1, 0, nil)
 	log.Printf("%s: %d: end", prefix, len(song.Bars()))
 }
 
@@ -193,6 +195,10 @@ func resequence(song *sequencer.Song, preludeSections []Range, restBetweenVerses
 	restSig := [2]uint8{
 		uint8(restBetweenVerses),
 		32,
+	}
+	for restSig[0] >= 8 || (restSig[0] > 1 && restSig[0]%2 == 0) {
+		restSig[0] /= 2
+		restSig[1] /= 2
 	}
 
 	for i := 0; i < numVerses; i++ {
