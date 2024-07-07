@@ -35,7 +35,7 @@ func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetwee
 	}
 	song = resequence(song, preludeSections, restBetweenVerses, numVerses)
 	dumpTimeSig("After", song)
-	newMIDI := song.ToSMF1()
+	newMIDI := song.ToSMF0()
 	return newMIDI.WriteFile(out)
 }
 
