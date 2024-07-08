@@ -24,18 +24,25 @@ func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetwee
 	if err != nil {
 		return fmt.Errorf("smf.ReadFile(%q): %w", in, err)
 	}
+	dumpSMF(*midi)
 	song := sequencer.FromSMF(*midi)
+	song.SetBarAbsTicks()
+	dumpSeq(song)
+	dumpSMF(song.ToSMF0())
+	dumpSMF(song.ToSMF1())
 	dumpTimeSig("Before", song)
 	mapToChannel(song, 1) // Map to MIDI channel 2.
 	mergeOverlappingNotes(song)
-	addFermatas(song, fermatas)
 	if restBetweenVerses < 0 {
 		restBetweenVerses = computeDefaultRest(song)
 		log.Printf("computed default rest between verses: %d/32", restBetweenVerses)
 	}
-	song = resequence(song, preludeSections, restBetweenVerses, numVerses)
+	song = resequenceToOne(song, fermatas, preludeSections, restBetweenVerses, numVerses)
+	song.SetBarAbsTicks()
 	dumpTimeSig("After", song)
-	newMIDI := song.ToSMF0()
+	// newMIDI := song.ToSMF1()
+	newMIDI := song.ToSMF0().ConvertToSMF1()
+	dumpSMF(newMIDI)
 	return newMIDI.WriteFile(out)
 }
 
@@ -59,6 +66,7 @@ func dumpTimeSig(prefix string, song *sequencer.Song) {
 		}
 	}
 	for i, bar := range song.Bars() {
+		log.Printf("bar %d ticks %d", i, bar.AbsTicks)
 		gotSig(i, bar.AbsTicks, bar.Len(), &bar.TimeSig)
 	}
 	gotSig(len(song.Bars()), -1, 0, nil)
@@ -158,13 +166,6 @@ func mergeOverlappingNotes(song *sequencer.Song) error {
 	return nil
 }
 
-// addFermatas performs fermatas in the song.
-func addFermatas(song *sequencer.Song, fermatas []Pos) {
-	if len(fermatas) > 0 {
-		log.Printf("NOT YET IMPLEMENTED: fermatas")
-	}
-}
-
 // computeDefaultRest computes the default rest between verses.
 func computeDefaultRest(song *sequencer.Song) int8 {
 	if len(song.Bars()) == 0 {
@@ -180,13 +181,17 @@ func computeDefaultRest(song *sequencer.Song) int8 {
 	return int8(32 / timeSig[1])
 }
 
-// resequence resequences the song.
-func resequence(song *sequencer.Song, preludeSections []Range, restBetweenVerses int8, numVerses int) *sequencer.Song {
+// resequenceToOne resequences the song.
+func resequenceToOne(song *sequencer.Song, fermatas []Pos, preludeSections []Range, restBetweenVerses int8, numVerses int) *sequencer.Song {
 	newSong := sequencer.New()
 	newSong.Title = song.Title
 	newSong.Composer = song.Composer
 	newSong.TrackNames = song.TrackNames
 	newSong.Ticks = song.Ticks
+
+	if len(fermatas) > 0 {
+		log.Printf("NOT YET IMPLEMENTED: fermatas")
+	}
 
 	if len(preludeSections) != 0 {
 		log.Printf("NOT YET IMPLEMENTED: prelude")
@@ -205,7 +210,7 @@ func resequence(song *sequencer.Song, preludeSections []Range, restBetweenVerses
 		if i > 0 {
 			newBar := sequencer.Bar{
 				TimeSig: restSig,
-				Events:  nil,
+				Events:  sequencer.Events{},
 				Key:     nil,
 			}
 			newSong.AddBar(newBar)
@@ -217,4 +222,24 @@ func resequence(song *sequencer.Song, preludeSections []Range, restBetweenVerses
 
 	newSong.SetBarAbsTicks()
 	return newSong
+}
+
+// resequenceToMultiple resequences the song to multiple separate MIDI files that are played in sequence.
+// Output files are in order:
+// - Prelude (if any).
+// - Then one file per segment, split at fermatas.
+func resequenceToMultiple(song *sequencer.Song, fermatas []Pos, preludeSections []Range) (*sequencer.Song, []*sequencer.Song) {
+	log.Printf("NOT YET IMPLEMENTED: resequenceToMultiple")
+	return nil, nil
+}
+
+func dumpSMF(midi smf.SMF) {
+	fmt.Printf("%v\n", midi)
+}
+
+func dumpSeq(song *sequencer.Song) {
+	fmt.Printf("#### SEQ: %v\n", song)
+	for i, bar := range song.Bars() {
+		fmt.Printf("## BAR %d: %v\n", i, bar)
+	}
 }
