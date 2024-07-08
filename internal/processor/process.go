@@ -1,5 +1,10 @@
 package processor
 
+// TODO: Rewrite all without sequencer, as sequencer seems VERY broken.
+// Thus, make our own absolute-time structure, then work in there.
+// Can retain track structure by remembering which event was on which track.
+// Hardest part is that we need bar/beat number <-> abstime mapping.
+
 import (
 	"fmt"
 	"log"
