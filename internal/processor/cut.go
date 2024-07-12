@@ -1,6 +1,9 @@
 package processor
 
 import (
+	"fmt"
+
+	"gitlab.com/gomidi/midi/v2"
 	"gitlab.com/gomidi/midi/v2/smf"
 )
 
@@ -37,16 +40,39 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 		tracks[t].Close(uint32(tick - trackTimes[t]))
 		trackTimes[t] = tick
 	}
-	copyMeta := func(from, to int64, outTick int64) error {
-		return forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
-			if time < from || time >= to {
+	forEachInSection := func(from, to int64, yield func(time int64, track int, msg smf.Message) error) error {
+		first := true
+		wasPlayingAtEnd := false
+		tracker := newNoteTracker(false)
+		err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+			wasPlaying := tracker.Playing()
+			tracker.Handle(msg)
+			if time < from {
 				return nil
 			}
-			if msg.GetNoteStart(nil, nil, nil) {
-				// Skip note starts.
-				// We don't skip even note-off though! This serves to prevent surprises
-				// in case any notes are left hanging while skipping forward.
-				// Most of these will be handled by removeRedundantNoteEvents.
+			if time >= to {
+				return nil
+			}
+			if first {
+				if wasPlaying {
+					return fmt.Errorf("already playing a note at start of section to be copied at time %d track %d", time, track)
+				}
+				first = false
+			}
+			wasPlayingAtEnd = tracker.Playing()
+			return yield(time, track, msg)
+		})
+		if err != nil {
+			return err
+		}
+		if wasPlayingAtEnd {
+			return fmt.Errorf("still playing a note at end of section to be copied at time %d", to)
+		}
+		return nil
+	}
+	copyMeta := func(from, to int64, outTick int64) error {
+		return forEachInSection(from, to, func(time int64, track int, msg smf.Message) error {
+			if msg.IsOneOf(midi.NoteOnMsg, midi.NoteOffMsg, midi.PitchBendMsg, midi.AfterTouchMsg, midi.PolyAfterTouchMsg) {
 				return nil
 			}
 			addEvent(track, outTick, msg)
@@ -54,11 +80,8 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 		})
 	}
 	copyAll := func(from, to int64, outTick int64) error {
-		return forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
-			if time < from || time >= to {
-				return nil
-			}
-			addEvent(track, outTick+time-from, msg)
+		return forEachInSection(from, to, func(time int64, track int, msg smf.Message) error {
+			addEvent(track, outTick, msg)
 			return nil
 		})
 	}
@@ -93,6 +116,5 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 	for _, t := range tracks {
 		newMIDI.Add(t)
 	}
-	removeRedundantNoteEvents(newMIDI)
 	return newMIDI, nil
 }

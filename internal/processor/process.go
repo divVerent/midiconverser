@@ -54,13 +54,13 @@ func Process(in, out string, fermatas []Pos, fermataExtend, fermataRest int, pre
 	dumpTimeSig("Before", bars)
 
 	// Remove duplicate note start.
-	removeRedundantNoteEvents(mid)
+	removeRedundantNoteEvents(mid, false)
 
 	// Map all to MIDI channel 2 for the organ.
 	mapToChannel(mid, 1)
 
 	// Fix overlapping notes.
-	mergeOverlappingNotes(mid)
+	removeRedundantNoteEvents(mid, true)
 
 	// Convert all values to ticks.
 	var fermataTick []tickFermata
@@ -147,61 +147,14 @@ func mapToChannel(mid *smf.SMF, ch uint8) {
 	}
 }
 
-type key struct {
-	ch, note uint8
-}
-
 // removeRedundantNoteEvents removes overlapping note start events in the song.
-func removeRedundantNoteEvents(mid *smf.SMF) error {
-	notes := map[key]struct{}{}
+func removeRedundantNoteEvents(mid *smf.SMF, refcounting bool) error {
+	tracker := newNoteTracker(refcounting)
 	tracks := make([]smf.Track, len(mid.Tracks))
 	trackTime := make([]int64, len(mid.Tracks))
 	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
-		var ch, note uint8
-		if msg.GetNoteStart(&ch, &note, nil) {
-			k := key{ch, note}
-			if _, found := notes[k]; found {
-				return nil
-			}
-			notes[k] = struct{}{}
-		} else if msg.GetNoteEnd(&ch, &note) {
-			k := key{ch, note}
-			if _, found := notes[k]; !found {
-				return nil
-			}
-			delete(notes, k)
-		}
-		tracks[track] = append(tracks[track], smf.Event{
-			Delta:   uint32(time - trackTime[track]),
-			Message: msg,
-		})
-		trackTime[track] = time
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	mid.Tracks = tracks
-	return nil
-}
-
-// mergeOverlappingNotes merges overlapping notes in the song.
-func mergeOverlappingNotes(mid *smf.SMF) error {
-	notes := map[key]int{}
-	tracks := make([]smf.Track, len(mid.Tracks))
-	trackTime := make([]int64, len(mid.Tracks))
-	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
-		var ch, note uint8
-		if msg.GetNoteStart(&ch, &note, nil) {
-			k := key{ch, note}
-			if notes[k]++; notes[k] != 1 {
-				return nil
-			}
-		} else if msg.GetNoteEnd(&ch, &note) {
-			k := key{ch, note}
-			if notes[k]--; notes[k] != 0 {
-				return nil
-			}
+		if !tracker.Handle(msg) {
+			return nil
 		}
 		tracks[track] = append(tracks[track], smf.Event{
 			Delta:   uint32(time - trackTime[track]),
