@@ -16,7 +16,9 @@ var (
 	prelude           = flag.String("prelude", "", "prelude ranges of the form bar.beat+num/denom-bar.beat+num/denom bar.beat+num/denom-bar.beat+num/denom ...")
 	fermatas          = flag.String("fermatas", "", "fermata positions of the form bar.beat bar.beat ...")
 	verses            = flag.Int("verses", 1, "number of verses")
-	restBetweenVerses = flag.Int("rest_between_verses", -1, "rest between verses in numerators (if negative, number of beats)")
+	restBetweenVerses = flag.Int("rest_between_verses", 1, "rest between verses in beats (if negative, number of denominator notes)")
+	fermataExtend     = flag.Int("fermata_extend", 1, "fermata extension amount in beats (if negative, number of denominator notes)")
+	fermataRest       = flag.Int("fermata_rest", 1, "fermata rest amount in beats (if negative, number of denominator notes)")
 )
 
 func parsePrelude(s string) []processor.Range {
@@ -53,7 +55,7 @@ func parseFermatas(s string) []processor.Pos {
 
 func main() {
 	flag.Parse()
-	err := processor.Process(*i, *o, parseFermatas(*fermatas), parsePrelude(*prelude), *restBetweenVerses, *verses)
+	err := processor.Process(*i, *o, parseFermatas(*fermatas), *fermataExtend, *fermataRest, parsePrelude(*prelude), *restBetweenVerses, *verses)
 	if err != nil {
 		log.Printf("Failed to process: %v", err)
 		os.Exit(1)

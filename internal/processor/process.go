@@ -1,10 +1,5 @@
 package processor
 
-// TODO: Rewrite all without sequencer, as sequencer seems VERY broken.
-// Thus, make our own absolute-time structure, then work in there.
-// Can retain track structure by remembering which event was on which track.
-// Hardest part is that we need bar/beat number <-> abstime mapping.
-
 import (
 	"fmt"
 	"log"
@@ -36,8 +31,24 @@ type tickRange struct {
 	begin, end int64
 }
 
+func beatsOrNotesToTicks(b bar, n int) int64 {
+	if n < 0 {
+		// Negative: this uses denominator ticks.
+		return -int64(n) * b.NumLength()
+	} else {
+		// Positive: this uses beats.
+		return int64(n) * b.BeatLength()
+	}
+}
+
+type tickFermata struct {
+	tick   int64
+	extend int64
+	rest   int64
+}
+
 // Process processes the given MIDI file and writes the result to out.
-func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetweenVerses int, numVerses int) error {
+func Process(in, out string, fermatas []Pos, fermataExtend, fermataRest int, preludeSections []Range, restBetweenVerses int, numVerses int) error {
 	midi, err := smf.ReadFile(in)
 	if err != nil {
 		return fmt.Errorf("smf.ReadFile(%q): %w", in, err)
@@ -46,21 +57,23 @@ func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetwee
 	log.Printf("bars: %+v", bars)
 	dumpTimeSig("Before", bars)
 
+	// Remove duplicate note start.
+	removeOverlappingNoteStarts(midi)
+
 	// Map all to MIDI channel 2 for the organ.
 	mapToChannel(midi, 1)
 
 	// Fix overlapping notes.
-	//mergeOverlappingNotes(midi)
-
-	if restBetweenVerses < 0 {
-		restBetweenVerses *= -bars[len(bars)-1].BeatNum
-		log.Printf("computed default rest between verses: %d/%d", restBetweenVerses, bars[len(bars)-1].Denom)
-	}
+	mergeOverlappingNotes(midi)
 
 	// Convert all values to ticks.
-	var fermataTick []int64
-	for _, p := range fermatas {
-		fermataTick = append(fermataTick, p.ToTick(bars))
+	var fermataTick []tickFermata
+	for _, f := range fermatas {
+		fermataTick = append(fermataTick, tickFermata{
+			tick:   f.ToTick(bars),
+			extend: beatsOrNotesToTicks(bars[f.Bar], fermataExtend),
+			rest:   beatsOrNotesToTicks(bars[f.Bar], fermataRest),
+		})
 	}
 	var preludeTick []tickRange
 	for _, p := range preludeSections {
@@ -70,7 +83,7 @@ func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetwee
 			end:   end,
 		})
 	}
-	ticksBetweenVerses := int64(restBetweenVerses) * bars[len(bars)-1].NumLength()
+	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], restBetweenVerses)
 	fmt.Println(ticksBetweenVerses)
 
 	return nil
@@ -138,85 +151,110 @@ func mapToChannel(midi *smf.SMF, ch uint8) {
 	}
 }
 
-/*
-// mergeOverlappingNotes merges overlapping notes in the song.
-func mergeOverlappingNotes(song *sequencer.Song) error {
-	type key struct {
-		ch, note uint8
-	}
-	type item struct {
-		start, end int64
-		velocity   uint8
-		erase      func()
-		deleted    bool
-	}
-	notes := map[key][]item{}
-	handleNoteOn := func(i int, k key, velocity uint8, start, end int64, erase func()) (int64, int64) {
-		items := notes[k]
-		for i, item := range items {
-			if item.deleted {
+func forEachEventWithTime(midi *smf.SMF, yield func(time int64, track int, msg smf.Message) error) error {
+	// trackPos is the index of the NEXT event from each track.
+	trackPos := make([]int, len(midi.Tracks))
+	// trackTime is the time of the LAST event from each track.
+	trackTime := make([]int64, len(midi.Tracks))
+	for {
+		earliestTrack := -1
+		var earliestTime int64
+		for i, t := range midi.Tracks {
+			p := trackPos[i]
+			if p >= len(t) {
+				// End of track.
 				continue
 			}
-			if item.start >= end {
-				continue
+			t := trackTime[i] + int64(t[p].Delta)
+			if earliestTrack < 0 || t < earliestTime {
+				earliestTime = t
+				earliestTrack = i
 			}
-			if item.end <= start {
-				continue
-			}
-			if item.start < start {
-				start = item.start
-			}
-			if item.end > end {
-				end = item.end
-			}
-			if item.velocity > velocity {
-				velocity = item.velocity
-			}
-			item.erase()
-			items[i].deleted = true
-			log.Printf("eliminated overlapping note %v in bar %v at tick %d", k, i, item.start)
 		}
-		notes[k] = append(notes[k], item{
-			start:    start,
-			end:      end,
-			velocity: velocity,
-			erase:    erase,
-			deleted:  false,
+		if earliestTrack < 0 {
+			// End of MIDI.
+			return nil
+		}
+		err := yield(earliestTime, earliestTrack, midi.Tracks[earliestTrack][trackPos[earliestTrack]].Message)
+		if err != nil {
+			return err
+		}
+		trackPos[earliestTrack]++
+		trackTime[earliestTrack] = earliestTime
+	}
+}
+
+type key struct {
+	ch, note uint8
+}
+
+// removeOverlappingNoteStarts removes overlapping note start events in the song.
+func removeOverlappingNoteStarts(midi *smf.SMF) error {
+	notes := map[key]struct{}{}
+	tracks := make([]smf.Track, len(midi.Tracks))
+	trackTime := make([]int64, len(midi.Tracks))
+	err := forEachEventWithTime(midi, func(time int64, track int, msg smf.Message) error {
+		var ch, note uint8
+		if msg.GetNoteStart(&ch, &note, nil) {
+			k := key{ch, note}
+			if _, found := notes[k]; found {
+				return nil
+			}
+			notes[k] = struct{}{}
+		} else if msg.GetNoteEnd(&ch, &note) {
+			k := key{ch, note}
+			if _, found := notes[k]; !found {
+				return nil
+			}
+			delete(notes, k)
+		}
+		tracks[track] = append(tracks[track], smf.Event{
+			Delta:   uint32(time - trackTime[track]),
+			Message: msg,
 		})
-		return start, end
+		trackTime[track] = time
+		return nil
+	})
+	if err != nil {
+		return err
 	}
-	for i, bar := range song.bars() {
-		for _, ev := range bar.Events {
-			start, end := ev.AbsTicks(bar, song.Ticks)
-			var ch, note, velocity uint8
-			if ev.Message.GetNoteOn(&ch, &note, &velocity) {
-				newStart, newEnd := handleNoteOn(i, key{ch, note}, velocity, start, end, func() {
-					// To be removed later.
-					ev.Message = nil
-				})
-				newBar := song.FindBar(newStart)
-				if newBar != bar {
-					return fmt.Errorf("tried to coalesce notes across bars in bar %d event %v", i, ev)
-				}
-				ev.Pos = uint8((newStart - bar.AbsTicks) / int64(song.Ticks.Ticks32th()))
-				ev.Duration = uint8((newEnd - newStart) / int64(song.Ticks.Ticks32th()))
-			}
-		}
-	}
-	// Filter out all events with nil message.
-	for _, bar := range song.bars() {
-		var newEvents sequencer.Events
-		for _, ev := range bar.Events {
-			if ev.Message != nil {
-				newEvents = append(newEvents, ev)
-			}
-		}
-		bar.Events = newEvents
-		bar.SortEvents()
-	}
+	midi.Tracks = tracks
 	return nil
 }
 
+// mergeOverlappingNotes merges overlapping notes in the song.
+func mergeOverlappingNotes(midi *smf.SMF) error {
+	notes := map[key]int{}
+	tracks := make([]smf.Track, len(midi.Tracks))
+	trackTime := make([]int64, len(midi.Tracks))
+	err := forEachEventWithTime(midi, func(time int64, track int, msg smf.Message) error {
+		var ch, note uint8
+		if msg.GetNoteStart(&ch, &note, nil) {
+			k := key{ch, note}
+			if notes[k]++; notes[k] != 1 {
+				return nil
+			}
+		} else if msg.GetNoteEnd(&ch, &note) {
+			k := key{ch, note}
+			if notes[k]--; notes[k] != 0 {
+				return nil
+			}
+		}
+		tracks[track] = append(tracks[track], smf.Event{
+			Delta:   uint32(time - trackTime[track]),
+			Message: msg,
+		})
+		trackTime[track] = time
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	midi.Tracks = tracks
+	return nil
+}
+
+/*
 // resequenceToOne resequences the song.
 func resequenceToOne(song *sequencer.Song, fermatas []Pos, preludeSections []Range, restBetweenVerses int8, numVerses int) *sequencer.Song {
 	newSong := sequencer.New()
