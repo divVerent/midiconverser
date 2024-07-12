@@ -9,13 +9,14 @@ import (
 	"fmt"
 	"log"
 
-	"gitlab.com/gomidi/midi/v2/sequencer"
 	"gitlab.com/gomidi/midi/v2/smf"
 )
 
 type Pos struct {
-	Bar int
-	Pos uint8 // In 32ths.
+	Bar       int
+	Beat      int
+	BeatNum   int
+	BeatDenom int
 }
 
 type Range struct {
@@ -29,28 +30,29 @@ func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetwee
 	if err != nil {
 		return fmt.Errorf("smf.ReadFile(%q): %w", in, err)
 	}
-	dumpSMF(*midi)
-	song := sequencer.FromSMF(*midi)
-	song.SetBarAbsTicks()
-	dumpSeq(song)
-	dumpSMF(song.ToSMF0())
-	dumpSMF(song.ToSMF1())
-	dumpTimeSig("Before", song)
-	mapToChannel(song, 1) // Map to MIDI channel 2.
-	mergeOverlappingNotes(song)
-	if restBetweenVerses < 0 {
-		restBetweenVerses = computeDefaultRest(song)
-		log.Printf("computed default rest between verses: %d/32", restBetweenVerses)
-	}
-	song = resequenceToOne(song, fermatas, preludeSections, restBetweenVerses, numVerses)
-	song.SetBarAbsTicks()
-	dumpTimeSig("After", song)
-	// newMIDI := song.ToSMF1()
-	newMIDI := song.ToSMF0().ConvertToSMF1()
-	dumpSMF(newMIDI)
-	return newMIDI.WriteFile(out)
+	bars := findBars(midi)
+	log.Printf("bars: %+v", bars)
+	return nil
+	/*
+		dumpSMF(*midi)
+		dumpTimeSig("Before", song)
+		mapToChannel(song, 1) // Map to MIDI channel 2.
+		mergeOverlappingNotes(song)
+		if restBetweenVerses < 0 {
+			restBetweenVerses = computeDefaultRest(song)
+			log.Printf("computed default rest between verses: %d/32", restBetweenVerses)
+		}
+		song = resequenceToOne(song, fermatas, preludeSections, restBetweenVerses, numVerses)
+		song.SetBarAbsTicks()
+		dumpTimeSig("After", song)
+		// newMIDI := song.ToSMF1()
+		newMIDI := song.ToSMF0().ConvertToSMF1()
+		dumpSMF(newMIDI)
+		return newMIDI.WriteFile(out)
+	*/
 }
 
+/*
 // dumpTimeSig prints the time signatures the song uses in concise form.
 func dumpTimeSig(prefix string, song *sequencer.Song) {
 	var start int
@@ -70,17 +72,17 @@ func dumpTimeSig(prefix string, song *sequencer.Song) {
 			sig = barSig
 		}
 	}
-	for i, bar := range song.Bars() {
+	for i, bar := range song.bars() {
 		log.Printf("bar %d ticks %d", i, bar.AbsTicks)
 		gotSig(i, bar.AbsTicks, bar.Len(), &bar.TimeSig)
 	}
-	gotSig(len(song.Bars()), -1, 0, nil)
-	log.Printf("%s: %d: end", prefix, len(song.Bars()))
+	gotSig(len(song.bars()), -1, 0, nil)
+	log.Printf("%s: %d: end", prefix, len(song.bars()))
 }
 
 // mapToChannel maps all events of the song to the given MIDI channel.
 func mapToChannel(song *sequencer.Song, ch uint8) {
-	for _, bar := range song.Bars() {
+	for _, bar := range song.bars() {
 		for _, ev := range bar.Events {
 			var evCh uint8
 			if ev.Message.GetChannel(&evCh) {
@@ -139,7 +141,7 @@ func mergeOverlappingNotes(song *sequencer.Song) error {
 		})
 		return start, end
 	}
-	for i, bar := range song.Bars() {
+	for i, bar := range song.bars() {
 		for _, ev := range bar.Events {
 			start, end := ev.AbsTicks(bar, song.Ticks)
 			var ch, note, velocity uint8
@@ -158,7 +160,7 @@ func mergeOverlappingNotes(song *sequencer.Song) error {
 		}
 	}
 	// Filter out all events with nil message.
-	for _, bar := range song.Bars() {
+	for _, bar := range song.bars() {
 		var newEvents sequencer.Events
 		for _, ev := range bar.Events {
 			if ev.Message != nil {
@@ -173,10 +175,10 @@ func mergeOverlappingNotes(song *sequencer.Song) error {
 
 // computeDefaultRest computes the default rest between verses.
 func computeDefaultRest(song *sequencer.Song) int8 {
-	if len(song.Bars()) == 0 {
+	if len(song.bars()) == 0 {
 		return 8 // Default: 1/4 note.
 	}
-	lastBar := song.Bars()[len(song.Bars())-1]
+	lastBar := song.bars()[len(song.bars())-1]
 	timeSig := lastBar.TimeSig
 	if timeSig[0] > 3 && timeSig[0]%3 == 0 {
 		// Multiple of 3: then 3 form a group.
@@ -213,14 +215,14 @@ func resequenceToOne(song *sequencer.Song, fermatas []Pos, preludeSections []Ran
 
 	for i := 0; i < numVerses; i++ {
 		if i > 0 {
-			newBar := sequencer.Bar{
+			newBar := sequencer.bar{
 				TimeSig: restSig,
 				Events:  sequencer.Events{},
 				Key:     nil,
 			}
 			newSong.AddBar(newBar)
 		}
-		for _, bar := range song.Bars() {
+		for _, bar := range song.bars() {
 			newSong.AddBar(*bar)
 		}
 	}
@@ -244,7 +246,8 @@ func dumpSMF(midi smf.SMF) {
 
 func dumpSeq(song *sequencer.Song) {
 	fmt.Printf("#### SEQ: %v\n", song)
-	for i, bar := range song.Bars() {
+	for i, bar := range song.bars() {
 		fmt.Printf("## BAR %d: %v\n", i, bar)
 	}
 }
+*/

@@ -13,7 +13,7 @@ import (
 var (
 	i                 = flag.String("i", "", "input file name")
 	o                 = flag.String("o", "", "output file name")
-	prelude           = flag.String("prelude", "", "prelude ranges of the form bar.beat-bar.beat bar.beat-bar.beat ...")
+	prelude           = flag.String("prelude", "", "prelude ranges of the form bar.beat+num/denom-bar.beat+num/denom bar.beat+num/denom-bar.beat+num/denom ...")
 	fermatas          = flag.String("fermatas", "", "fermata positions of the form bar.beat bar.beat ...")
 	verses            = flag.Int("verses", 1, "number of verses")
 	restBetweenVerses = flag.Int("rest_between_verses", -1, "rest between verses in 32th notes (-1 means auto)")
@@ -26,7 +26,7 @@ func parsePrelude(s string) []processor.Range {
 			continue
 		}
 		var r processor.Range
-		_, err := fmt.Sscanf("%d.%d-%d.%d", item, &r.Begin.Bar, &r.Begin.Pos, &r.End.Bar, &r.End.Pos)
+		_, err := fmt.Sscanf("%d.%d+%d/%d-%d.%d+%d/%d", item, &r.Begin.Bar, &r.Begin.Beat, &r.Begin.BeatNum, &r.Begin.BeatDenom, &r.End.Bar, &r.End.Beat, &r.End.BeatNum, &r.End.BeatDenom)
 		if err != nil {
 			log.Panicf("failed to parse --prelude: range %q not in format n.n-n.n", item)
 		}
@@ -42,7 +42,7 @@ func parseFermatas(s string) []processor.Pos {
 			continue
 		}
 		var f processor.Pos
-		_, err := fmt.Sscanf("%d.%d", item, &f.Bar, &f.Pos)
+		_, err := fmt.Sscanf("%d.%d+%d/%d", item, &f.Bar, &f.Beat, &f.BeatNum, &f.BeatDenom)
 		if err != nil {
 			log.Panicf("failed to parse --fermatas: pos %q not in format n.n", item)
 		}
