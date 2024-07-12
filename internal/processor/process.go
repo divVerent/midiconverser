@@ -116,7 +116,7 @@ func Process(in, out string, fermatas []Pos, fermataExtend, fermataRest int, pre
 }
 
 func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
-	fermataNotes := map[key]struct{}{}
+	fermataNotes := map[Key]struct{}{}
 	first := true
 	waitingForNote := false
 	finished := false
@@ -128,14 +128,14 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 		}
 		if first {
 			first = false
-			for k := range tracker.activeNotes {
+			for _, k := range tracker.NotesPlaying() {
 				fermataNotes[k] = struct{}{}
 			}
 		}
 		anyMissing := false
 		allMissing := true
 		for k := range fermataNotes {
-			if _, found := tracker.activeNotes[k]; found {
+			if tracker.NotePlaying(k) {
 				allMissing = false
 			} else {
 				anyMissing = true
