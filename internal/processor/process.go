@@ -19,13 +19,21 @@ type Pos struct {
 	BeatDenom int
 }
 
+func (p Pos) ToTick(b bars) int64 {
+	return b.ToTick(p.Bar-1, p.Beat-1, p.BeatNum, p.BeatDenom)
+}
+
 type Range struct {
 	Begin Pos
 	End   Pos
 }
 
+func (r Range) ToTick(b bars) (int64, int64) {
+	return r.Begin.ToTick(b), r.End.ToTick(b)
+}
+
 // Process processes the given MIDI file and writes the result to out.
-func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetweenVerses int8, numVerses int) error {
+func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetweenVerses int, numVerses int) error {
 	midi, err := smf.ReadFile(in)
 	if err != nil {
 		return fmt.Errorf("smf.ReadFile(%q): %w", in, err)
@@ -33,14 +41,22 @@ func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetwee
 	bars := findBars(midi)
 	log.Printf("bars: %+v", bars)
 	dumpTimeSig("Before", bars)
+
+	// Map all to MIDI channel 2 for the organ.
+	//mapToChannel(midi, 1)
+
+	// Fix overlapping notes.
+	//mergeOverlappingNotes(midi)
+
+	if restBetweenVerses < 0 {
+		restBetweenVerses *= -bars[len(bars)-1].BeatNum
+		log.Printf("computed default rest between verses: %d/%d", restBetweenVerses, bars[len(bars)-1].Denom)
+	}
+
+	// Convert all times to ticks.
+
 	return nil
 	/*
-		mapToChannel(song, 1) // Map to MIDI channel 2.
-		mergeOverlappingNotes(song)
-		if restBetweenVerses < 0 {
-			restBetweenVerses = computeDefaultRest(song)
-			log.Printf("computed default rest between verses: %d/32", restBetweenVerses)
-		}
 		song = resequenceToOne(song, fermatas, preludeSections, restBetweenVerses, numVerses)
 		song.SetBarAbsTicks()
 		dumpTimeSig("After", song)
@@ -77,6 +93,16 @@ func dumpTimeSig(prefix string, b bars) {
 	}
 	gotSig(len(b), nil)
 	log.Printf("%s: %d: end", prefix, len(b))
+}
+
+// computeDefaultRest computes the default rest between verses in beats.
+func computeDefaultRest(b bars) int {
+	if len(b) == 0 {
+		return 1
+	}
+	lastBar := b[len(b)-1]
+	log.Printf("last bar: %+v", lastBar)
+	return 1
 }
 
 /*
@@ -171,21 +197,6 @@ func mergeOverlappingNotes(song *sequencer.Song) error {
 		bar.SortEvents()
 	}
 	return nil
-}
-
-// computeDefaultRest computes the default rest between verses.
-func computeDefaultRest(song *sequencer.Song) int8 {
-	if len(song.bars()) == 0 {
-		return 8 // Default: 1/4 note.
-	}
-	lastBar := song.bars()[len(song.bars())-1]
-	timeSig := lastBar.TimeSig
-	if timeSig[0] > 3 && timeSig[0]%3 == 0 {
-		// Multiple of 3: then 3 form a group.
-		return int8(3 * 32 / timeSig[1])
-	}
-	// Otherwise just one beat.
-	return int8(32 / timeSig[1])
 }
 
 // resequenceToOne resequences the song.
