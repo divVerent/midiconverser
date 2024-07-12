@@ -1,8 +1,12 @@
 package processor
 
 import (
+	"errors"
+
 	"gitlab.com/gomidi/midi/v2/smf"
 )
+
+var StopIteration = errors.New("forEachEventWithTime: StopIteration")
 
 func forEachEventWithTime(mid *smf.SMF, yield func(time int64, track int, msg smf.Message) error) error {
 	// trackPos is the index of the NEXT event from each track.
@@ -31,6 +35,9 @@ func forEachEventWithTime(mid *smf.SMF, yield func(time int64, track int, msg sm
 		msg := mid.Tracks[earliestTrack][trackPos[earliestTrack]].Message
 		if !msg.Is(smf.MetaEndOfTrackMsg) {
 			err := yield(earliestTime, earliestTrack, mid.Tracks[earliestTrack][trackPos[earliestTrack]].Message)
+			if errors.Is(err, StopIteration) {
+				return nil
+			}
 			if err != nil {
 				return err
 			}

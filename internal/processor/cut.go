@@ -8,13 +8,14 @@ import (
 )
 
 type tickRange struct {
-	begin, end int64
+	Begin, End int64
 }
 
 type cut struct {
-	restBefore int64
-	tickRange
-	restAfter int64
+	RestBefore           int64
+	Begin, End           int64
+	RestAfter            int64
+	DirtyBegin, DirtyEnd bool
 }
 
 // cutMIDI generates a new MIDI file from the input and a set of ranges.
@@ -40,7 +41,7 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 		tracks[t].Close(uint32(tick - trackTimes[t]))
 		trackTimes[t] = tick
 	}
-	forEachInSection := func(from, to int64, yield func(time int64, track int, msg smf.Message) error) error {
+	forEachInSection := func(from, to int64, dirtyFrom, dirtyTo bool, yield func(time int64, track int, msg smf.Message) error) error {
 		first := true
 		wasPlayingAtEnd := false
 		tracker := newNoteTracker(false)
@@ -51,10 +52,10 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 				return nil
 			}
 			if time >= to {
-				return nil
+				return StopIteration
 			}
 			if first {
-				if wasPlaying {
+				if !dirtyFrom && wasPlaying {
 					return fmt.Errorf("already playing a note at start of section to be copied at time %d track %d", time, track)
 				}
 				first = false
@@ -65,13 +66,13 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 		if err != nil {
 			return err
 		}
-		if wasPlayingAtEnd {
+		if !dirtyTo && wasPlayingAtEnd {
 			return fmt.Errorf("still playing a note at end of section to be copied at time %d", to)
 		}
 		return nil
 	}
-	copyMeta := func(from, to int64, outTick int64) error {
-		return forEachInSection(from, to, func(time int64, track int, msg smf.Message) error {
+	copyMeta := func(from, to int64, dirtyFrom, dirtyTo bool, outTick int64) error {
+		return forEachInSection(from, to, dirtyFrom, dirtyTo, func(time int64, track int, msg smf.Message) error {
 			if msg.IsOneOf(midi.NoteOnMsg, midi.NoteOffMsg, midi.PitchBendMsg, midi.AfterTouchMsg, midi.PolyAfterTouchMsg) {
 				return nil
 			}
@@ -79,8 +80,8 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 			return nil
 		})
 	}
-	copyAll := func(from, to int64, outTick int64) error {
-		return forEachInSection(from, to, func(time int64, track int, msg smf.Message) error {
+	copyAll := func(from, to int64, dirtyFrom, dirtyTo bool, outTick int64) error {
+		return forEachInSection(from, to, dirtyFrom, dirtyTo, func(time int64, track int, msg smf.Message) error {
 			addEvent(track, outTick, msg)
 			return nil
 		})
@@ -90,22 +91,22 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 	outTick := int64(0)
 	for _, cut := range cuts {
 		// For each cut, all non-note events from the previous range's end to the next range's start are repeated.
-		if prevEndTick > cut.begin {
+		if prevEndTick > cut.Begin {
 			// If seeking backwards, we have to repeat events from the start.
 			prevEndTick = 0
 		}
-		err := copyMeta(prevEndTick, cut.begin, outTick)
+		err := copyMeta(prevEndTick, cut.Begin, false, false, outTick)
 		if err != nil {
 			return nil, err
 		}
-		outTick += cut.restBefore
-		err = copyAll(cut.begin, cut.end, outTick)
+		outTick += cut.RestBefore
+		err = copyAll(cut.Begin, cut.End, cut.DirtyBegin, cut.DirtyEnd, outTick)
 		if err != nil {
 			return nil, err
 		}
-		outTick += cut.end - cut.begin
-		outTick += cut.restAfter
-		prevEndTick = cut.end
+		outTick += cut.End - cut.Begin
+		outTick += cut.RestAfter
+		prevEndTick = cut.End
 	}
 	for i := range tracks {
 		closeTrack(i, outTick)

@@ -41,6 +41,10 @@ type tickFermata struct {
 	tick   int64
 	extend int64
 	rest   int64
+
+	// Values computed from the inputs.
+	holdTick    int64 // Last tick where all notes are held.
+	releaseTick int64 // First tick with a note after the fermata.
 }
 
 // Process processes the given MIDI file and writes the result to out.
@@ -65,33 +69,127 @@ func Process(in, out string, fermatas []Pos, fermataExtend, fermataRest int, pre
 	// Convert all values to ticks.
 	var fermataTick []tickFermata
 	for _, f := range fermatas {
-		fermataTick = append(fermataTick, tickFermata{
+		tf := tickFermata{
 			tick:   f.ToTick(bars),
 			extend: beatsOrNotesToTicks(bars[f.Bar], fermataExtend),
 			rest:   beatsOrNotesToTicks(bars[f.Bar], fermataRest),
-		})
+		}
+		err := adjustFermata(mid, &tf)
+		if err != nil {
+			return err
+		}
+		fermataTick = append(fermataTick, tf)
 	}
 	var preludeTick []tickRange
 	for _, p := range preludeSections {
 		begin, end := p.ToTick(bars)
 		preludeTick = append(preludeTick, tickRange{
-			begin: begin,
-			end:   end,
+			Begin: begin,
+			End:   end,
 		})
 	}
 	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], restBetweenVerses)
-	fmt.Println(ticksBetweenVerses)
+	totalTicks := bars[len(bars)-1].End()
 
+	// Make a whole-file MIDI.
+	var wholeCut []cut
+	for _, p := range preludeTick {
+		wholeCut = append(wholeCut, fermatize(cut{
+			RestBefore: 0,
+			Begin:      p.Begin,
+			End:        p.End,
+			RestAfter:  0,
+		}, fermataTick)...)
+	}
+	for i := 0; i < numVerses; i++ {
+		wholeCut = append(wholeCut, fermatize(cut{
+			RestBefore: ticksBetweenVerses,
+			Begin:      0,
+			End:        totalTicks,
+		}, fermataTick)...)
+	}
+
+	newMIDI, err := cutMIDI(mid, wholeCut)
+	newBars := findBars(newMIDI)
+	dumpTimeSig("After", newBars)
+	return newMIDI.WriteFile(out)
+}
+
+func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
+	fermataNotes := map[key]struct{}{}
+	first := true
+	waitingForNote := false
+	finished := false
+	tracker := newNoteTracker(false)
+	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+		tracker.Handle(msg)
+		if time < tf.tick {
+			return nil
+		}
+		if first {
+			first = false
+			for k := range tracker.activeNotes {
+				fermataNotes[k] = struct{}{}
+			}
+		}
+		anyMissing := false
+		allMissing := true
+		for k := range fermataNotes {
+			if _, found := tracker.activeNotes[k]; found {
+				allMissing = false
+			} else {
+				anyMissing = true
+			}
+		}
+		if anyMissing {
+			tf.holdTick = time
+		}
+		if allMissing {
+			waitingForNote = true
+		}
+		if waitingForNote && tracker.Playing() {
+			tf.releaseTick = time
+			finished = true
+			return StopIteration
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if !finished {
+		return fmt.Errorf("failed to adjust fermata at time %v: first=%v waitingForNote=%v", tf.tick, first, waitingForNote)
+	}
 	return nil
-	/*
-		song = resequenceToOne(song, fermatas, preludeSections, restBetweenVerses, numVerses)
-		song.SetBarAbsTicks()
-		dumpTimeSig("After", song)
-		// newMIDI := song.ToSMF1()
-		newMIDI := song.ToSMF0().ConvertToSMF1()
-		dumpSMF(newMIDI)
-		return newMIDI.WriteFile(out)
-	*/
+}
+
+func fermatize(c cut, fermataTick []tickFermata) []cut {
+	var result []cut
+	for _, tf := range fermataTick {
+		if tf.holdTick >= c.Begin && tf.releaseTick < c.End {
+			result = append(result,
+				cut{
+					RestBefore: c.RestBefore,
+					Begin:      c.Begin,
+					End:        tf.holdTick,
+					RestAfter:  tf.extend,
+					DirtyBegin: c.DirtyBegin,
+					DirtyEnd:   true,
+				},
+				cut{
+					RestBefore: 0,
+					Begin:      tf.holdTick,
+					End:        tf.releaseTick,
+					RestAfter:  tf.rest,
+					DirtyBegin: c.DirtyBegin,
+					DirtyEnd:   false,
+				})
+			c.RestBefore = 0
+			c.Begin = tf.releaseTick
+			c.DirtyBegin = false
+		}
+	}
+	return append(result, c)
 }
 
 // dumpTimeSig prints the time signatures the song uses in concise form.
@@ -110,7 +208,7 @@ func dumpTimeSig(prefix string, b bars) {
 			}
 			start = i
 			if thisBar != nil {
-				startTicks = thisBar.Start
+				startTicks = thisBar.Begin
 			}
 			sigBar = thisBar
 		}

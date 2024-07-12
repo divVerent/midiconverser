@@ -14,7 +14,7 @@ import (
 
 type bar struct {
 	// bar position.
-	Start  int64
+	Begin  int64
 	Length int64
 	// Time signature applying to the bar.
 	BeatNum int
@@ -66,9 +66,13 @@ func (b bar) NumLength() int64 {
 	return b.Length / int64(b.Num)
 }
 
+func (b bar) End() int64 {
+	return b.Begin + b.Length
+}
+
 func (b bar) ToTick(beat, beatNum, beatDenom int) int64 {
 	beatLen := b.BeatLength()
-	return b.Start + beatLen*int64(beat) + beatLen*int64(beatNum)/int64(beatDenom)
+	return b.Begin + beatLen*int64(beat) + beatLen*int64(beatNum)/int64(beatDenom)
 }
 
 type bars []bar
@@ -146,7 +150,7 @@ func findBars(midi *smf.SMF) bars {
 	for {
 		sig := sigs[sigsPos]
 		newBar := bar{
-			Start:       time,
+			Begin:       time,
 			Length:      sig.barLen,
 			BeatNum:     sig.beatNum,
 			Num:         sig.num,
