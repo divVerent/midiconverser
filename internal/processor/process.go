@@ -32,10 +32,9 @@ func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetwee
 	}
 	bars := findBars(midi)
 	log.Printf("bars: %+v", bars)
+	dumpTimeSig("Before", bars)
 	return nil
 	/*
-		dumpSMF(*midi)
-		dumpTimeSig("Before", song)
 		mapToChannel(song, 1) // Map to MIDI channel 2.
 		mergeOverlappingNotes(song)
 		if restBetweenVerses < 0 {
@@ -52,34 +51,35 @@ func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetwee
 	*/
 }
 
-/*
 // dumpTimeSig prints the time signatures the song uses in concise form.
-func dumpTimeSig(prefix string, song *sequencer.Song) {
+func dumpTimeSig(prefix string, b bars) {
 	var start int
 	var startTicks int64
-	var sig *[2]uint8
-	gotSig := func(bar int, absTicks int64, barLen uint8, barSig *[2]uint8) {
-		if barSig == nil || sig == nil || *barSig != *sig {
-			if bar != start {
+	var sigBar *bar
+	gotSig := func(i int, thisBar *bar) {
+		if thisBar == nil || sigBar == nil || thisBar.Num != sigBar.Num || thisBar.Denom != sigBar.Denom {
+			if i != start {
 				plural := "s"
-				if bar-start == 1 {
+				if i-start == 1 {
 					plural = ""
 				}
-				log.Printf("%s: %d @ %d: %d bar%s of %d/%d", prefix, start, startTicks, bar-start, plural, sig[0], sig[1])
+				log.Printf("%s: %d @ %d: %d bar%s of %d/%d", prefix, start, startTicks, i-start, plural, sigBar.Num, sigBar.Denom)
 			}
-			start = bar
-			startTicks = absTicks
-			sig = barSig
+			start = i
+			if thisBar != nil {
+				startTicks = thisBar.Start
+			}
+			sigBar = thisBar
 		}
 	}
-	for i, bar := range song.bars() {
-		log.Printf("bar %d ticks %d", i, bar.AbsTicks)
-		gotSig(i, bar.AbsTicks, bar.Len(), &bar.TimeSig)
+	for i, bar := range b {
+		gotSig(i, &bar)
 	}
-	gotSig(len(song.bars()), -1, 0, nil)
-	log.Printf("%s: %d: end", prefix, len(song.bars()))
+	gotSig(len(b), nil)
+	log.Printf("%s: %d: end", prefix, len(b))
 }
 
+/*
 // mapToChannel maps all events of the song to the given MIDI channel.
 func mapToChannel(song *sequencer.Song, ch uint8) {
 	for _, bar := range song.bars() {
