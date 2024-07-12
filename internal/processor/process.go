@@ -32,6 +32,10 @@ func (r Range) ToTick(b bars) (int64, int64) {
 	return r.Begin.ToTick(b), r.End.ToTick(b)
 }
 
+type tickRange struct {
+	begin, end int64
+}
+
 // Process processes the given MIDI file and writes the result to out.
 func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetweenVerses int, numVerses int) error {
 	midi, err := smf.ReadFile(in)
@@ -43,7 +47,7 @@ func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetwee
 	dumpTimeSig("Before", bars)
 
 	// Map all to MIDI channel 2 for the organ.
-	//mapToChannel(midi, 1)
+	mapToChannel(midi, 1)
 
 	// Fix overlapping notes.
 	//mergeOverlappingNotes(midi)
@@ -53,7 +57,21 @@ func Process(in, out string, fermatas []Pos, preludeSections []Range, restBetwee
 		log.Printf("computed default rest between verses: %d/%d", restBetweenVerses, bars[len(bars)-1].Denom)
 	}
 
-	// Convert all times to ticks.
+	// Convert all values to ticks.
+	var fermataTick []int64
+	for _, p := range fermatas {
+		fermataTick = append(fermataTick, p.ToTick(bars))
+	}
+	var preludeTick []tickRange
+	for _, p := range preludeSections {
+		begin, end := p.ToTick(bars)
+		preludeTick = append(preludeTick, tickRange{
+			begin: begin,
+			end:   end,
+		})
+	}
+	ticksBetweenVerses := int64(restBetweenVerses) * bars[len(bars)-1].NumLength()
+	fmt.Println(ticksBetweenVerses)
 
 	return nil
 	/*
@@ -105,11 +123,10 @@ func computeDefaultRest(b bars) int {
 	return 1
 }
 
-/*
 // mapToChannel maps all events of the song to the given MIDI channel.
-func mapToChannel(song *sequencer.Song, ch uint8) {
-	for _, bar := range song.bars() {
-		for _, ev := range bar.Events {
+func mapToChannel(midi *smf.SMF, ch uint8) {
+	for _, t := range midi.Tracks {
+		for _, ev := range t {
 			var evCh uint8
 			if ev.Message.GetChannel(&evCh) {
 				ev.Message.Bytes()[0] += ch - evCh
@@ -121,6 +138,7 @@ func mapToChannel(song *sequencer.Song, ch uint8) {
 	}
 }
 
+/*
 // mergeOverlappingNotes merges overlapping notes in the song.
 func mergeOverlappingNotes(song *sequencer.Song) error {
 	type key struct {

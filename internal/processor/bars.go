@@ -59,7 +59,11 @@ func (b *bar) SetToLength(length int64) {
 }
 
 func (b bar) BeatLength() int64 {
-	return b.Length * int64(b.BeatNum) / int64(b.Num)
+	return b.NumLength() * int64(b.BeatNum)
+}
+
+func (b bar) NumLength() int64 {
+	return b.Length / int64(b.Num)
 }
 
 func (b bar) ToTick(beat, beatNum, beatDenom int) int64 {
