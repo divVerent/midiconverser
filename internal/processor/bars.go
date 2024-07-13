@@ -97,11 +97,11 @@ func findBars(midi *smf.SMF) bars {
 		},
 	}
 	var lastTime int64
-	for i, t := range midi.Tracks {
+	for _, t := range midi.Tracks {
 		var time int64
 		for _, ev := range t {
 			time += int64(ev.Delta)
-			log.Printf("track %d event @ %d: %v", i, time, ev.Message)
+			// log.Printf("track %d event @ %d: %v", i, time, ev.Message)
 			if ev.Message.IsPlayable() && time > lastTime {
 				lastTime = time
 			}

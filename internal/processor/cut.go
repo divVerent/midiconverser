@@ -82,7 +82,7 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 	}
 	copyAll := func(from, to int64, dirtyFrom, dirtyTo bool, outTick int64) error {
 		return forEachInSection(from, to, dirtyFrom, dirtyTo, func(time int64, track int, msg smf.Message) error {
-			addEvent(track, outTick, msg)
+			addEvent(track, outTick+time-from, msg)
 			return nil
 		})
 	}

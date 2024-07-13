@@ -12,7 +12,8 @@ import (
 
 var (
 	i                 = flag.String("i", "", "input file name")
-	o                 = flag.String("o", "", "output file name")
+	o                 = flag.String("o", "", "output file name for outputting a single file")
+	oPrefix           = flag.String("o_prefix", "", "output file name for outputting separate files")
 	prelude           = flag.String("prelude", "", "prelude ranges of the form bar.beat+num/denom-bar.beat+num/denom bar.beat+num/denom-bar.beat+num/denom ...")
 	fermatas          = flag.String("fermatas", "", "fermata positions of the form bar.beat bar.beat ...")
 	verses            = flag.Int("verses", 1, "number of verses")
@@ -55,7 +56,7 @@ func parseFermatas(s string) []processor.Pos {
 
 func main() {
 	flag.Parse()
-	err := processor.Process(*i, *o, parseFermatas(*fermatas), *fermataExtend, *fermataRest, parsePrelude(*prelude), *restBetweenVerses, *verses)
+	err := processor.Process(*i, *o, *oPrefix, parseFermatas(*fermatas), *fermataExtend, *fermataRest, parsePrelude(*prelude), *restBetweenVerses, *verses)
 	if err != nil {
 		log.Printf("Failed to process: %v", err)
 		os.Exit(1)

@@ -48,7 +48,7 @@ type tickFermata struct {
 }
 
 // Process processes the given MIDI file and writes the result to out.
-func Process(in, out string, fermatas []Pos, fermataExtend, fermataRest int, preludeSections []Range, restBetweenVerses int, numVerses int) error {
+func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRest int, preludeSections []Range, restBetweenVerses int, numVerses int) error {
 	mid, err := smf.ReadFile(in)
 	if err != nil {
 		return fmt.Errorf("smf.ReadFile(%q): %w", in, err)
@@ -92,27 +92,77 @@ func Process(in, out string, fermatas []Pos, fermataExtend, fermataRest int, pre
 	totalTicks := bars[len(bars)-1].End()
 
 	// Make a whole-file MIDI.
-	var wholeCut []cut
+	var preludeCuts []cut
 	for _, p := range preludeTick {
-		wholeCut = append(wholeCut, fermatize(cut{
+		preludeCuts = append(preludeCuts, fermatize(cut{
 			RestBefore: 0,
 			Begin:      p.Begin,
 			End:        p.End,
 			RestAfter:  0,
 		}, fermataTick)...)
 	}
-	for i := 0; i < numVerses; i++ {
-		wholeCut = append(wholeCut, fermatize(cut{
-			RestBefore: ticksBetweenVerses,
-			Begin:      0,
-			End:        totalTicks,
-		}, fermataTick)...)
+	verseCuts := fermatize(cut{
+		RestBefore: ticksBetweenVerses,
+		Begin:      0,
+		End:        totalTicks,
+	}, fermataTick)
+
+	if out != "" {
+		var cuts []cut
+		cuts = append(cuts, preludeCuts...)
+		for i := 0; i < numVerses; i++ {
+			cuts = append(cuts, verseCuts...)
+		}
+		wholeMIDI, err := cutMIDI(mid, trim(cuts))
+		if err != nil {
+			return err
+		}
+		err = wholeMIDI.WriteFile(out)
+		if err != nil {
+			return err
+		}
+		newBars := findBars(wholeMIDI)
+		dumpTimeSig("Whole", newBars)
 	}
 
-	newMIDI, err := cutMIDI(mid, wholeCut)
-	newBars := findBars(newMIDI)
-	dumpTimeSig("After", newBars)
-	return newMIDI.WriteFile(out)
+	if outPrefix != "" {
+		if len(preludeCuts) > 0 {
+			preludeMIDI, err := cutMIDI(mid, trim(preludeCuts))
+			if err != nil {
+				return err
+			}
+			err = preludeMIDI.WriteFile(fmt.Sprintf("%s.prelude.mid", outPrefix))
+			if err != nil {
+				return err
+			}
+			newBars := findBars(preludeMIDI)
+			dumpTimeSig("Prelude", newBars)
+		}
+		for i, c := range verseCuts {
+			sectionMIDI, err := cutMIDI(mid, trim([]cut{c}))
+			if err != nil {
+				return err
+			}
+			err = sectionMIDI.WriteFile(fmt.Sprintf("%s.part%d.mid", outPrefix, i))
+			if err != nil {
+				return err
+			}
+			newBars := findBars(sectionMIDI)
+			dumpTimeSig(fmt.Sprintf("Section %d", i), newBars)
+		}
+	}
+
+	return nil
+}
+
+func trim(c []cut) []cut {
+	if len(c) == 0 {
+		return c
+	}
+	result := append([]cut{}, c...)
+	result[0].RestBefore = 0
+	result[len(result)-1].RestAfter = 0
+	return result
 }
 
 func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
@@ -267,68 +317,3 @@ func removeRedundantNoteEvents(mid *smf.SMF, refcounting bool) error {
 	mid.Tracks = tracks
 	return nil
 }
-
-/*
-// resequenceToOne resequences the song.
-func resequenceToOne(song *sequencer.Song, fermatas []Pos, preludeSections []Range, restBetweenVerses int8, numVerses int) *sequencer.Song {
-	newSong := sequencer.New()
-	newSong.Title = song.Title
-	newSong.Composer = song.Composer
-	newSong.TrackNames = song.TrackNames
-	newSong.Ticks = song.Ticks
-
-	if len(fermatas) > 0 {
-		log.Printf("NOT YET IMPLEMENTED: fermatas")
-	}
-
-	if len(preludeSections) != 0 {
-		log.Printf("NOT YET IMPLEMENTED: prelude")
-	}
-
-	restSig := [2]uint8{
-		uint8(restBetweenVerses),
-		32,
-	}
-	for restSig[0] >= 8 || (restSig[0] > 1 && restSig[0]%2 == 0) {
-		restSig[0] /= 2
-		restSig[1] /= 2
-	}
-
-	for i := 0; i < numVerses; i++ {
-		if i > 0 {
-			newBar := sequencer.bar{
-				TimeSig: restSig,
-				Events:  sequencer.Events{},
-				Key:     nil,
-			}
-			newSong.AddBar(newBar)
-		}
-		for _, bar := range song.bars() {
-			newSong.AddBar(*bar)
-		}
-	}
-
-	newSong.SetBarAbsTicks()
-	return newSong
-}
-
-// resequenceToMultiple resequences the song to multiple separate MIDI files that are played in sequence.
-// Output files are in order:
-// - Prelude (if any).
-// - Then one file per segment, split at fermatas.
-func resequenceToMultiple(song *sequencer.Song, fermatas []Pos, preludeSections []Range) (*sequencer.Song, []*sequencer.Song) {
-	log.Printf("NOT YET IMPLEMENTED: resequenceToMultiple")
-	return nil, nil
-}
-
-func dumpSMF(mid smf.SMF) {
-	fmt.Printf("%v\n", mid)
-}
-
-func dumpSeq(song *sequencer.Song) {
-	fmt.Printf("#### SEQ: %v\n", song)
-	for i, bar := range song.bars() {
-		fmt.Printf("## BAR %d: %v\n", i, bar)
-	}
-}
-*/
