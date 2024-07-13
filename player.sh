@@ -9,6 +9,12 @@ panic() {
 	exit 1
 }
 
+waitkey() {
+	stty -icanon -echo
+	head -c 1 >/dev/null
+	stty icanon echo
+}
+
 trap panic INT
 
 if [ -f "$prefix.prelude.mid" ]; then
@@ -22,7 +28,7 @@ for i in $(seq 1 "$verses"); do
 	for part in $prefix.part*.mid; do
 		case "$state" in
 			init)
-				text="START VERSE 1?"
+				text="START VERSE $i?"
 				answer="Playing verse $i..."
 				state=hold
 				;;
@@ -39,7 +45,7 @@ for i in $(seq 1 "$verses"); do
 		esac
 		if $needwait; then
 			figlet "$text"
-			read
+			waitkey
 		fi
 		echo "$answer"
 		$player "$part"

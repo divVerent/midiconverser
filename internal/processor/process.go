@@ -71,7 +71,7 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 	}
 
 	// Map all to MIDI channel 2 for the organ.
-	mapToChannel(mid, 0)
+	mapToChannel(mid, 1)
 	if err != nil {
 		return err
 	}
