@@ -71,13 +71,14 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 	for _, f := range fermatas {
 		tf := tickFermata{
 			tick:   f.ToTick(bars),
-			extend: beatsOrNotesToTicks(bars[f.Bar], fermataExtend),
-			rest:   beatsOrNotesToTicks(bars[f.Bar], fermataRest),
+			extend: beatsOrNotesToTicks(bars[f.Bar-1], fermataExtend),
+			rest:   beatsOrNotesToTicks(bars[f.Bar-1], fermataRest),
 		}
 		err := adjustFermata(mid, &tf)
 		if err != nil {
 			return err
 		}
+		log.Printf("fermata: %+v", tf)
 		fermataTick = append(fermataTick, tf)
 	}
 	var preludeTick []tickRange
@@ -91,6 +92,8 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], restBetweenVerses)
 	totalTicks := bars[len(bars)-1].End()
 
+	log.Printf("fermata data: %+v", fermataTick)
+
 	// Make a whole-file MIDI.
 	var preludeCuts []cut
 	for _, p := range preludeTick {
@@ -101,11 +104,13 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 			RestAfter:  0,
 		}, fermataTick)...)
 	}
+	log.Printf("prelude cuts: %+v", preludeCuts)
 	verseCuts := fermatize(cut{
 		RestBefore: ticksBetweenVerses,
 		Begin:      0,
 		End:        totalTicks,
 	}, fermataTick)
+	log.Printf("verse cuts: %+v", preludeCuts)
 
 	if out != "" {
 		var cuts []cut
@@ -168,6 +173,7 @@ func trim(c []cut) []cut {
 func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 	fermataNotes := map[Key]struct{}{}
 	first := true
+	var firstTick, lastTick int64
 	waitingForNote := false
 	finished := false
 	tracker := newNoteTracker(false)
@@ -176,12 +182,15 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 		if time < tf.tick {
 			return nil
 		}
-		if first {
+		if first || time == firstTick {
 			first = false
+			firstTick = time
 			for _, k := range tracker.NotesPlaying() {
 				fermataNotes[k] = struct{}{}
 			}
+			return nil
 		}
+		lastTick = time
 		anyMissing := false
 		allMissing := true
 		for k := range fermataNotes {
@@ -208,7 +217,7 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 		return err
 	}
 	if !finished {
-		return fmt.Errorf("failed to adjust fermata at time %v: first=%v waitingForNote=%v", tf.tick, first, waitingForNote)
+		tf.releaseTick = lastTick + 1
 	}
 	return nil
 }
@@ -231,7 +240,7 @@ func fermatize(c cut, fermataTick []tickFermata) []cut {
 					Begin:      tf.holdTick,
 					End:        tf.releaseTick,
 					RestAfter:  tf.rest,
-					DirtyBegin: c.DirtyBegin,
+					DirtyBegin: true,
 					DirtyEnd:   false,
 				})
 			c.RestBefore = 0
@@ -254,7 +263,7 @@ func dumpTimeSig(prefix string, b bars) {
 				if i-start == 1 {
 					plural = ""
 				}
-				log.Printf("%s: %d @ %d: %d bar%s of %d/%d", prefix, start, startTicks, i-start, plural, sigBar.Num, sigBar.Denom)
+				log.Printf("%s: %d @ %d: %d bar%s of %d/%d", prefix, start+1, startTicks, i-start, plural, sigBar.Num, sigBar.Denom)
 			}
 			start = i
 			if thisBar != nil {
@@ -267,7 +276,7 @@ func dumpTimeSig(prefix string, b bars) {
 		gotSig(i, &bar)
 	}
 	gotSig(len(b), nil)
-	log.Printf("%s: %d: end", prefix, len(b))
+	log.Printf("%s: %d: end", prefix, len(b)+1)
 }
 
 // computeDefaultRest computes the default rest between verses in beats.

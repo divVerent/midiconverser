@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/divVerent/midiconverser/internal/processor"
@@ -22,16 +23,77 @@ var (
 	fermataRest       = flag.Int("fermata_rest", 1, "fermata rest amount in beats (if negative, number of denominator notes)")
 )
 
+var (
+	preludeFlagValue = regexp.MustCompile(`(\d+)(?:\.(\d+))?(?:\+(\d+)/(\d+))?-(\d+)(?:\.(\d+))?(?:\+(\d+)/(\d+))?`)
+	fermataFlagValue = regexp.MustCompile(`(\d+)(?:\.(\d+))?(?:\+(\d+)/(\d+))?`)
+)
+
 func parsePrelude(s string) []processor.Range {
 	var ranges []processor.Range
 	for _, item := range strings.Split(s, " ") {
 		if item == "" {
 			continue
 		}
-		var r processor.Range
-		_, err := fmt.Sscanf("%d.%d+%d/%d-%d.%d+%d/%d", item, &r.Begin.Bar, &r.Begin.Beat, &r.Begin.BeatNum, &r.Begin.BeatDenom, &r.End.Bar, &r.End.Beat, &r.End.BeatNum, &r.End.BeatDenom)
+		result := preludeFlagValue.FindStringSubmatch(item)
+		if result == nil {
+			log.Panicf("failed to parse --prelude: range %q not in format n.n+n/n-n.n+n/n", item)
+		}
+		r := processor.Range{
+			Begin: processor.Pos{
+				Beat:      1,
+				BeatNum:   0,
+				BeatDenom: 1,
+			},
+			End: processor.Pos{
+				Beat:      1,
+				BeatNum:   0,
+				BeatDenom: 1,
+			},
+		}
+		var err error
+		r.Begin.Bar, err = strconv.Atoi(result[1])
 		if err != nil {
-			log.Panicf("failed to parse --prelude: range %q not in format n.n-n.n", item)
+			log.Panicf("failed to parse --prelude: range %q not in format n.n+n/n-n.n+n/n", item)
+		}
+		if result[2] != "" {
+			r.Begin.Beat, err = strconv.Atoi(result[2])
+			if err != nil {
+				log.Panicf("failed to parse --prelude: range %q not in format n.n+n/n-n.n+n/n", item)
+			}
+		}
+		if result[3] != "" {
+			r.Begin.BeatNum, err = strconv.Atoi(result[3])
+			if err != nil {
+				log.Panicf("failed to parse --prelude: range %q not in format n.n+n/n-n.n+n/n", item)
+			}
+		}
+		if result[4] != "" {
+			r.Begin.BeatDenom, err = strconv.Atoi(result[4])
+			if err != nil {
+				log.Panicf("failed to parse --prelude: range %q not in format n.n+n/n-n.n+n/n", item)
+			}
+		}
+		r.End.Bar, err = strconv.Atoi(result[5])
+		if err != nil {
+			log.Panicf("failed to parse --prelude: range %q not in format n.n+n/n-n.n+n/n", item)
+		}
+		if result[6] != "" {
+			r.End.Beat, err = strconv.Atoi(result[6])
+			if err != nil {
+				log.Panicf("failed to parse --prelude: range %q not in format n.n+n/n-n.n+n/n", item)
+			}
+		}
+		if result[7] != "" {
+			r.End.BeatNum, err = strconv.Atoi(result[7])
+			if err != nil {
+				log.Panicf("failed to parse --prelude: range %q not in format n.n+n/n-n.n+n/n", item)
+			}
+		}
+		if result[8] != "" {
+			r.End.BeatDenom, err = strconv.Atoi(result[8])
+			if err != nil {
+				log.Panicf("failed to parse --prelude: range %q not in format n.n+n/n-n.n+n/n", item)
+			}
 		}
 		ranges = append(ranges, r)
 	}
@@ -44,10 +106,37 @@ func parseFermatas(s string) []processor.Pos {
 		if item == "" {
 			continue
 		}
-		var f processor.Pos
-		_, err := fmt.Sscanf("%d.%d+%d/%d", item, &f.Bar, &f.Beat, &f.BeatNum, &f.BeatDenom)
+		result := fermataFlagValue.FindStringSubmatch(item)
+		if result == nil {
+			log.Panicf("failed to parse --fermatas: pos %q not in format n.n+n/n", item)
+		}
+		f := processor.Pos{
+			Beat:      1,
+			BeatNum:   0,
+			BeatDenom: 1,
+		}
+		var err error
+		f.Bar, err = strconv.Atoi(result[1])
 		if err != nil {
-			log.Panicf("failed to parse --fermatas: pos %q not in format n.n", item)
+			log.Panicf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", item)
+		}
+		if result[2] != "" {
+			f.Beat, err = strconv.Atoi(result[2])
+			if err != nil {
+				log.Panicf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", item)
+			}
+		}
+		if result[3] != "" {
+			f.BeatNum, err = strconv.Atoi(result[3])
+			if err != nil {
+				log.Panicf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", item)
+			}
+		}
+		if result[4] != "" {
+			f.BeatDenom, err = strconv.Atoi(result[4])
+			if err != nil {
+				log.Panicf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", item)
+			}
 		}
 		fermatas = append(fermatas, f)
 	}

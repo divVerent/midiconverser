@@ -73,7 +73,7 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 	}
 	copyMeta := func(from, to int64, dirtyFrom, dirtyTo bool, outTick int64) error {
 		return forEachInSection(from, to, dirtyFrom, dirtyTo, func(time int64, track int, msg smf.Message) error {
-			if msg.IsOneOf(midi.NoteOnMsg, midi.NoteOffMsg, midi.PitchBendMsg, midi.AfterTouchMsg, midi.PolyAfterTouchMsg) {
+			if msg.IsOneOf(midi.NoteOnMsg, midi.NoteOffMsg, midi.ControlChangeMsg, midi.PitchBendMsg, midi.AfterTouchMsg, midi.PolyAfterTouchMsg, midi.ProgramChangeMsg) {
 				return nil
 			}
 			addEvent(track, outTick, msg)
@@ -95,7 +95,7 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 			// If seeking backwards, we have to repeat events from the start.
 			prevEndTick = 0
 		}
-		err := copyMeta(prevEndTick, cut.Begin, false, false, outTick)
+		err := copyMeta(prevEndTick, cut.Begin, true, true, outTick)
 		if err != nil {
 			return nil, err
 		}

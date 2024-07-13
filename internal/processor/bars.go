@@ -78,6 +78,9 @@ func (b bar) ToTick(beat, beatNum, beatDenom int) int64 {
 type bars []bar
 
 func (b bars) ToTick(bar, beat, beatNum, beatDenom int) int64 {
+	if bar == len(b) && beat == 0 && beatNum == 0 {
+		return b[len(b)-1].End()
+	}
 	return b[bar].ToTick(beat, beatNum, beatDenom)
 }
 
@@ -123,6 +126,9 @@ func findBars(midi *smf.SMF) bars {
 				})
 			}
 		}
+	}
+	if lastTime == 0 {
+		return nil
 	}
 	sigs = append(sigs, timeSig{
 		start: lastTime,
