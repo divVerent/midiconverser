@@ -44,7 +44,7 @@ type tickFermata struct {
 
 	// Values computed from the inputs.
 	holdTick    int64 // Last tick where all notes are held.
-	releaseTick int64 // First tick with a note after the fermata.
+	releaseTick int64 // First tick with a note after the fermata; -1 indicates till end.
 }
 
 // Process processes the given MIDI file and writes the result to out.
@@ -155,6 +155,14 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 			newBars := findBars(sectionMIDI)
 			dumpTimeSig(fmt.Sprintf("Section %d", i), newBars)
 		}
+		panicMIDI, err := panicMIDI(mid)
+		if err != nil {
+			return err
+		}
+		err = panicMIDI.WriteFile(fmt.Sprintf("%s.panic.mid", outPrefix))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -173,7 +181,7 @@ func trim(c []cut) []cut {
 func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 	fermataNotes := map[Key]struct{}{}
 	first := true
-	var firstTick, lastTick int64
+	var firstTick int64
 	waitingForNote := false
 	finished := false
 	tracker := newNoteTracker(false)
@@ -190,7 +198,6 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 			}
 			return nil
 		}
-		lastTick = time
 		anyMissing := false
 		allMissing := true
 		for k := range fermataNotes {
@@ -217,7 +224,7 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 		return err
 	}
 	if !finished {
-		tf.releaseTick = lastTick + 1
+		tf.releaseTick = -1
 	}
 	return nil
 }
@@ -234,18 +241,25 @@ func fermatize(c cut, fermataTick []tickFermata) []cut {
 					RestAfter:  tf.extend,
 					DirtyBegin: c.DirtyBegin,
 					DirtyEnd:   true,
-				},
-				cut{
-					RestBefore: 0,
-					Begin:      tf.holdTick,
-					End:        tf.releaseTick,
-					RestAfter:  tf.rest,
-					DirtyBegin: true,
-					DirtyEnd:   false,
 				})
-			c.RestBefore = 0
-			c.Begin = tf.releaseTick
-			c.DirtyBegin = false
+			if tf.releaseTick >= 0 {
+				result = append(result,
+					cut{
+						RestBefore: 0,
+						Begin:      tf.holdTick,
+						End:        tf.releaseTick,
+						RestAfter:  tf.rest,
+						DirtyBegin: true,
+						DirtyEnd:   false,
+					})
+				c.Begin = tf.releaseTick
+				c.RestBefore = 0
+				c.DirtyBegin = false
+			} else {
+				c.Begin = tf.holdTick
+				c.RestBefore = 0
+				c.DirtyBegin = true
+			}
 		}
 	}
 	return append(result, c)
