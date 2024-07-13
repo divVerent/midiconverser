@@ -49,7 +49,7 @@ type tickFermata struct {
 }
 
 // Process processes the given MIDI file and writes the result to out.
-func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRest int, preludeSections []Range, restBetweenVerses int, numVerses int) error {
+func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRest int, preludeSections []Range, restBetweenVerses int, numVerses int, bpmOverride float64) error {
 	mid, err := smf.ReadFile(in)
 	if err != nil {
 		return fmt.Errorf("smf.ReadFile(%q): %w", in, err)
@@ -71,7 +71,7 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 	}
 
 	// Map all to MIDI channel 2 for the organ.
-	mapToChannel(mid, 1)
+	mapToChannel(mid, 0)
 	if err != nil {
 		return err
 	}
@@ -80,6 +80,10 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 	err = removeRedundantNoteEvents(mid, true)
 	if err != nil {
 		return err
+	}
+
+	if bpmOverride > 0 {
+		err = forceTempo(mid, bpmOverride)
 	}
 
 	// Convert all values to ticks.
@@ -112,12 +116,13 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 	// Make a whole-file MIDI.
 	var preludeCuts []cut
 	for _, p := range preludeTick {
-		preludeCuts = append(preludeCuts, fermatize(cut{
+		// Prelude does not execute fermatas.
+		preludeCuts = append(preludeCuts, cut{
 			RestBefore: 0,
 			Begin:      p.Begin,
 			End:        p.End,
 			RestAfter:  0,
-		}, fermataTick)...)
+		})
 	}
 	log.Printf("prelude cuts: %+v", preludeCuts)
 	verseCuts := fermatize(cut{
@@ -197,6 +202,7 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 	fermataNotes := map[Key]struct{}{}
 	first := true
 	var firstTick int64
+	haveHoldTick := false
 	waitingForNote := false
 	finished := false
 	tracker := newNoteTracker(false)
@@ -230,8 +236,9 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 				anyMissing = true
 			}
 		}
-		if anyMissing {
+		if anyMissing && !haveHoldTick {
 			tf.holdTick = time
+			haveHoldTick = true
 		}
 		if allMissing {
 			waitingForNote = true
@@ -252,6 +259,10 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 	if !finished {
 		tf.releaseTick = -1
 	}
+	// releaseTick already plays the new notes. Thus, if note end events are in the same tick as releasing, end the notes a bit earlier.
+	if tf.holdTick == tf.releaseTick && tf.holdTick > tf.tick {
+		tf.holdTick--
+	}
 	return nil
 }
 
@@ -271,12 +282,13 @@ func fermatize(c cut, fermataTick []tickFermata) []cut {
 			if tf.releaseTick >= 0 {
 				result = append(result,
 					cut{
-						RestBefore: 0,
-						Begin:      tf.holdTick,
-						End:        tf.releaseTick,
-						RestAfter:  tf.rest,
-						DirtyBegin: true,
-						DirtyEnd:   false,
+						RestBefore:       0,
+						Begin:            tf.holdTick,
+						End:              tf.releaseTick,
+						RestAfter:        tf.rest,
+						DirtyBegin:       true,
+						DirtyEnd:         false,
+						AllNotesOffAtEnd: true,
 					})
 				c.Begin = tf.releaseTick
 				c.RestBefore = 0
@@ -373,6 +385,32 @@ func removeRedundantNoteEvents(mid *smf.SMF, refcounting bool) error {
 	trackTime := make([]int64, len(mid.Tracks))
 	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if !tracker.Handle(msg) {
+			return nil
+		}
+		tracks[track] = append(tracks[track], smf.Event{
+			Delta:   uint32(time - trackTime[track]),
+			Message: msg,
+		})
+		trackTime[track] = time
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	mid.Tracks = tracks
+	return nil
+}
+
+// forceTempo adjust the tempo.
+func forceTempo(mid *smf.SMF, bpm float64) error {
+	tracks := make([]smf.Track, len(mid.Tracks))
+	trackTime := make([]int64, len(mid.Tracks))
+	tracks[0] = append(tracks[0], smf.Event{
+		Delta:   0,
+		Message: smf.MetaTempo(bpm),
+	})
+	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+		if msg.Is(smf.MetaTempoMsg) {
 			return nil
 		}
 		tracks[track] = append(tracks[track], smf.Event{

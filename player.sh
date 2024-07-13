@@ -18,20 +18,22 @@ if [ -f "$prefix.prelude.mid" ]; then
 fi
 
 for i in $(seq 1 "$verses"); do
-	echo "Playing verse $i..."
 	state=init
 	for part in $prefix.part*.mid; do
 		case "$state" in
 			init)
 				text="START VERSE 1?"
+				answer="Playing verse $i..."
 				state=hold
 				;;
 			hold)
-				text="HOLD FERMATA?"
+				text="END FERMATA?"
+				answer="Silence..."
 				state=cont
 				;;
 			cont)
 				text="CONTINUE?"
+				answer="Continuing..."
 				state=hold
 				;;
 		esac
@@ -39,6 +41,7 @@ for i in $(seq 1 "$verses"); do
 			figlet "$text"
 			read
 		fi
+		echo "$answer"
 		$player "$part"
 		needwait=true
 	done

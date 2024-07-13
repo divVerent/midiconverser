@@ -21,6 +21,7 @@ var (
 	restBetweenVerses = flag.Int("rest_between_verses", 1, "rest between verses in beats (if negative, number of denominator notes)")
 	fermataExtend     = flag.Int("fermata_extend", 1, "fermata extension amount in beats (if negative, number of denominator notes)")
 	fermataRest       = flag.Int("fermata_rest", 1, "fermata rest amount in beats (if negative, number of denominator notes)")
+	bpmOverride       = flag.Float64("bpm_override", -1, "when set, the new tempo to set")
 )
 
 var (
@@ -145,7 +146,7 @@ func parseFermatas(s string) []processor.Pos {
 
 func main() {
 	flag.Parse()
-	err := processor.Process(*i, *o, *oPrefix, parseFermatas(*fermatas), *fermataExtend, *fermataRest, parsePrelude(*prelude), *restBetweenVerses, *verses)
+	err := processor.Process(*i, *o, *oPrefix, parseFermatas(*fermatas), *fermataExtend, *fermataRest, parsePrelude(*prelude), *restBetweenVerses, *verses, *bpmOverride)
 	if err != nil {
 		log.Printf("Failed to process: %v", err)
 		os.Exit(1)

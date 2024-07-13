@@ -16,6 +16,7 @@ type cut struct {
 	Begin, End           int64
 	RestAfter            int64
 	DirtyBegin, DirtyEnd bool
+	AllNotesOffAtEnd     bool
 }
 
 // cutMIDI generates a new MIDI file from the input and a set of ranges.
@@ -41,10 +42,10 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 		tracks[t].Close(uint32(tick - trackTimes[t]))
 		trackTimes[t] = tick
 	}
+	tracker := newNoteTracker(false)
 	forEachInSection := func(from, to int64, dirtyFrom, dirtyTo bool, yield func(time int64, track int, msg smf.Message) error) error {
 		first := true
 		wasPlayingAtEnd := false
-		tracker := newNoteTracker(false)
 		err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 			wasPlaying := tracker.Playing()
 			tracker.Handle(msg)
@@ -56,7 +57,7 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 			}
 			if first {
 				if !dirtyFrom && wasPlaying {
-					return fmt.Errorf("already playing a note at start of section to be copied at time %d track %d", time, track)
+					return fmt.Errorf("already playing a note at start of section %d..%d to be copied at time %d track %d", from, to, time, track)
 				}
 				first = false
 			}
@@ -105,6 +106,14 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 			return nil, err
 		}
 		outTick += cut.End - cut.Begin
+		if cut.AllNotesOffAtEnd {
+			for _, k := range tracker.NotesPlaying() {
+				// TODO identify the right channel.
+				msg := smf.Message(midi.NoteOff(k.ch, k.note))
+				addEvent(len(tracks)-1, outTick, msg)
+				tracker.Handle(msg)
+			}
+		}
 		outTick += cut.RestAfter
 		prevEndTick = cut.End
 	}
