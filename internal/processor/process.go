@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"gitlab.com/gomidi/midi/v2"
 	"gitlab.com/gomidi/midi/v2/smf"
 )
 
@@ -58,13 +59,28 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 	dumpTimeSig("Before", bars)
 
 	// Remove duplicate note start.
-	removeRedundantNoteEvents(mid, false)
+	err = removeRedundantNoteEvents(mid, false)
+	if err != nil {
+		return err
+	}
+
+	// Fix overlapping notes.
+	err = removeUnneededEvents(mid)
+	if err != nil {
+		return err
+	}
 
 	// Map all to MIDI channel 2 for the organ.
 	mapToChannel(mid, 1)
+	if err != nil {
+		return err
+	}
 
 	// Fix overlapping notes.
-	removeRedundantNoteEvents(mid, true)
+	err = removeRedundantNoteEvents(mid, true)
+	if err != nil {
+		return err
+	}
 
 	// Convert all values to ticks.
 	var fermataTick []tickFermata
@@ -78,7 +94,6 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 		if err != nil {
 			return err
 		}
-		log.Printf("fermata: %+v", tf)
 		fermataTick = append(fermataTick, tf)
 	}
 	var preludeTick []tickRange
@@ -186,18 +201,26 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 	finished := false
 	tracker := newNoteTracker(false)
 	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
-		tracker.Handle(msg)
 		if time < tf.tick {
+			tracker.Handle(msg)
 			return nil
 		}
+
+		// The start tick shall use the UNION of notes played and released.
 		if first || time == firstTick {
 			first = false
 			firstTick = time
 			for _, k := range tracker.NotesPlaying() {
 				fermataNotes[k] = struct{}{}
 			}
-			return nil
 		}
+		tracker.Handle(msg)
+		if time == firstTick {
+			for _, k := range tracker.NotesPlaying() {
+				fermataNotes[k] = struct{}{}
+			}
+		}
+
 		anyMissing := false
 		allMissing := true
 		for k := range fermataNotes {
@@ -222,6 +245,9 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 	})
 	if err != nil {
 		return err
+	}
+	if first {
+		return fmt.Errorf("fermata out of range: %v", tf.tick)
 	}
 	if !finished {
 		tf.releaseTick = -1
@@ -316,6 +342,28 @@ func mapToChannel(mid *smf.SMF, ch uint8) {
 			}
 		}
 	}
+}
+
+// removeUnneededEvents removes events we do not care about.
+func removeUnneededEvents(mid *smf.SMF) error {
+	tracks := make([]smf.Track, len(mid.Tracks))
+	trackTime := make([]int64, len(mid.Tracks))
+	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+		if msg.IsOneOf(midi.ControlChangeMsg, midi.ProgramChangeMsg) {
+			return nil
+		}
+		tracks[track] = append(tracks[track], smf.Event{
+			Delta:   uint32(time - trackTime[track]),
+			Message: msg,
+		})
+		trackTime[track] = time
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	mid.Tracks = tracks
+	return nil
 }
 
 // removeRedundantNoteEvents removes overlapping note start events in the song.
