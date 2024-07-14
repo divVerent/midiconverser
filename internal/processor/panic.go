@@ -24,7 +24,7 @@ func panicMIDI(mid *smf.SMF) (*smf.SMF, error) {
 		track.Add(0, midi.NoteOff(k.ch, k.note))
 	}
 	track.Close(0)
-	newMIDI := smf.NewSMF1()
+	newMIDI := smf.New()
 	newMIDI.TimeFormat = mid.TimeFormat
 	newMIDI.Add(track)
 	return newMIDI, nil
