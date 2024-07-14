@@ -8,15 +8,20 @@ type Key struct {
 	ch, note uint8
 }
 
+type activeNote struct {
+	noteOnTrack int
+	refs        int
+}
+
 type noteTracker struct {
 	refcounting bool
-	activeNotes map[Key]int
+	activeNotes map[Key]*activeNote
 }
 
 func newNoteTracker(refcounting bool) *noteTracker {
 	return &noteTracker{
 		refcounting: refcounting,
-		activeNotes: map[Key]int{},
+		activeNotes: map[Key]*activeNote{},
 	}
 }
 
@@ -37,32 +42,43 @@ func (t noteTracker) NotePlaying(k Key) bool {
 	return found
 }
 
-func (t noteTracker) Handle(msg smf.Message) bool {
+func (t noteTracker) NoteTrack(k Key) int {
+	return t.activeNotes[k].noteOnTrack
+}
+
+func (t noteTracker) Handle(track int, msg smf.Message) (bool, int) {
 	var ch, note uint8
 	if msg.GetNoteStart(&ch, &note, nil) {
 		k := Key{ch, note}
-		result := t.activeNotes[k] == 0
-		if t.refcounting {
-			t.activeNotes[k]++
-		} else {
-			t.activeNotes[k] = 1
+		n := t.activeNotes[k]
+		result := n == nil
+		if result {
+			n = &activeNote{
+				refs:        1,
+				noteOnTrack: track,
+			}
+			t.activeNotes[k] = n
+		} else if t.refcounting {
+			n.refs++
 		}
-		return result
+		return result, n.noteOnTrack
 	}
 	if msg.GetNoteEnd(&ch, &note) {
 		k := Key{ch, note}
-		result := t.activeNotes[k] == 1
+		n := t.activeNotes[k]
+		result := n != nil && n.refs == 1
 		if t.refcounting {
-			if t.activeNotes[k] > 0 {
-				t.activeNotes[k]--
-				if t.activeNotes[k] == 0 {
-					delete(t.activeNotes, k)
-				}
+			n.refs--
+			if n.refs == 0 {
+				delete(t.activeNotes, k)
 			}
 		} else {
 			delete(t.activeNotes, k)
 		}
-		return result
+		if n == nil {
+			return result, track
+		}
+		return result, n.noteOnTrack
 	}
-	return true
+	return true, track
 }

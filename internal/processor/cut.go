@@ -48,7 +48,7 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 		wasPlayingAtEnd := false
 		err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 			wasPlaying := tracker.Playing()
-			tracker.Handle(msg)
+			tracker.Handle(track, msg)
 			if time < from {
 				return nil
 			}
@@ -108,10 +108,10 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 		outTick += cut.End - cut.Begin
 		if cut.AllNotesOffAtEnd {
 			for _, k := range tracker.NotesPlaying() {
-				// TODO identify the right channel.
 				msg := smf.Message(midi.NoteOff(k.ch, k.note))
-				addEvent(len(tracks)-1, outTick, msg)
-				tracker.Handle(msg)
+				track := tracker.NoteTrack(k)
+				addEvent(track, outTick, msg)
+				tracker.Handle(track, msg)
 			}
 		}
 		outTick += cut.RestAfter

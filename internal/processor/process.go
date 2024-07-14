@@ -142,10 +142,6 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 		if err != nil {
 			return err
 		}
-		wholeMIDI, err = toFormat0(wholeMIDI)
-		if err != nil {
-			return err
-		}
 		err = wholeMIDI.WriteFile(out)
 		if err != nil {
 			return err
@@ -160,10 +156,6 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 			if err != nil {
 				return err
 			}
-			preludeMIDI, err = toFormat0(preludeMIDI)
-			if err != nil {
-				return err
-			}
 			err = preludeMIDI.WriteFile(fmt.Sprintf("%s.prelude.mid", outPrefix))
 			if err != nil {
 				return err
@@ -173,10 +165,6 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 		}
 		for i, c := range verseCuts {
 			sectionMIDI, err := cutMIDI(mid, trim([]cut{c}))
-			if err != nil {
-				return err
-			}
-			sectionMIDI, err = toFormat0(sectionMIDI)
 			if err != nil {
 				return err
 			}
@@ -220,7 +208,7 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 	tracker := newNoteTracker(false)
 	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if time < tf.tick {
-			tracker.Handle(msg)
+			tracker.Handle(track, msg)
 			return nil
 		}
 
@@ -232,7 +220,7 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 				fermataNotes[k] = struct{}{}
 			}
 		}
-		tracker.Handle(msg)
+		tracker.Handle(track, msg)
 		if time == firstTick {
 			for _, k := range tracker.NotesPlaying() {
 				fermataNotes[k] = struct{}{}
@@ -396,7 +384,8 @@ func removeRedundantNoteEvents(mid *smf.SMF, refcounting bool) error {
 	tracks := make([]smf.Track, len(mid.Tracks))
 	trackTime := make([]int64, len(mid.Tracks))
 	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
-		if !tracker.Handle(msg) {
+		include, track := tracker.Handle(track, msg)
+		if !include {
 			return nil
 		}
 		tracks[track] = append(tracks[track], smf.Event{
@@ -437,26 +426,4 @@ func forceTempo(mid *smf.SMF, bpm float64) error {
 	}
 	mid.Tracks = tracks
 	return nil
-}
-
-// toFormat0 converts the file to format 0.
-// TODO: make removeRedundantNoteEvents(mid) move NoteOff to the same track as NoteOn so this is no longer needed.
-func toFormat0(mid *smf.SMF) (*smf.SMF, error) {
-	var track smf.Track
-	var trackTime int64
-	err := forEachEventWithTime(mid, func(time int64, _ int, msg smf.Message) error {
-		track = append(track, smf.Event{
-			Delta:   uint32(time - trackTime),
-			Message: msg,
-		})
-		trackTime = time
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	newMIDI := smf.New()
-	newMIDI.TimeFormat = mid.TimeFormat
-	newMIDI.Add(track)
-	return newMIDI, nil
 }
