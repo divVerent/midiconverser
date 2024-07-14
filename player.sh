@@ -5,17 +5,20 @@ verses=$2
 prefix=$3
 
 panic() {
+	echo "Stopping all notes..."
 	$player "$prefix.panic.mid"
 	exit 1
 }
+
+trap panic EXIT
+
+trap 'exit 1' INT
 
 waitkey() {
 	stty -icanon -echo
 	head -c 1 >/dev/null
 	stty icanon echo
 }
-
-trap panic INT
 
 if [ -f "$prefix.prelude.mid" ]; then
 	echo "Playing prelude..."
