@@ -111,6 +111,8 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], restBetweenVerses)
 	totalTicks := bars[len(bars)-1].End()
 
+	// TODO: snap prelude ticks to where nothing is playing yet.
+
 	log.Printf("fermata data: %+v", fermataTick)
 
 	// Make a whole-file MIDI.
