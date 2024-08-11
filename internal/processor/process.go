@@ -103,6 +103,14 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 	var preludeTick []tickRange
 	for _, p := range preludeSections {
 		begin, end := p.ToTick(bars)
+		begin, err := adjustToNoNotes(mid, begin, 64)
+		if err != nil {
+			return err
+		}
+		end, err = adjustToNoNotes(mid, end, 64)
+		if err != nil {
+			return err
+		}
 		preludeTick = append(preludeTick, tickRange{
 			Begin: begin,
 			End:   end,
@@ -110,8 +118,6 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 	}
 	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], restBetweenVerses)
 	totalTicks := bars[len(bars)-1].End()
-
-	// TODO: snap prelude ticks to where nothing is playing yet.
 
 	log.Printf("fermata data: %+v", fermataTick)
 
@@ -198,6 +204,45 @@ func trim(c []cut) []cut {
 	result[0].RestBefore = 0
 	result[len(result)-1].RestAfter = 0
 	return result
+}
+
+func abs(x int64) int64 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func adjustToNoNotes(mid *smf.SMF, tick, maxDelta int64) (int64, error) {
+	// Look for a tick with zero notes playing at start.
+	tracker := newNoteTracker(false)
+	var bestTick, maxTick int64
+	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+		if !tracker.Playing() && time != maxTick {
+			log.Printf("nothing at %v .. %v", maxTick+1, time)
+			if abs(time-tick) < abs(bestTick-tick) {
+				bestTick = time
+			}
+		}
+		maxTick = time
+		tracker.Handle(track, msg)
+		if time > tick+maxDelta {
+			return StopIteration
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	// Past EOF?
+	if tick > maxTick && !tracker.Playing() {
+		bestTick = tick
+	}
+	if abs(bestTick-tick) > maxDelta {
+		return 0, fmt.Errorf("no noteless tick found around %v (best: %v, max: %v)", tick, bestTick, maxTick)
+	}
+	log.Printf("adjusted %v -> %v", tick, bestTick)
+	return bestTick, nil
 }
 
 func adjustFermata(mid *smf.SMF, tf *tickFermata) error {

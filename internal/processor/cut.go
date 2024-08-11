@@ -48,12 +48,12 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 		wasPlayingAtEnd := false
 		err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 			wasPlaying := tracker.Playing()
+			if time >= to {
+				return StopIteration
+			}
 			tracker.Handle(track, msg)
 			if time < from {
 				return nil
-			}
-			if time >= to {
-				return StopIteration
 			}
 			if first {
 				if !dirtyFrom && wasPlaying {
