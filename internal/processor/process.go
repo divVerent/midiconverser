@@ -48,8 +48,23 @@ type tickFermata struct {
 	releaseTick int64 // First tick with a note after the fermata; -1 indicates till end.
 }
 
+type Options struct {
+	Fermatas          []Pos
+	FermataExtend     int
+	FermataRest       int
+	Prelude           []Range
+	RestBetweenVerses int
+	NumVerses         int
+	BPMOverride       float64
+	MaxAdjust         int64
+
+	// TODO: Option to sort all NoteOff events first in a tick.
+	// Relaxes cutting locations, but MAY break things a bit.
+	// Default on.
+}
+
 // Process processes the given MIDI file and writes the result to out.
-func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRest int, preludeSections []Range, restBetweenVerses int, numVerses int, bpmOverride float64, maxAdjust int64) error {
+func Process(in, out, outPrefix string, options *Options) error {
 	mid, err := smf.ReadFile(in)
 	if err != nil {
 		return fmt.Errorf("smf.ReadFile(%q): %w", in, err)
@@ -82,17 +97,17 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 		return err
 	}
 
-	if bpmOverride > 0 {
-		err = forceTempo(mid, bpmOverride)
+	if options.BPMOverride > 0 {
+		err = forceTempo(mid, options.BPMOverride)
 	}
 
 	// Convert all values to ticks.
 	var fermataTick []tickFermata
-	for _, f := range fermatas {
+	for _, f := range options.Fermatas {
 		tf := tickFermata{
 			tick:   f.ToTick(bars),
-			extend: beatsOrNotesToTicks(bars[f.Bar-1], fermataExtend),
-			rest:   beatsOrNotesToTicks(bars[f.Bar-1], fermataRest),
+			extend: beatsOrNotesToTicks(bars[f.Bar-1], options.FermataExtend),
+			rest:   beatsOrNotesToTicks(bars[f.Bar-1], options.FermataRest),
 		}
 		err := adjustFermata(mid, &tf)
 		if err != nil {
@@ -101,13 +116,13 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 		fermataTick = append(fermataTick, tf)
 	}
 	var preludeTick []tickRange
-	for _, p := range preludeSections {
+	for _, p := range options.Prelude {
 		begin, end := p.ToTick(bars)
-		begin, err := adjustToNoNotes(mid, begin, maxAdjust)
+		begin, err := adjustToNoNotes(mid, begin, options.MaxAdjust)
 		if err != nil {
 			return err
 		}
-		end, err = adjustToNoNotes(mid, end, maxAdjust)
+		end, err = adjustToNoNotes(mid, end, options.MaxAdjust)
 		if err != nil {
 			return err
 		}
@@ -116,7 +131,7 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 			End:   end,
 		})
 	}
-	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], restBetweenVerses)
+	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], options.RestBetweenVerses)
 	totalTicks := bars[len(bars)-1].End()
 
 	log.Printf("fermata data: %+v", fermataTick)
@@ -143,7 +158,7 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 	if out != "" {
 		var cuts []cut
 		cuts = append(cuts, preludeCuts...)
-		for i := 0; i < numVerses; i++ {
+		for i := 0; i < options.NumVerses; i++ {
 			cuts = append(cuts, verseCuts...)
 		}
 		wholeMIDI, err := cutMIDI(mid, trim(cuts))

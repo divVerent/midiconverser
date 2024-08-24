@@ -147,7 +147,16 @@ func parseFermatas(s string) []processor.Pos {
 
 func main() {
 	flag.Parse()
-	err := processor.Process(*i, *o, *oPrefix, parseFermatas(*fermatas), *fermataExtend, *fermataRest, parsePrelude(*prelude), *restBetweenVerses, *verses, *bpmOverride, *maxAdjust)
+	err := processor.Process(*i, *o, *oPrefix, &processor.Options{
+		Fermatas:          parseFermatas(*fermatas),
+		FermataExtend:     *fermataExtend,
+		FermataRest:       *fermataRest,
+		Prelude:           parsePrelude(*prelude),
+		RestBetweenVerses: *restBetweenVerses,
+		NumVerses:         *verses,
+		BPMOverride:       *bpmOverride,
+		MaxAdjust:         *maxAdjust,
+	})
 	if err != nil {
 		log.Printf("Failed to process: %v", err)
 		os.Exit(1)
