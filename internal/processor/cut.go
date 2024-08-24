@@ -44,15 +44,21 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 	}
 	tracker := newNoteTracker(false)
 	forEachInSection := func(from, to int64, dirtyFrom, dirtyTo bool, yield func(time int64, track int, msg smf.Message) error) error {
+		tracker = newNoteTracker(false) // TODO: make it fully local.
 		first := true
 		wasPlayingAtEnd := false
 		err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 			wasPlaying := tracker.Playing()
-			if time >= to {
+			if time > to {
 				return StopIteration
 			}
 			tracker.Handle(track, msg)
 			if time < from {
+				return nil
+			}
+			isNoteOff := msg.GetNoteEnd(nil, nil)
+			ignore := (time == from && isNoteOff) || (time == to && !isNoteOff)
+			if ignore {
 				return nil
 			}
 			if first {

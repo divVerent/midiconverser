@@ -49,7 +49,7 @@ type tickFermata struct {
 }
 
 // Process processes the given MIDI file and writes the result to out.
-func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRest int, preludeSections []Range, restBetweenVerses int, numVerses int, bpmOverride float64) error {
+func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRest int, preludeSections []Range, restBetweenVerses int, numVerses int, bpmOverride float64, maxAdjust int64) error {
 	mid, err := smf.ReadFile(in)
 	if err != nil {
 		return fmt.Errorf("smf.ReadFile(%q): %w", in, err)
@@ -103,11 +103,11 @@ func Process(in, out, outPrefix string, fermatas []Pos, fermataExtend, fermataRe
 	var preludeTick []tickRange
 	for _, p := range preludeSections {
 		begin, end := p.ToTick(bars)
-		begin, err := adjustToNoNotes(mid, begin, 64)
+		begin, err := adjustToNoNotes(mid, begin, maxAdjust)
 		if err != nil {
 			return err
 		}
-		end, err = adjustToNoNotes(mid, end, 64)
+		end, err = adjustToNoNotes(mid, end, maxAdjust)
 		if err != nil {
 			return err
 		}
@@ -218,7 +218,7 @@ func adjustToNoNotes(mid *smf.SMF, tick, maxDelta int64) (int64, error) {
 	tracker := newNoteTracker(false)
 	var bestTick, maxTick int64
 	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
-		if !tracker.Playing() && time != maxTick {
+		if !tracker.Playing() {
 			log.Printf("nothing at %v .. %v", maxTick+1, time)
 			if abs(time-tick) < abs(bestTick-tick) {
 				bestTick = time
@@ -235,7 +235,7 @@ func adjustToNoNotes(mid *smf.SMF, tick, maxDelta int64) (int64, error) {
 		return 0, err
 	}
 	// Past EOF?
-	if tick > maxTick && !tracker.Playing() {
+	if tick >= maxTick && !tracker.Playing() {
 		bestTick = tick
 	}
 	if abs(bestTick-tick) > maxDelta {
