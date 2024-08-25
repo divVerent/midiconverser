@@ -75,6 +75,11 @@ func (b bar) ToTick(beat, beatNum, beatDenom int) int64 {
 	return b.Begin + beatLen*int64(beat) + beatLen*int64(beatNum)/int64(beatDenom)
 }
 
+func (b bar) FromTick(tick int64) float64 {
+	beatLen := b.BeatLength()
+	return float64(tick-b.Begin) / float64(beatLen)
+}
+
 type bars []bar
 
 func (b bars) ToTick(bar, beat, beatNum, beatDenom int) int64 {
@@ -82,6 +87,16 @@ func (b bars) ToTick(bar, beat, beatNum, beatDenom int) int64 {
 		return b[len(b)-1].End()
 	}
 	return b[bar].ToTick(beat, beatNum, beatDenom)
+}
+
+func (b bars) FromTick(tick int64) (int, float64) {
+	last := len(b) - 1
+	for i, bar := range b {
+		if i == last || tick < bar.End() {
+			return i, bar.FromTick(tick)
+		}
+	}
+	return 0, -1
 }
 
 func findBars(midi *smf.SMF) bars {

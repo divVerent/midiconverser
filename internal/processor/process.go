@@ -71,7 +71,7 @@ func Process(in, out, outPrefix string, options *Options) error {
 	}
 	bars := findBars(mid)
 	log.Printf("bars: %+v", bars)
-	dumpTimeSig("Before", bars)
+	dumpTimeSig("Before", mid, bars)
 
 	// Fix bad events.
 	err = removeUnneededEvents(mid)
@@ -170,7 +170,7 @@ func Process(in, out, outPrefix string, options *Options) error {
 			return err
 		}
 		newBars := findBars(wholeMIDI)
-		dumpTimeSig("Whole", newBars)
+		dumpTimeSig("Whole", wholeMIDI, newBars)
 	}
 
 	if outPrefix != "" {
@@ -184,7 +184,7 @@ func Process(in, out, outPrefix string, options *Options) error {
 				return err
 			}
 			newBars := findBars(preludeMIDI)
-			dumpTimeSig("Prelude", newBars)
+			dumpTimeSig("Prelude", preludeMIDI, newBars)
 		}
 		for i, c := range verseCuts {
 			sectionMIDI, err := cutMIDI(mid, trim([]cut{c}))
@@ -196,7 +196,7 @@ func Process(in, out, outPrefix string, options *Options) error {
 				return err
 			}
 			newBars := findBars(sectionMIDI)
-			dumpTimeSig(fmt.Sprintf("Section %d", i), newBars)
+			dumpTimeSig(fmt.Sprintf("Section %d", i), sectionMIDI, newBars)
 		}
 		panicMIDI, err := panicMIDI(mid)
 		if err != nil {
@@ -366,7 +366,16 @@ func fermatize(c cut, fermataTick []tickFermata) []cut {
 }
 
 // dumpTimeSig prints the time signatures the song uses in concise form.
-func dumpTimeSig(prefix string, b bars) {
+func dumpTimeSig(prefix string, mid *smf.SMF, b bars) {
+	forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+		var bpm float64
+		if !msg.GetMetaTempo(&bpm) {
+			return nil
+		}
+		bar, beat := b.FromTick(time)
+		log.Printf("%s: %d.(%v) @ %d: tempo is %f bpm", prefix, bar+1, beat+1, time, bpm)
+		return nil
+	})
 	var start int
 	var startTicks int64
 	var sigBar *bar
