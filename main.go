@@ -26,8 +26,8 @@ var (
 )
 
 var (
-	preludeFlagValue = regexp.MustCompile(`(\d+)(?:\.(\d+))?(?:\+(\d+)/(\d+))?-(\d+)(?:\.(\d+))?(?:\+(\d+)/(\d+))?`)
-	fermataFlagValue = regexp.MustCompile(`(\d+)(?:\.(\d+))?(?:\+(\d+)/(\d+))?`)
+	preludeFlagValue = regexp.MustCompile(`^(\d+)(?:\.(\d+))?(?:\+(\d+)/(\d+))?-(\d+)(?:\.(\d+))?(?:\+(\d+)/(\d+))?$`)
+	fermataFlagValue = regexp.MustCompile(`^(\d+)(?:\.(\d+))?(?:\+(\d+)/(\d+))?$`)
 )
 
 func parsePrelude(s string) []processor.Range {
