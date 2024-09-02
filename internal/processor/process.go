@@ -459,17 +459,24 @@ func removeRedundantNoteEvents(mid *smf.SMF, refcounting, restarting bool) error
 		include, track := tracker.Handle(time, track, msg)
 		if !include {
 			var ch, note uint8
-			if restarting && msg.GetNoteStart(&ch, &note, nil) && time > tracker.NoteStart(Key{ch: ch, note: note}) {
-				// Restart the note by inserting a note-off and a note-on event.
-				noteOff := smf.Message(midi.NoteOff(ch, note))
-				tracks[track] = append(tracks[track], smf.Event{
-					Delta:   uint32(time - trackTime[track]),
-					Message: noteOff,
-				})
-				trackTime[track] = time
-				// Reset the note start time.
-				tracker.Handle(time, track, noteOff)
-				tracker.Handle(time, track, msg)
+			if restarting && msg.GetNoteStart(&ch, &note, nil) {
+				key := Key{ch: ch, note: note}
+				prevStart := tracker.NoteStart(key)
+				duration := time - prevStart
+				if duration > 0 {
+					log.Printf("restarting note with already duration %d", duration)
+					// Restart the note by inserting a note-off and a note-on event.
+					noteOff := smf.Message(midi.NoteOff(ch, note))
+					tracks[track] = append(tracks[track], smf.Event{
+						Delta:   uint32(time - trackTime[track]),
+						Message: noteOff,
+					})
+					trackTime[track] = time
+					tracker.SetNoteStart(key, time)
+				} else {
+					log.Printf("not restarting note with already duration %d", duration)
+					return nil
+				}
 			} else {
 				return nil
 			}

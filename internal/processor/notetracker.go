@@ -47,6 +47,10 @@ func (t noteTracker) NoteStart(k Key) int64 {
 	return t.activeNotes[k].start
 }
 
+func (t noteTracker) SetNoteStart(k Key, time int64) {
+	t.activeNotes[k].start = time
+}
+
 func (t noteTracker) NoteTrack(k Key) int {
 	return t.activeNotes[k].noteOnTrack
 }
