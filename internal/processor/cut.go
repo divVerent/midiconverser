@@ -52,7 +52,7 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 			if time > to {
 				return StopIteration
 			}
-			tracker.Handle(track, msg)
+			tracker.Handle(time, track, msg)
 			if time < from {
 				return nil
 			}
@@ -117,7 +117,7 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 				msg := smf.Message(midi.NoteOff(k.ch, k.note))
 				track := tracker.NoteTrack(k)
 				addEvent(track, outTick, msg)
-				tracker.Handle(track, msg)
+				tracker.Handle(cut.End, track, msg)
 			}
 		}
 		outTick += cut.RestAfter

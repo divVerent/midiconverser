@@ -11,6 +11,7 @@ type Key struct {
 type activeNote struct {
 	noteOnTrack int
 	refs        int
+	start       int64
 }
 
 type noteTracker struct {
@@ -42,11 +43,15 @@ func (t noteTracker) NotePlaying(k Key) bool {
 	return found
 }
 
+func (t noteTracker) NoteStart(k Key) int64 {
+	return t.activeNotes[k].start
+}
+
 func (t noteTracker) NoteTrack(k Key) int {
 	return t.activeNotes[k].noteOnTrack
 }
 
-func (t noteTracker) Handle(track int, msg smf.Message) (bool, int) {
+func (t noteTracker) Handle(time int64, track int, msg smf.Message) (bool, int) {
 	var ch, note uint8
 	if msg.GetNoteStart(&ch, &note, nil) {
 		k := Key{ch, note}
@@ -56,6 +61,7 @@ func (t noteTracker) Handle(track int, msg smf.Message) (bool, int) {
 			n = &activeNote{
 				refs:        1,
 				noteOnTrack: track,
+				start:       time,
 			}
 			t.activeNotes[k] = n
 		} else if t.refcounting {

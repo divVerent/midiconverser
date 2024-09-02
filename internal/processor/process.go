@@ -57,6 +57,7 @@ type Options struct {
 	NumVerses         int
 	BPMOverride       float64
 	MaxAdjust         int64
+	RestartRedundant  bool
 
 	// TODO: Option to sort all NoteOff events first in a tick.
 	// Relaxes cutting locations, but MAY break things a bit.
@@ -80,7 +81,7 @@ func Process(in, out, outPrefix string, options *Options) error {
 	}
 
 	// Remove duplicate note start.
-	err = removeRedundantNoteEvents(mid, false)
+	err = removeRedundantNoteEvents(mid, false, options.RestartRedundant)
 	if err != nil {
 		return err
 	}
@@ -91,8 +92,8 @@ func Process(in, out, outPrefix string, options *Options) error {
 		return err
 	}
 
-	// Fix overlapping notes.
-	err = removeRedundantNoteEvents(mid, true)
+	// Fix overlapping notes, as mapToChannel can cause them.
+	err = removeRedundantNoteEvents(mid, true, options.RestartRedundant)
 	if err != nil {
 		return err
 	}
@@ -240,7 +241,7 @@ func adjustToNoNotes(mid *smf.SMF, tick, maxDelta int64) (int64, error) {
 			}
 		}
 		maxTick = time
-		tracker.Handle(track, msg)
+		tracker.Handle(time, track, msg)
 		if time > tick+maxDelta {
 			return StopIteration
 		}
@@ -270,7 +271,7 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 	tracker := newNoteTracker(false)
 	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if time < tf.tick {
-			tracker.Handle(track, msg)
+			tracker.Handle(time, track, msg)
 			return nil
 		}
 
@@ -282,7 +283,7 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 				fermataNotes[k] = struct{}{}
 			}
 		}
-		tracker.Handle(track, msg)
+		tracker.Handle(time, track, msg)
 		if time == firstTick {
 			for _, k := range tracker.NotesPlaying() {
 				fermataNotes[k] = struct{}{}
@@ -450,14 +451,28 @@ func removeUnneededEvents(mid *smf.SMF) error {
 }
 
 // removeRedundantNoteEvents removes overlapping note start events in the song.
-func removeRedundantNoteEvents(mid *smf.SMF, refcounting bool) error {
+func removeRedundantNoteEvents(mid *smf.SMF, refcounting, restarting bool) error {
 	tracker := newNoteTracker(refcounting)
 	tracks := make([]smf.Track, len(mid.Tracks))
 	trackTime := make([]int64, len(mid.Tracks))
 	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
-		include, track := tracker.Handle(track, msg)
+		include, track := tracker.Handle(time, track, msg)
 		if !include {
-			return nil
+			var ch, note uint8
+			if restarting && msg.GetNoteStart(&ch, &note, nil) && time > tracker.NoteStart(Key{ch: ch, note: note}) {
+				// Restart the note by inserting a note-off and a note-on event.
+				noteOff := smf.Message(midi.NoteOff(ch, note))
+				tracks[track] = append(tracks[track], smf.Event{
+					Delta:   uint32(time - trackTime[track]),
+					Message: noteOff,
+				})
+				trackTime[track] = time
+				// Reset the note start time.
+				tracker.Handle(time, track, noteOff)
+				tracker.Handle(time, track, msg)
+			} else {
+				return nil
+			}
 		}
 		tracks[track] = append(tracks[track], smf.Event{
 			Delta:   uint32(time - trackTime[track]),

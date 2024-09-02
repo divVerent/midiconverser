@@ -23,6 +23,7 @@ var (
 	fermataRest       = flag.Int("fermata_rest", 1, "fermata rest amount in beats (if negative, number of denominator notes)")
 	bpmOverride       = flag.Float64("bpm_override", -1, "when set, the new tempo to set")
 	maxAdjust         = flag.Int64("max_adjust", 64, "maximum number of ticks to adjust cut boundaries by")
+	restartRedundant  = flag.Bool("restart_redundant", true, "restart redundant notes (works better on some piano scores)")
 )
 
 var (
@@ -156,6 +157,7 @@ func main() {
 		NumVerses:         *verses,
 		BPMOverride:       *bpmOverride,
 		MaxAdjust:         *maxAdjust,
+		RestartRedundant:  *restartRedundant,
 	})
 	if err != nil {
 		log.Printf("Failed to process: %v", err)
