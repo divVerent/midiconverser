@@ -300,7 +300,7 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 			}
 		}
 		if anyMissing && !haveHoldTick {
-			tf.holdTick = time
+			tf.holdTick = time - 1 // Last complete tick. We can't use time, as it already has some note off events.
 			haveHoldTick = true
 		}
 		if allMissing {
