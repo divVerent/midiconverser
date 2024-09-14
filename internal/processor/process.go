@@ -235,7 +235,17 @@ func adjustToNoNotes(mid *smf.SMF, tick, maxDelta int64) (int64, error) {
 	var bestTick, maxTick int64
 	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if !tracker.Playing() {
-			log.Printf("nothing at %v .. %v", maxTick+1, time)
+			if time > maxTick {
+				log.Printf("nothing at %v .. %v", maxTick+1, time)
+				if tick >= maxTick+1 && tick <= time {
+					bestTick = tick
+				}
+				if abs(maxTick+1-tick) < abs(bestTick-tick) {
+					bestTick = maxTick + 1
+				}
+			} else {
+				log.Printf("nothing at %v", time)
+			}
 			if abs(time-tick) < abs(bestTick-tick) {
 				bestTick = time
 			}
