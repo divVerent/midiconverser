@@ -279,6 +279,7 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 	waitingForNote := false
 	finished := false
 	tracker := newNoteTracker(false)
+	//log.Printf("fermata %v", tf)
 	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if time < tf.tick {
 			tracker.Handle(time, track, msg)
@@ -290,16 +291,20 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 			first = false
 			firstTick = time
 			for _, k := range tracker.NotesPlaying() {
+				//log.Printf("[%d] add note %v", time, k)
 				fermataNotes[k] = struct{}{}
 			}
 		}
+		//log.Printf("[%d] event: %v", time, msg)
 		tracker.Handle(time, track, msg)
 		if time == firstTick {
 			for _, k := range tracker.NotesPlaying() {
+				//log.Printf("[%d] add note %v", time, k)
 				fermataNotes[k] = struct{}{}
 			}
 		}
 
+		//log.Printf("[%d] trackerPlaying=%v", time, tracker.Playing())
 		anyMissing := false
 		allMissing := true
 		for k := range fermataNotes {
@@ -309,14 +314,18 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 				anyMissing = true
 			}
 		}
+		//log.Printf("[%d] anyMissing=%v allMissing=%v", time, anyMissing, allMissing)
 		if anyMissing && !haveHoldTick {
+			//log.Printf("[%d] holdTick=%d", time, time-1)
 			tf.holdTick = time - 1 // Last complete tick. We can't use time, as it already has some note off events.
 			haveHoldTick = true
 		}
 		if allMissing {
+			//log.Printf("[%d] waitingForNote", time)
 			waitingForNote = true
 		}
 		if waitingForNote && tracker.Playing() {
+			//log.Printf("[%d] releaseTick, finished", time)
 			tf.releaseTick = time
 			finished = true
 			return StopIteration
