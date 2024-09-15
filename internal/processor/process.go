@@ -187,6 +187,18 @@ func Process(in, out, outPrefix string, options *Options) error {
 			newBars := findBars(preludeMIDI)
 			dumpTimeSig("Prelude", preludeMIDI, newBars)
 		}
+		if len(verseCuts) > 0 {
+			sectionMIDI, err := cutMIDI(mid, trim(verseCuts))
+			if err != nil {
+				return err
+			}
+			err = sectionMIDI.WriteFile(fmt.Sprintf("%s.verse.mid", outPrefix))
+			if err != nil {
+				return err
+			}
+			newBars := findBars(sectionMIDI)
+			dumpTimeSig("Verse", sectionMIDI, newBars)
+		}
 		for i, c := range verseCuts {
 			sectionMIDI, err := cutMIDI(mid, trim([]cut{c}))
 			if err != nil {
