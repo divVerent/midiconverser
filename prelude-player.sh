@@ -27,6 +27,19 @@ while :; do
 		verse=${verses%%$LF*}
 		verses=${verses#*$LF}
 		prefix=${verse%.verse.mid}
+		# No xmas songs except in December.
+		case "$prefix" in
+			12??)
+				case "$(date +%Y%m%d)" in
+					????12[01]?|????122[0-6])
+						;;
+					*)
+						echo "Skipping $prefix due to it not being Christmas."
+						continue
+						;;
+				esac
+				;;
+		esac
 		thisrepeat=$repeat
 		# HACK; better migrate to a JSON file.
 		if grep -q -- -verses=1 "$prefix.sh"; then
