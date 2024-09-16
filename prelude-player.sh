@@ -42,7 +42,7 @@ while :; do
 		esac
 		thisrepeat=$repeat
 		# HACK; better migrate to a JSON file.
-		if grep -q -- -verses=1 "$prefix.sh"; then
+		if [ x"$(jq < "$prefix.json" .num_verses)" = x"1" ]; then
 			# If -verses=1, then repeats are baked in.
 			# These are too long - skip them.
 			echo "Skipping $prefix due to baked-in repeats."
