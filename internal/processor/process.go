@@ -1,8 +1,11 @@
 package processor
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"regexp"
+	"strconv"
 
 	"gitlab.com/gomidi/midi/v2"
 	"gitlab.com/gomidi/midi/v2/smf"
@@ -15,13 +18,67 @@ type Pos struct {
 	BeatDenom int
 }
 
+func (p Pos) MarshalJSON() ([]byte, error) {
+	if p.BeatNum > 0 {
+		return json.Marshal(fmt.Sprintf("%d.%d+%d/%d", p.Bar, p.Beat, p.BeatNum, p.BeatDenom))
+	}
+	return json.Marshal(fmt.Sprintf("%d.%d", p.Bar, p.Beat))
+}
+
+var (
+	posFlagValue = regexp.MustCompile(`^(\d+)(?:\.(\d+))?(?:\+(\d+)/(\d+))?$`)
+)
+
+func (p *Pos) UnmarshalJSON(buf []byte) error {
+	if string(buf) == "null" {
+		return nil
+	}
+	var item string
+	if err := json.Unmarshal(buf, &item); err != nil {
+		return err
+	}
+	result := posFlagValue.FindStringSubmatch(item)
+	if result == nil {
+		return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n", item)
+	}
+	*p = Pos{
+		Beat:      1,
+		BeatNum:   0,
+		BeatDenom: 1,
+	}
+	var err error
+	p.Bar, err = strconv.Atoi(result[1])
+	if err != nil {
+		return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", item)
+	}
+	if result[2] != "" {
+		p.Beat, err = strconv.Atoi(result[2])
+		if err != nil {
+			return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", item)
+		}
+	}
+	if result[3] != "" {
+		p.BeatNum, err = strconv.Atoi(result[3])
+		if err != nil {
+			return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", item)
+		}
+	}
+	if result[4] != "" {
+		p.BeatDenom, err = strconv.Atoi(result[4])
+		if err != nil {
+			return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", item)
+		}
+	}
+	return nil
+}
+
 func (p Pos) ToTick(b bars) int64 {
 	return b.ToTick(p.Bar-1, p.Beat-1, p.BeatNum, p.BeatDenom)
 }
 
 type Range struct {
-	Begin Pos
-	End   Pos
+	Begin Pos `json:"begin"`
+	End   Pos `json:"end"`
 }
 
 func (r Range) ToTick(b bars) (int64, int64) {
@@ -49,26 +106,35 @@ type tickFermata struct {
 }
 
 type Options struct {
-	Fermatas          []Pos
-	FermataExtend     int
-	FermataRest       int
-	Prelude           []Range
-	RestBetweenVerses int
-	NumVerses         int
-	BPMOverride       float64
-	MaxAdjust         int64
-	RestartRedundant  bool
+	InputFile         string  `json:"input_file"`
+	Fermatas          []Pos   `json:"fermatas,omitempty"`
+	FermataExtend     int     `json:"fermata_extend,omitempty"`
+	FermataRest       int     `json:"fermata_rest,omitempty"`
+	Prelude           []Range `json:"prelude,omitempty"`
+	RestBetweenVerses int     `json:"rest_between_verses,omitempty"`
+	NumVerses         int     `json:"num_verses,omitempty"`
+	BPMOverride       float64 `json:"bpm_override,omitempty"`
+	MaxAdjust         int64   `json:"max_adjust,omitempty"`
+	HoldRedundant     bool    `json:"hold_redundant,omitempty"`
 
 	// TODO: Option to sort all NoteOff events first in a tick.
 	// Relaxes cutting locations, but MAY break things a bit.
 	// Default on.
 }
 
+func withDefault[T comparable](a, b T) T {
+	var empty T
+	if a == empty {
+		return b
+	}
+	return a
+}
+
 // Process processes the given MIDI file and writes the result to out.
-func Process(in, out, outPrefix string, options *Options) error {
-	mid, err := smf.ReadFile(in)
+func Process(out, outPrefix string, options *Options) error {
+	mid, err := smf.ReadFile(options.InputFile)
 	if err != nil {
-		return fmt.Errorf("smf.ReadFile(%q): %w", in, err)
+		return fmt.Errorf("smf.ReadFile(%q): %w", options.InputFile, err)
 	}
 	bars := findBars(mid)
 	log.Printf("bars: %+v", bars)
@@ -81,7 +147,7 @@ func Process(in, out, outPrefix string, options *Options) error {
 	}
 
 	// Remove duplicate note start.
-	err = removeRedundantNoteEvents(mid, false, options.RestartRedundant)
+	err = removeRedundantNoteEvents(mid, false, options.HoldRedundant)
 	if err != nil {
 		return err
 	}
@@ -93,7 +159,7 @@ func Process(in, out, outPrefix string, options *Options) error {
 	}
 
 	// Fix overlapping notes, as mapToChannel can cause them.
-	err = removeRedundantNoteEvents(mid, true, options.RestartRedundant)
+	err = removeRedundantNoteEvents(mid, true, options.HoldRedundant)
 	if err != nil {
 		return err
 	}
@@ -107,8 +173,8 @@ func Process(in, out, outPrefix string, options *Options) error {
 	for _, f := range options.Fermatas {
 		tf := tickFermata{
 			tick:   f.ToTick(bars),
-			extend: beatsOrNotesToTicks(bars[f.Bar-1], options.FermataExtend),
-			rest:   beatsOrNotesToTicks(bars[f.Bar-1], options.FermataRest),
+			extend: beatsOrNotesToTicks(bars[f.Bar-1], withDefault(options.FermataExtend, 1)),
+			rest:   beatsOrNotesToTicks(bars[f.Bar-1], withDefault(options.FermataRest, 1)),
 		}
 		err := adjustFermata(mid, &tf)
 		if err != nil {
@@ -119,11 +185,11 @@ func Process(in, out, outPrefix string, options *Options) error {
 	var preludeTick []tickRange
 	for _, p := range options.Prelude {
 		begin, end := p.ToTick(bars)
-		begin, err := adjustToNoNotes(mid, begin, options.MaxAdjust)
+		begin, err := adjustToNoNotes(mid, begin, withDefault(options.MaxAdjust, 64))
 		if err != nil {
 			return err
 		}
-		end, err = adjustToNoNotes(mid, end, options.MaxAdjust)
+		end, err = adjustToNoNotes(mid, end, withDefault(options.MaxAdjust, 64))
 		if err != nil {
 			return err
 		}
@@ -132,7 +198,7 @@ func Process(in, out, outPrefix string, options *Options) error {
 			End:   end,
 		})
 	}
-	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], options.RestBetweenVerses)
+	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], withDefault(options.RestBetweenVerses, 1))
 	totalTicks := bars[len(bars)-1].End()
 
 	log.Printf("fermata data: %+v", fermataTick)
@@ -159,7 +225,7 @@ func Process(in, out, outPrefix string, options *Options) error {
 	if out != "" {
 		var cuts []cut
 		cuts = append(cuts, preludeCuts...)
-		for i := 0; i < options.NumVerses; i++ {
+		for i := 0; i < withDefault(options.NumVerses, 1); i++ {
 			cuts = append(cuts, verseCuts...)
 		}
 		wholeMIDI, err := cutMIDI(mid, trim(cuts))
@@ -482,7 +548,7 @@ func removeUnneededEvents(mid *smf.SMF) error {
 }
 
 // removeRedundantNoteEvents removes overlapping note start events in the song.
-func removeRedundantNoteEvents(mid *smf.SMF, refcounting, restarting bool) error {
+func removeRedundantNoteEvents(mid *smf.SMF, refcounting, holding bool) error {
 	tracker := newNoteTracker(refcounting)
 	tracks := make([]smf.Track, len(mid.Tracks))
 	trackTime := make([]int64, len(mid.Tracks))
@@ -490,7 +556,7 @@ func removeRedundantNoteEvents(mid *smf.SMF, refcounting, restarting bool) error
 		include, track := tracker.Handle(time, track, msg)
 		if !include {
 			var ch, note uint8
-			if restarting && msg.GetNoteStart(&ch, &note, nil) {
+			if !holding && msg.GetNoteStart(&ch, &note, nil) {
 				key := Key{ch: ch, note: note}
 				prevStart := tracker.NoteStart(key)
 				duration := time - prevStart

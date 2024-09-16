@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"regexp"
@@ -18,12 +20,12 @@ var (
 	prelude           = flag.String("prelude", "", "prelude ranges of the form bar.beat+num/denom-bar.beat+num/denom bar.beat+num/denom-bar.beat+num/denom ...")
 	fermatas          = flag.String("fermatas", "", "fermata positions of the form bar.beat bar.beat ...")
 	verses            = flag.Int("verses", 1, "number of verses")
-	restBetweenVerses = flag.Int("rest_between_verses", 1, "rest between verses in beats (if negative, number of denominator notes)")
-	fermataExtend     = flag.Int("fermata_extend", 1, "fermata extension amount in beats (if negative, number of denominator notes)")
-	fermataRest       = flag.Int("fermata_rest", 1, "fermata rest amount in beats (if negative, number of denominator notes)")
-	bpmOverride       = flag.Float64("bpm_override", -1, "when set, the new tempo to set")
-	maxAdjust         = flag.Int64("max_adjust", 64, "maximum number of ticks to adjust cut boundaries by")
-	restartRedundant  = flag.Bool("restart_redundant", true, "restart redundant notes (works better on some piano scores)")
+	fermataExtend     = flag.Int("fermata_extend", 0, "fermata extension amount in beats (if negative, number of denominator notes)")
+	fermataRest       = flag.Int("fermata_rest", 0, "fermata rest amount in beats (if negative, number of denominator notes)")
+	restBetweenVerses = flag.Int("rest_between_verses", 0, "rest between verses in beats (if negative, number of denominator notes)")
+	bpmOverride       = flag.Float64("bpm_override", 0, "when set, the new tempo to set")
+	maxAdjust         = flag.Int64("max_adjust", 0, "maximum number of ticks to adjust cut boundaries by")
+	holdRedundant     = flag.Bool("hold_redundant", false, "hold redundant notes (works better on some piano scores)")
 )
 
 var (
@@ -148,7 +150,8 @@ func parseFermatas(s string) []processor.Pos {
 
 func main() {
 	flag.Parse()
-	err := processor.Process(*i, *o, *oPrefix, &processor.Options{
+	options := &processor.Options{
+		InputFile:         *i,
 		Fermatas:          parseFermatas(*fermatas),
 		FermataExtend:     *fermataExtend,
 		FermataRest:       *fermataRest,
@@ -157,8 +160,11 @@ func main() {
 		NumVerses:         *verses,
 		BPMOverride:       *bpmOverride,
 		MaxAdjust:         *maxAdjust,
-		RestartRedundant:  *restartRedundant,
-	})
+		HoldRedundant:     *holdRedundant,
+	}
+	err := processor.Process(*o, *oPrefix, options)
+	buf, err := json.MarshalIndent(options, "", "  ")
+	fmt.Printf("%v\n", string(buf))
 	if err != nil {
 		log.Printf("Failed to process: %v", err)
 		os.Exit(1)
