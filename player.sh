@@ -1,8 +1,8 @@
 #!/bin/sh
 
 player=$1
-verses=$2
-prefix=$3
+prefix=$2
+verses=$3
 
 panic() {
 	echo "Stopping all notes..."
@@ -24,6 +24,10 @@ if [ -f "$prefix.prelude.mid" ]; then
 	echo "Playing prelude..."
 	$player "$prefix.prelude.mid"
 	needwait=true
+fi
+
+if [ -z "$verses" ]; then
+	verses=$(jq < "$prefix.json" .num_verses)
 fi
 
 for i in $(seq 1 "$verses"); do
