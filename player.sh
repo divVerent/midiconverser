@@ -64,14 +64,15 @@ waitkey() {
 
 if [ -n "$prefix" ]; then
 	# Hymn player.
+	if [ -z "$verses" ]; then
+		verses=$(jq < "$prefix.json" .num_verses)
+	fi
+	echo "Note: will play $verses verses."
+
 	if [ -f "$prefix.prelude.mid" ]; then
 		echo "Playing prelude..."
 		player "$prefix.prelude.mid"
 		needwait=true
-	fi
-
-	if [ -z "$verses" ]; then
-		verses=$(jq < "$prefix.json" .num_verses)
 	fi
 
 	for i in $(seq 1 "$verses"); do
