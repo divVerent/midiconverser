@@ -6,11 +6,9 @@ Converter and player for MIDI files to play hymns in church.
 
 ### Generate Files For a Hymn
 
-1. `go build`
+1. Write a JSON file. TODO: add details.
 
-2. Write a JSON file. TODO: add details.
-
-3. `go run -i hymnnumber.json`
+2. `go run main.go -i hymnnumber.json`
 
 ### Play a Hymn
 
@@ -19,6 +17,10 @@ Converter and player for MIDI files to play hymns in church.
 ### Play arbitrary hymns in random order (for prelude).
 
 `./player.sh`
+
+## Where to Get Hymns
+
+To be described later.
 
 ## License
 
