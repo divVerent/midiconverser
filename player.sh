@@ -35,7 +35,7 @@ if [ -z "$ALSA_PORT" ]; then
 					# Known soft synth - low prio.
 					prio=1
 					;;
-				*USB*)
+				*USB*|UM-*)
 					# Known external port - high prio.
 					prio=3
 					;;
