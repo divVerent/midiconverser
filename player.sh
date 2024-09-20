@@ -53,7 +53,7 @@ if [ -z "$ALSA_PORT" ]; then
 	fi
 	desc=${ALSA_PORT#* }
 	ALSA_PORT=${ALSA_PORT%% *}
-	echo >&2 "Autodetected ALSA port: $ALSA_PORT ($desc)"
+	echo >&2 "Autodetected ALSA port: $ALSA_PORT ($desc); export ALSA_PORT=yourport to override."
 fi
 
 waitkey() {
