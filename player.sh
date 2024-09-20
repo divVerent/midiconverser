@@ -80,7 +80,7 @@ if [ -n "$prefix" ]; then
 			case "$state" in
 				init)
 					text="START VERSE $i?"
-					answer="Playing verse $i..."
+					answer="Playing verse $i/$verses..."
 					state=hold
 					;;
 				hold)
