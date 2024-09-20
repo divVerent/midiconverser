@@ -37,4 +37,4 @@ To be described later.
 
 ## License
 
-This software is released under the [COPYING.md](GPL 3.0).
+This software is released under the [GPL 3.0](COPYING.md).
