@@ -3,22 +3,6 @@
 prefix=$1
 verses=$2
 
-player() {
-	aplaymidi -p "$ALSA_PORT" -d 0 "$@"
-}
-
-panic() {
-	echo "Stopping all notes..."
-	if [ -n "$prefix" ]; then
-		player "$prefix.panic.mid"
-	fi
-	exit 1
-}
-
-trap panic EXIT
-
-trap 'exit 1' INT
-
 LF='
 '
 
@@ -29,7 +13,7 @@ if [ -z "$ALSA_PORT" ]; then
 			case "$rest" in
 				Midi\ Through\ *)
 					# Internal port - ignore.
-					prio=0
+					continue
 					;;
 				FLUID\ *)
 					# Known soft synth - low prio.
@@ -55,6 +39,22 @@ if [ -z "$ALSA_PORT" ]; then
 	ALSA_PORT=${ALSA_PORT%% *}
 	echo >&2 "Autodetected ALSA port: $ALSA_PORT ($desc); export ALSA_PORT=yourport to override."
 fi
+
+player() {
+	aplaymidi -p "$ALSA_PORT" -d 0 "$@"
+}
+
+panic() {
+	echo "Stopping all notes..."
+	if [ -n "$prefix" ]; then
+		player "$prefix.panic.mid"
+	fi
+	exit 1
+}
+
+trap panic EXIT
+
+trap 'exit 1' INT
 
 waitkey() {
 	stty -icanon -echo
