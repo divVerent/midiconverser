@@ -1,6 +1,10 @@
 # MIDI Converser
 
-Converter and player for MIDI files to play hymns in church.
+Converter and player for MIDI files to play hymns in church on electronic
+organs.
+
+Runs on Linux with ALSA and an USB MIDI device (or, for local testing, with
+FluidSynth).
 
 ## Usage
 
