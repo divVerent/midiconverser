@@ -97,23 +97,23 @@ func beatsOrNotesToTicks(b bar, n int) int64 {
 // Config define global settings.
 type Config struct {
 	// Organ specific configuration or override.
-	Channel   uint8   `json:"channel"`
-	BPMFactor float64 `json:"bpm_factor"`
+	Channel           uint8   `json:"channel"`
+	BPMFactor         float64 `json:"bpm_factor"`
+	RestBetweenVerses int     `json:"rest_between_verses,omitempty"`
+	HoldRedundant     bool    `json:"hold_redundant,omitempty"`
 }
 
 // Options define file specific options.
 type Options struct {
-	InputFile         string  `json:"input_file"`
-	Fermatas          []Pos   `json:"fermatas,omitempty"`
-	FermataExtend     int     `json:"fermata_extend,omitempty"`
-	FermataRest       int     `json:"fermata_rest,omitempty"`
-	Prelude           []Range `json:"prelude,omitempty"`
-	RestBetweenVerses int     `json:"rest_between_verses,omitempty"`
-	NumVerses         int     `json:"num_verses,omitempty"`
-	BPMOverride       float64 `json:"bpm_override,omitempty"`
-	BPMFactor         float64 `json:"bpm_factor",omitemoty"`
-	MaxAdjust         int64   `json:"max_adjust,omitempty"`
-	HoldRedundant     bool    `json:"hold_redundant,omitempty"`
+	InputFile     string  `json:"input_file"`
+	Fermatas      []Pos   `json:"fermatas,omitempty"`
+	FermataExtend int     `json:"fermata_extend,omitempty"`
+	FermataRest   int     `json:"fermata_rest,omitempty"`
+	Prelude       []Range `json:"prelude,omitempty"`
+	NumVerses     int     `json:"num_verses,omitempty"`
+	BPMOverride   float64 `json:"bpm_override,omitempty"`
+	BPMFactor     float64 `json:"bpm_factor",omitemoty"`
+	MaxAdjust     int64   `json:"max_adjust,omitempty"`
 
 	// TODO: Option to sort all NoteOff events first in a tick.
 	// Relaxes cutting locations, but MAY break things a bit.
@@ -145,7 +145,7 @@ func Process(outPrefix string, config *Config, options *Options) error {
 	}
 
 	// Remove duplicate note start.
-	err = removeRedundantNoteEvents(mid, false, options.HoldRedundant)
+	err = removeRedundantNoteEvents(mid, false, config.HoldRedundant)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func Process(outPrefix string, config *Config, options *Options) error {
 		}
 
 		// Fix overlapping notes, as mapToChannel can cause them.
-		err = removeRedundantNoteEvents(mid, true, options.HoldRedundant)
+		err = removeRedundantNoteEvents(mid, true, config.HoldRedundant)
 		if err != nil {
 			return err
 		}
@@ -216,7 +216,7 @@ func Process(outPrefix string, config *Config, options *Options) error {
 			End:   end,
 		})
 	}
-	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], withDefault(options.RestBetweenVerses, 1))
+	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], withDefault(config.RestBetweenVerses, 1))
 	totalTicks := bars[len(bars)-1].End()
 
 	log.Printf("fermata data: %+v", fermataTick)
