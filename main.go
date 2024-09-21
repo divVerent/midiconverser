@@ -25,7 +25,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer f.Close()
-	var config processor.Options
+	var config processor.Config
 	err = json.NewDecoder(f).Decode(&config)
 	if err != nil {
 		log.Printf("could not decode %v: %v", *c, err)
@@ -45,13 +45,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	merged := processor.Merge(options, config)
-
 	if *oPrefix == "" {
 		*oPrefix = strings.TrimSuffix(*i, ".json")
 	}
 
-	err = processor.Process(*oPrefix, &merged)
+	err = processor.Process(*oPrefix, &config, &options)
 	if err != nil {
 		log.Printf("Failed to process: %v", err)
 		os.Exit(1)

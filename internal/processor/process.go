@@ -94,12 +94,15 @@ func beatsOrNotesToTicks(b bar, n int) int64 {
 	}
 }
 
-type Options struct {
+// Config define global settings.
+type Config struct {
 	// Organ specific configuration or override.
-	Channel         uint8   `json:"channel"`
-	GlobalBPMFactor float64 `json:"global_bpm_factor"`
+	Channel   uint8   `json:"channel"`
+	BPMFactor float64 `json:"bpm_factor"`
+}
 
-	// File specifics.
+// Options define file specific options.
+type Options struct {
 	InputFile         string  `json:"input_file"`
 	Fermatas          []Pos   `json:"fermatas,omitempty"`
 	FermataExtend     int     `json:"fermata_extend,omitempty"`
@@ -126,7 +129,7 @@ func withDefault[T comparable](a, b T) T {
 }
 
 // Process processes the given MIDI file and writes the result to out.
-func Process(outPrefix string, options *Options) error {
+func Process(outPrefix string, config *Config, options *Options) error {
 	mid, err := smf.ReadFile(options.InputFile)
 	if err != nil {
 		return fmt.Errorf("smf.ReadFile(%q): %w", options.InputFile, err)
@@ -148,8 +151,8 @@ func Process(outPrefix string, options *Options) error {
 	}
 
 	// Map all to MIDI channel 2 for the organ.
-	if options.Channel > 0 {
-		mapToChannel(mid, options.Channel-1)
+	if config.Channel > 0 {
+		mapToChannel(mid, config.Channel-1)
 		if err != nil {
 			return err
 		}
@@ -172,8 +175,8 @@ func Process(outPrefix string, options *Options) error {
 	if options.BPMFactor > 0 {
 		f *= options.BPMFactor
 	}
-	if options.GlobalBPMFactor > 0 {
-		f *= options.GlobalBPMFactor
+	if config.BPMFactor > 0 {
+		f *= config.BPMFactor
 	}
 	if f != 1.0 {
 		err = adjustTempo(mid, f)
