@@ -11,13 +11,28 @@ import (
 )
 
 var (
+	c       = flag.String("c", "config.json", "config file name (JSON)")
 	i       = flag.String("i", "", "input file name (JSON)")
 	oPrefix = flag.String("o_prefix", "", "output file name for outputting separate files")
 )
 
 func main() {
 	flag.Parse()
-	f, err := os.Open(*i)
+
+	f, err := os.Open(*c)
+	if err != nil {
+		log.Printf("could not open %v: %v", *c, err)
+		os.Exit(1)
+	}
+	defer f.Close()
+	var config processor.Options
+	err = json.NewDecoder(f).Decode(&config)
+	if err != nil {
+		log.Printf("could not decode %v: %v", *c, err)
+		os.Exit(1)
+	}
+
+	f, err = os.Open(*i)
 	if err != nil {
 		log.Printf("could not open %v: %v", *i, err)
 		os.Exit(1)
@@ -29,10 +44,14 @@ func main() {
 		log.Printf("could not decode %v: %v", *i, err)
 		os.Exit(1)
 	}
+
+	merged := processor.Merge(options, config)
+
 	if *oPrefix == "" {
 		*oPrefix = strings.TrimSuffix(*i, ".json")
 	}
-	err = processor.Process(*oPrefix, &options)
+
+	err = processor.Process(*oPrefix, &merged)
 	if err != nil {
 		log.Printf("Failed to process: %v", err)
 		os.Exit(1)

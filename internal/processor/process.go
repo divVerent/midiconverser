@@ -95,6 +95,11 @@ func beatsOrNotesToTicks(b bar, n int) int64 {
 }
 
 type Options struct {
+	// Organ specific configuration or override.
+	Channel         uint8   `json:"channel"`
+	GlobalBPMFactor float64 `json:"global_bpm_factor"`
+
+	// File specifics.
 	InputFile         string  `json:"input_file"`
 	Fermatas          []Pos   `json:"fermatas,omitempty"`
 	FermataExtend     int     `json:"fermata_extend,omitempty"`
@@ -103,6 +108,7 @@ type Options struct {
 	RestBetweenVerses int     `json:"rest_between_verses,omitempty"`
 	NumVerses         int     `json:"num_verses,omitempty"`
 	BPMOverride       float64 `json:"bpm_override,omitempty"`
+	BPMFactor         float64 `json:"bpm_factor",omitemoty"`
 	MaxAdjust         int64   `json:"max_adjust,omitempty"`
 	HoldRedundant     bool    `json:"hold_redundant,omitempty"`
 
@@ -142,19 +148,38 @@ func Process(outPrefix string, options *Options) error {
 	}
 
 	// Map all to MIDI channel 2 for the organ.
-	mapToChannel(mid, 1)
-	if err != nil {
-		return err
-	}
+	if options.Channel > 0 {
+		mapToChannel(mid, options.Channel-1)
+		if err != nil {
+			return err
+		}
 
-	// Fix overlapping notes, as mapToChannel can cause them.
-	err = removeRedundantNoteEvents(mid, true, options.HoldRedundant)
-	if err != nil {
-		return err
+		// Fix overlapping notes, as mapToChannel can cause them.
+		err = removeRedundantNoteEvents(mid, true, options.HoldRedundant)
+		if err != nil {
+			return err
+		}
 	}
 
 	if options.BPMOverride > 0 {
 		err = forceTempo(mid, options.BPMOverride)
+		if err != nil {
+			return err
+		}
+	}
+
+	f := 1.0
+	if options.BPMFactor > 0 {
+		f *= options.BPMFactor
+	}
+	if options.GlobalBPMFactor > 0 {
+		f *= options.GlobalBPMFactor
+	}
+	if f != 1.0 {
+		err = adjustTempo(mid, f)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Convert all values to ticks.
