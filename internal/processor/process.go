@@ -101,6 +101,10 @@ type Config struct {
 	BPMFactor         float64 `json:"bpm_factor"`
 	RestBetweenVerses int     `json:"rest_between_verses,omitempty"`
 	HoldRedundant     bool    `json:"hold_redundant,omitempty"`
+
+	// Also future options:
+	// - Player options (number prelude repeats, time between prelude hymns)
+	// - Transpose
 }
 
 // Options define file specific options.
