@@ -116,8 +116,9 @@ else
 			verses=${verses#*$LF}
 			prefix=${verse%.verse.mid}
 			# No xmas songs except in December.
+			# TODO move this into the json files.
 			case "$prefix" in
-				12??)
+				20[1-9]|21[0-4]|12??)
 					case "$(date +%Y%m%d)" in
 						????12[01]?|????122[0-6])
 							;;
@@ -126,6 +127,10 @@ else
 							continue
 							;;
 					esac
+					;;
+				33[89]|34[01])
+					echo "Skipping $prefix due to it being for special occasions."
+					continue
 					;;
 			esac
 			thisrepeat=$repeat
