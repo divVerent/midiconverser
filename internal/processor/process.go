@@ -207,7 +207,6 @@ func Process(outPrefix string, config *Config, options *Options) error {
 	}
 	var preludeTick []tickRange
 	for _, p := range options.Prelude {
-		log.Printf("%v\n", p)
 		begin, end := p.ToTick(bars)
 		begin, err := adjustToNoNotes(mid, begin, withDefault(options.MaxAdjust, 64))
 		if err != nil {
@@ -244,7 +243,7 @@ func Process(outPrefix string, config *Config, options *Options) error {
 		Begin:      0,
 		End:        totalTicks,
 	}, fermataTick)
-	log.Printf("verse cuts: %+v", preludeCuts)
+	log.Printf("verse cuts: %+v", verseCuts)
 
 	var cuts []cut
 	cuts = append(cuts, preludeCuts...)

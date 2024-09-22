@@ -2,7 +2,6 @@ package processor
 
 import (
 	"fmt"
-	"log"
 
 	"gitlab.com/gomidi/midi/v2/smf"
 )
@@ -21,7 +20,7 @@ func adjustToNoNotes(mid *smf.SMF, tick, maxDelta int64) (int64, error) {
 	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if !tracker.Playing() {
 			if time > maxTick {
-				log.Printf("nothing at %v .. %v", maxTick+1, time)
+				//log.Printf("nothing at %v .. %v", maxTick+1, time)
 				if tick >= maxTick+1 && tick <= time {
 					bestTick = tick
 				}
@@ -29,7 +28,7 @@ func adjustToNoNotes(mid *smf.SMF, tick, maxDelta int64) (int64, error) {
 					bestTick = maxTick + 1
 				}
 			} else {
-				log.Printf("nothing at %v", time)
+				//log.Printf("nothing at %v", time)
 			}
 			if abs(time-tick) < abs(bestTick-tick) {
 				bestTick = time
@@ -52,7 +51,7 @@ func adjustToNoNotes(mid *smf.SMF, tick, maxDelta int64) (int64, error) {
 	if abs(bestTick-tick) > maxDelta {
 		return 0, fmt.Errorf("no noteless tick found around %v (best: %v, max: %v)", tick, bestTick, maxTick)
 	}
-	log.Printf("adjusted %v -> %v", tick, bestTick)
+	//log.Printf("adjusted %v -> %v", tick, bestTick)
 	return bestTick, nil
 }
 

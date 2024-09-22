@@ -1,8 +1,6 @@
 package processor
 
 import (
-	"log"
-
 	"gitlab.com/gomidi/midi/v2"
 	"gitlab.com/gomidi/midi/v2/smf"
 )
@@ -43,7 +41,7 @@ func removeRedundantNoteEvents(mid *smf.SMF, refcounting, holding bool) error {
 				prevStart := tracker.NoteStart(key)
 				duration := time - prevStart
 				if duration > 0 {
-					log.Printf("restarting note with already duration %d", duration)
+					//log.Printf("restarting note with already duration %d", duration)
 					// Restart the note by inserting a note-off and a note-on event.
 					noteOff := smf.Message(midi.NoteOff(ch, note))
 					tracks[track] = append(tracks[track], smf.Event{
@@ -53,7 +51,7 @@ func removeRedundantNoteEvents(mid *smf.SMF, refcounting, holding bool) error {
 					trackTime[track] = time
 					tracker.SetNoteStart(key, time)
 				} else {
-					log.Printf("not restarting note with already duration %d", duration)
+					//log.Printf("not restarting note with already duration %d", duration)
 					return nil
 				}
 			} else {
