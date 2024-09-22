@@ -115,7 +115,7 @@ type Options struct {
 	FermataRest   int     `json:"fermata_rest,omitempty"`
 	Prelude       []Range `json:"prelude,omitempty"`
 	NumVerses     int     `json:"num_verses,omitempty"`
-	BPMOverride   float64 `json:"bpm_override,omitempty"`
+	QPMOverride   float64 `json:"qpm_override,omitempty"`
 	BPMFactor     float64 `json:"bpm_factor",omitemoty"`
 	MaxAdjust     int64   `json:"max_adjust,omitempty"`
 
@@ -168,8 +168,8 @@ func Process(outPrefix string, config *Config, options *Options) error {
 		}
 	}
 
-	if options.BPMOverride > 0 {
-		err = forceTempo(mid, options.BPMOverride)
+	if options.QPMOverride > 0 {
+		err = forceTempo(mid, options.QPMOverride)
 		if err != nil {
 			return err
 		}
