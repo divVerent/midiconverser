@@ -23,9 +23,11 @@ FluidSynth).
    * `bpm_factor`: tempo factor as desired (default: 1.0).
    * `channel`: MIDI channel (1-16) to map all notes to, or 0 to not remap (default).
    * `hold_redundant_notes`: `true` to keep redundant notes playing, `false` to restart them (default).
-   * `fermata_extend`: number of extra beats to hold fermata notes (default: 1). Affects only the pre-arranged MIDI outputs.
-   * `fermata_rest`: number of rest beats after a fermata (default: 1). Affects only the pre-arranged MIDI outputs.
-   * `rest_between_verses`: number of beats to wait between verses (default: 1). Affects only the pre-arranged MIDI outputs.
+   * `fermata_extend_beats`: number of extra beats to hold fermata notes (default: 1). Affects only the pre-arranged MIDI outputs.
+   * `fermata_rest_beats`: number of rest beats after a fermata (default: 1). Affects only the pre-arranged MIDI outputs.
+   * `rest_between_verses_beats`: number of beats to wait between verses (default: 1). Affects only the pre-arranged MIDI outputs.
+   * `prelude_player_repeat`: number of times each hymn will be repeated in the prelude player (default: 2).
+   * `prelude_player_sleep_sec`: number of seconds between hymns in the prelude player (default: 2).
 
 1. Write a JSON file like the following:
 

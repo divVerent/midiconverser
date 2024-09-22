@@ -106,9 +106,8 @@ if [ -n "$prefix" ]; then
 	done
 	echo "Done."
 else
-	# Prelude player.
-	: ${repeat:=2}
-	: ${sleep:=2}
+	repeat=$(jq < config.json '.prelude_player_repeat // 2')
+	sleep=$(jq < config.json '.prelude_player_sleep_sec // 2')
 	while :; do
 		verses=$(echo *.verse.mid | xargs -n 1 | shuf)"$LF"
 		while [ -n "$verses" ]; do

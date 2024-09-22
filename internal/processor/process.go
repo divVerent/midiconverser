@@ -97,16 +97,18 @@ func beatsOrNotesToTicks(b bar, n int) int64 {
 // Config define global settings.
 type Config struct {
 	// Organ specific configuration or override.
-	BPMFactor          float64 `json:"bpm_factor"`
-	Channel            uint8   `json:"channel"`
-	HoldRedundantNotes bool    `json:"hold_redundant_notes,omitempty"`
-	FermataExtend      int     `json:"fermata_extend,omitempty"`
-	FermataRest        int     `json:"fermata_rest,omitempty"`
-	RestBetweenVerses  int     `json:"rest_between_verses,omitempty"`
+	BPMFactor              float64 `json:"bpm_factor",omitempty`
+	Channel                uint8   `json:"channel",omitempty`
+	HoldRedundantNotes     bool    `json:"hold_redundant_notes,omitempty"`
+	FermataExtendBeats     int     `json:"fermata_extend_beats,omitempty"`
+	FermataRestBeats       int     `json:"fermata_rest_beats,omitempty"`
+	RestBetweenVersesBeats int     `json:"rest_between_verses_beats,omitempty"`
 
 	// Also future options:
-	// - Player options (number prelude repeats, time between prelude hymns)
 	// - Transpose
+
+	PreludePlayerRepeat   int     `json:"prelude_player_repeat",omitempty`
+	PreludePlayerSleepSec float64 `json:"prelude_player_sleep_sec",omitempty`
 }
 
 // Options define file specific options.
@@ -194,8 +196,8 @@ func Process(outPrefix string, config *Config, options *Options) error {
 	for _, f := range options.Fermatas {
 		tf := tickFermata{
 			tick:   f.ToTick(bars),
-			extend: beatsOrNotesToTicks(bars[f.Bar-1], withDefault(config.FermataExtend, 1)),
-			rest:   beatsOrNotesToTicks(bars[f.Bar-1], withDefault(config.FermataRest, 1)),
+			extend: beatsOrNotesToTicks(bars[f.Bar-1], withDefault(config.FermataExtendBeats, 1)),
+			rest:   beatsOrNotesToTicks(bars[f.Bar-1], withDefault(config.FermataRestBeats, 1)),
 		}
 		err := adjustFermata(mid, &tf)
 		if err != nil {
@@ -220,7 +222,7 @@ func Process(outPrefix string, config *Config, options *Options) error {
 			End:   end,
 		})
 	}
-	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], withDefault(config.RestBetweenVerses, 1))
+	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], withDefault(config.RestBetweenVersesBeats, 1))
 	totalTicks := bars[len(bars)-1].End()
 
 	log.Printf("fermata data: %+v", fermataTick)
