@@ -32,8 +32,40 @@ FluidSynth).
 1. Write a JSON file like the following:
 
    ```
-   TODO
+   {
+     "input_file": "../hymns/27.mid",
+     "fermatas": [
+       "22.2+1/4"
+     ],
+     "prelude": [
+       {
+         "begin": "1.1",
+         "end": "5.1"
+       },
+       {
+         "begin": "29.1",
+         "end": "33.1"
+       }
+     ],
+     "num_verses": 4,
+     "qpm_override": 86
+   }
    ```
+
+   with the following keys:
+
+   * `input_file`: MIDI file to read.
+   * `fermatas`: list of positions of fermatas (default: empty); this should point _inside_ the note to hold (ideally halfway).
+   * `prelude`: list of begin/end positions for the prelude (default: empty); the end positions are exclusive and thus should be the beat where the next non-prelude portion begins. The last item can point behind the last bar.
+   * `num_verses`: number of verses of this hymn (default: 1).
+   * `qpm_override`: replacement value for tempo in quarter notes per minute, if nonzero (default: 0).
+   * `bpm_factor`: tempo factor to adjust the input (default: 1.0). Only really makes sense to use when not using `qpm_override`.
+   * `max_adjust`: maximum number of MIDI ticks to adjust positions by (default: 64).
+
+   whereas a "position" is a quoted string of the form:
+
+   * `bar.beat` to specify an exact beat
+   * `bar.beat+num/denom` to specify a position between two beats; the fraction is the fraction of the next beat to use
 
 1. `go run main.go -i hymnnumber.json`
 
