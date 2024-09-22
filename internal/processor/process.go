@@ -135,45 +135,41 @@ func withDefault[T comparable](a, b T) T {
 }
 
 // Process processes the given MIDI file and writes the result to out.
-func Process(outPrefix string, config *Config, options *Options) error {
-	mid, err := smf.ReadFile(options.InputFile)
-	if err != nil {
-		return fmt.Errorf("smf.ReadFile(%q): %w", options.InputFile, err)
-	}
+func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SMF, error) {
 	bars := findBars(mid)
 	log.Printf("bars: %+v", bars)
 	dumpTimeSig("Before", mid, bars)
 
 	// Fix bad events.
-	err = removeUnneededEvents(mid)
+	err := removeUnneededEvents(mid)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Remove duplicate note start.
 	err = removeRedundantNoteEvents(mid, false, config.HoldRedundantNotes)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Map all to MIDI channel 2 for the organ.
 	if config.Channel > 0 {
 		mapToChannel(mid, config.Channel-1)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		// Fix overlapping notes, as mapToChannel can cause them.
 		err = removeRedundantNoteEvents(mid, true, config.HoldRedundantNotes)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if options.QPMOverride > 0 {
 		err = forceTempo(mid, options.QPMOverride)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -187,7 +183,7 @@ func Process(outPrefix string, config *Config, options *Options) error {
 	if f != 1.0 {
 		err = adjustTempo(mid, f)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -201,7 +197,7 @@ func Process(outPrefix string, config *Config, options *Options) error {
 		}
 		err := adjustFermata(mid, &tf)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		fermataTick = append(fermataTick, tf)
 	}
@@ -210,11 +206,11 @@ func Process(outPrefix string, config *Config, options *Options) error {
 		begin, end := p.ToTick(bars)
 		begin, err := adjustToNoNotes(mid, begin, withDefault(options.MaxAdjust, 64))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		end, err = adjustToNoNotes(mid, end, withDefault(options.MaxAdjust, 64))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		preludeTick = append(preludeTick, tickRange{
 			Begin: begin,
@@ -245,6 +241,8 @@ func Process(outPrefix string, config *Config, options *Options) error {
 	}, fermataTick)
 	log.Printf("verse cuts: %+v", verseCuts)
 
+	output := map[string]*smf.SMF{}
+
 	var cuts []cut
 	cuts = append(cuts, preludeCuts...)
 	for i := 0; i < withDefault(options.NumVerses, 1); i++ {
@@ -252,59 +250,44 @@ func Process(outPrefix string, config *Config, options *Options) error {
 	}
 	wholeMIDI, err := cutMIDI(mid, trim(cuts))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	err = wholeMIDI.WriteFile(fmt.Sprintf("%s.mid", outPrefix))
-	if err != nil {
-		return err
-	}
+	output["whole"] = wholeMIDI
 	newBars := findBars(wholeMIDI)
 	dumpTimeSig("Whole", wholeMIDI, newBars)
 
 	if len(preludeCuts) > 0 {
 		preludeMIDI, err := cutMIDI(mid, trim(preludeCuts))
 		if err != nil {
-			return err
+			return nil, err
 		}
-		err = preludeMIDI.WriteFile(fmt.Sprintf("%s.prelude.mid", outPrefix))
-		if err != nil {
-			return err
-		}
+		output["prelude"] = preludeMIDI
 		newBars := findBars(preludeMIDI)
 		dumpTimeSig("Prelude", preludeMIDI, newBars)
 	}
 	if len(verseCuts) > 0 {
-		sectionMIDI, err := cutMIDI(mid, trim(verseCuts))
+		verseMIDI, err := cutMIDI(mid, trim(verseCuts))
 		if err != nil {
-			return err
+			return nil, err
 		}
-		err = sectionMIDI.WriteFile(fmt.Sprintf("%s.verse.mid", outPrefix))
-		if err != nil {
-			return err
-		}
-		newBars := findBars(sectionMIDI)
-		dumpTimeSig("Verse", sectionMIDI, newBars)
+		output["verse"] = verseMIDI
+		newBars := findBars(verseMIDI)
+		dumpTimeSig("Verse", verseMIDI, newBars)
 	}
 	for i, c := range verseCuts {
 		sectionMIDI, err := cutMIDI(mid, trim([]cut{c}))
 		if err != nil {
-			return err
+			return nil, err
 		}
-		err = sectionMIDI.WriteFile(fmt.Sprintf("%s.part%d.mid", outPrefix, i))
-		if err != nil {
-			return err
-		}
+		output[fmt.Sprintf("part%d", i)] = sectionMIDI
 		newBars := findBars(sectionMIDI)
 		dumpTimeSig(fmt.Sprintf("Section %d", i), sectionMIDI, newBars)
 	}
 	panicMIDI, err := panicMIDI(mid)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	err = panicMIDI.WriteFile(fmt.Sprintf("%s.panic.mid", outPrefix))
-	if err != nil {
-		return err
-	}
+	output["panic"] = panicMIDI
 
-	return nil
+	return output, nil
 }
