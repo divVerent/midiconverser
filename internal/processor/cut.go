@@ -56,12 +56,15 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 			if time < from {
 				return nil
 			}
+			isNoteOn := msg.GetNoteStart(nil, nil, nil)
 			isNoteOff := msg.GetNoteEnd(nil, nil)
 			ignore := (time == from && isNoteOff) || (time == to && !isNoteOff)
 			if ignore {
 				return nil
 			}
-			if first {
+			// TODO: Can improve algorithm of this to collect data first then act at end of every tick.
+			// Then we can even handle ticks with alternating note off and note on events.
+			if first && isNoteOn {
 				if !dirtyFrom && wasPlaying {
 					return fmt.Errorf("already playing a note at start of section %d..%d to be copied at time %d track %d", from, to, time, track)
 				}
