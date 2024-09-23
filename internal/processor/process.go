@@ -253,8 +253,8 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		return nil, err
 	}
 	output["whole"] = wholeMIDI
-	newBars := findBars(wholeMIDI)
-	dumpTimeSig("Whole", wholeMIDI, newBars)
+	//newBars := findBars(wholeMIDI)
+	//dumpTimeSig("Whole", wholeMIDI, newBars)
 
 	if len(preludeCuts) > 0 {
 		preludeMIDI, err := cutMIDI(mid, trim(preludeCuts))
@@ -262,8 +262,8 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 			return nil, err
 		}
 		output["prelude"] = preludeMIDI
-		//newBars := findBars(preludeMIDI)
-		//dumpTimeSig("Prelude", preludeMIDI, newBars)
+		newBars := findBars(preludeMIDI)
+		dumpTimeSig("Prelude", preludeMIDI, newBars)
 	}
 	if len(verseCuts) > 0 {
 		verseMIDI, err := cutMIDI(mid, trim(verseCuts))
@@ -280,8 +280,8 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 			return nil, err
 		}
 		output[fmt.Sprintf("part%d", i)] = sectionMIDI
-		//newBars := findBars(sectionMIDI)
-		//dumpTimeSig(fmt.Sprintf("Section %d", i), sectionMIDI, newBars)
+		newBars := findBars(sectionMIDI)
+		dumpTimeSig(fmt.Sprintf("Section %d", i), sectionMIDI, newBars)
 	}
 	panicMIDI, err := panicMIDI(mid)
 	if err != nil {
