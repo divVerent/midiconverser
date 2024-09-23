@@ -16,16 +16,19 @@ func forEachEventWithTime(mid *smf.SMF, yield func(time int64, track int, msg sm
 	for {
 		earliestTrack := -1
 		var earliestTime int64
+		var earliestNoteOff bool
 		for i, t := range mid.Tracks {
 			p := trackPos[i]
 			if p >= len(t) {
 				// End of track.
 				continue
 			}
-			t := trackTime[i] + int64(t[p].Delta)
-			if earliestTrack < 0 || t < earliestTime {
-				earliestTime = t
+			time := trackTime[i] + int64(t[p].Delta)
+			noteOff := t[p].Message.GetNoteEnd(nil, nil)
+			if earliestTrack < 0 || time < earliestTime || (time == earliestTime && noteOff && !earliestNoteOff) {
+				earliestTime = time
 				earliestTrack = i
+				earliestNoteOff = noteOff
 			}
 		}
 		if earliestTrack < 0 {

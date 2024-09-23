@@ -113,13 +113,14 @@ type Config struct {
 
 // Options define file specific options.
 type Options struct {
-	InputFile   string  `json:"input_file"`
-	Fermatas    []Pos   `json:"fermatas,omitempty"`
-	Prelude     []Range `json:"prelude,omitempty"`
-	NumVerses   int     `json:"num_verses,omitempty"`
-	QPMOverride float64 `json:"qpm_override,omitempty"`
-	BPMFactor   float64 `json:"bpm_factor",omitemoty"`
-	MaxAdjust   int64   `json:"max_adjust,omitempty"`
+	InputFile      string  `json:"input_file"`
+	Fermatas       []Pos   `json:"fermatas,omitempty"`
+	Prelude        []Range `json:"prelude,omitempty"`
+	NumVerses      int     `json:"num_verses,omitempty"`
+	QPMOverride    float64 `json:"qpm_override,omitempty"`
+	BPMFactor      float64 `json:"bpm_factor",omitemoty"`
+	MaxAdjust      int64   `json:"max_adjust,omitempty"`
+	KeepEventOrder bool    `json:"keep_event_order",omitempty`
 
 	// TODO: Option to sort all NoteOff events first in a tick.
 	// Relaxes cutting locations, but MAY break things a bit.
@@ -161,6 +162,16 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 
 		// Fix overlapping notes, as mapToChannel can cause them.
 		err = removeRedundantNoteEvents(mid, true, config.HoldRedundantNotes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Sort NoteOff first.
+	//
+	// This has to take place after channel remapping, as that may remove events.
+	if !options.KeepEventOrder {
+		err := sortNoteOffFirst(mid)
 		if err != nil {
 			return nil, err
 		}

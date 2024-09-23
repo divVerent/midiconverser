@@ -61,6 +61,7 @@ FluidSynth).
    * `qpm_override`: replacement value for tempo in quarter notes per minute, if nonzero (default: 0).
    * `bpm_factor`: tempo factor to adjust the input (default: 1.0). Only really makes sense to use when not using `qpm_override`.
    * `max_adjust`: maximum number of MIDI ticks to adjust positions by (default: 64).
+   * `keep_event_order`: try to retain event order within a tick (default: false).
 
    whereas a "position" is a quoted string of the form:
 
