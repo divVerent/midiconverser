@@ -15,7 +15,7 @@ if [ -z "$ALSA_PORT" ]; then
 					# Internal port - ignore.
 					continue
 					;;
-				FLUID\ *)
+				FLUID\ *|TiMidity\ *)
 					# Known soft synth - low prio.
 					prio=1
 					;;
