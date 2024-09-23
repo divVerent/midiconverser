@@ -121,10 +121,6 @@ type Options struct {
 	BPMFactor      float64 `json:"bpm_factor",omitemoty"`
 	MaxAdjust      int64   `json:"max_adjust,omitempty"`
 	KeepEventOrder bool    `json:"keep_event_order",omitempty`
-
-	// TODO: Option to sort all NoteOff events first in a tick.
-	// Relaxes cutting locations, but MAY break things a bit.
-	// Default on.
 }
 
 func withDefault[T comparable](a, b T) T {
