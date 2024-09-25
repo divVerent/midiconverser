@@ -97,8 +97,12 @@ func beatsOrNotesToTicks(b bar, n int) int64 {
 // Config define global settings.
 type Config struct {
 	// Organ specific configuration or override.
-	BPMFactor              float64 `json:"bpm_factor",omitempty`
-	Channel                uint8   `json:"channel",omitempty`
+	BPMFactor              float64 `json:"bpm_factor,omitempty"`
+	Channel                uint8   `json:"channel,omitempty"`
+	MelodyTrackNameRE      string  `json:"melody_track_name_re",omitempty`
+	MelodyChannel          uint8   `json:"melody_channel",omitempty`
+	BassTrackNameRE        string  `json:"bass_track_name_re",omitempty`
+	BassChannel            uint8   `json:"bass_channel",omitempty`
 	HoldRedundantNotes     bool    `json:"hold_redundant_notes,omitempty"`
 	FermataExtendBeats     int     `json:"fermata_extend_beats,omitempty"`
 	FermataRestBeats       int     `json:"fermata_rest_beats,omitempty"`
@@ -107,8 +111,8 @@ type Config struct {
 	// Also future options:
 	// - Transpose
 
-	PreludePlayerRepeat   int     `json:"prelude_player_repeat",omitempty`
-	PreludePlayerSleepSec float64 `json:"prelude_player_sleep_sec",omitempty`
+	PreludePlayerRepeat   int     `json:"prelude_player_repeat,omitempty"`
+	PreludePlayerSleepSec float64 `json:"prelude_player_sleep_sec,omitempty"`
 }
 
 // Options define file specific options.
@@ -118,9 +122,11 @@ type Options struct {
 	Prelude        []Range `json:"prelude,omitempty"`
 	NumVerses      int     `json:"num_verses,omitempty"`
 	QPMOverride    float64 `json:"qpm_override,omitempty"`
-	BPMFactor      float64 `json:"bpm_factor",omitemoty"`
+	BPMFactor      float64 `json:"bpm_factor,omitemoty"`
 	MaxAdjust      int64   `json:"max_adjust,omitempty"`
-	KeepEventOrder bool    `json:"keep_event_order",omitempty`
+	KeepEventOrder bool    `json:"keep_event_order,omitempty"`
+	MelodyTracks   []int   `json:"melody_tracks,omitempty"`
+	BassTracks     []int   `json:"bass_tracks,omitempty"`
 }
 
 func withDefault[T comparable](a, b T) T {
@@ -150,17 +156,15 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 	}
 
 	// Map all to MIDI channel 2 for the organ.
-	if config.Channel > 0 {
-		mapToChannel(mid, config.Channel-1)
-		if err != nil {
-			return nil, err
-		}
+	err = mapToChannel(mid, config.Channel-1, config.MelodyTrackNameRE, options.MelodyTracks, config.MelodyChannel-1, config.BassTrackNameRE, options.BassTracks, config.BassChannel-1)
+	if err != nil {
+		return nil, err
+	}
 
-		// Fix overlapping notes, as mapToChannel can cause them.
-		err = removeRedundantNoteEvents(mid, true, config.HoldRedundantNotes)
-		if err != nil {
-			return nil, err
-		}
+	// Fix overlapping notes, as mapToChannel can cause them.
+	err = removeRedundantNoteEvents(mid, true, config.HoldRedundantNotes)
+	if err != nil {
+		return nil, err
 	}
 
 	// Sort NoteOff first.
