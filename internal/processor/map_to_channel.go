@@ -72,31 +72,42 @@ func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, mel
 	tracks := make([]smf.Track, numTracks)
 	trackTime := make([]int64, numTracks)
 	err = forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+		channels := map[uint8]bool{}
 		out := func(outTrack int, outCh int) {
 			newMsg := append(smf.Message(nil), msg...)
 			// Remap channel if requested.
-			if outCh >= 0 {
-				var evCh uint8
-				if newMsg.GetChannel(&evCh) {
+			var evCh uint8
+			if newMsg.GetChannel(&evCh) {
+				if outCh >= 0 {
 					newMsg[0] += uint8(outCh) - evCh
-				}
-				if newMsg.GetMetaChannel(&evCh) {
-					newMsg[3] += uint8(outCh) - evCh
+					evCh = uint8(outCh)
 				}
 			}
+			if newMsg.GetMetaChannel(&evCh) {
+				if outCh >= 0 {
+					newMsg[3] += uint8(outCh) - evCh
+					evCh = uint8(outCh)
+				}
+			}
+			if channels[evCh] {
+				// Remove coupler dupes.
+				return
+			}
+			channels[evCh] = true
 			tracks[outTrack] = append(tracks[outTrack], smf.Event{
 				Delta:   uint32(time - trackTime[outTrack]),
 				Message: newMsg,
 			})
 			trackTime[outTrack] = time
 		}
-		out(track, ch)
+		// Couplers first, even if same channel.
 		if isMelody[track] {
 			out(melodyTrack, melodyCh)
 		}
 		if isBass[track] {
 			out(bassTrack, bassCh)
 		}
+		out(track, ch)
 		return nil
 	})
 	if err != nil {

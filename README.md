@@ -28,6 +28,8 @@ FluidSynth).
    * `rest_between_verses_beats`: number of beats to wait between verses (default: 1). Affects only the pre-arranged MIDI outputs.
    * `prelude_player_repeat`: number of times each hymn will be repeated in the prelude player (default: 2).
    * `prelude_player_sleep_sec`: number of seconds between hymns in the prelude player (default: 2).
+   * `melody_track_name_re`: partial-match regular expression that melody track names should match (default: unset).
+   * `melody_channel`: additional channel for melody notes
 
 1. Write a JSON file like the following:
 
