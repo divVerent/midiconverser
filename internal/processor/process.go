@@ -98,11 +98,11 @@ func beatsOrNotesToTicks(b bar, n int) int64 {
 type Config struct {
 	// Organ specific configuration or override.
 	BPMFactor              float64 `json:"bpm_factor,omitempty"`
-	Channel                uint8   `json:"channel,omitempty"`
+	Channel                int     `json:"channel,omitempty"`
 	MelodyTrackNameRE      string  `json:"melody_track_name_re",omitempty`
-	MelodyChannel          uint8   `json:"melody_channel",omitempty`
+	MelodyChannel          int     `json:"melody_channel",omitempty`
 	BassTrackNameRE        string  `json:"bass_track_name_re",omitempty`
-	BassChannel            uint8   `json:"bass_channel",omitempty`
+	BassChannel            int     `json:"bass_channel",omitempty`
 	HoldRedundantNotes     bool    `json:"hold_redundant_notes,omitempty"`
 	FermataExtendBeats     int     `json:"fermata_extend_beats,omitempty"`
 	FermataRestBeats       int     `json:"fermata_rest_beats,omitempty"`

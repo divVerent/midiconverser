@@ -8,12 +8,13 @@ import (
 )
 
 // mapToChannel maps all events of the song to the given MIDI channel.
-func mapToChannel(mid *smf.SMF, ch uint8, melodyRE string, melodyTracks []int, melodyCh uint8, bassRE string, bassTracks []int, bassCh uint8) error {
-	melody, err := regexp.Compile(melodyRE)
-	if err != nil {
-		return err
+func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, melodyCh int, bassRE string, bassTracks []int, bassCh int) error {
+	if ch < 0 && melodyCh < 0 && bassCh < 0 {
+		// No remapping.
+		return nil
 	}
-	bass, err := regexp.Compile(bassRE)
+
+	melody, err := regexp.Compile(melodyRE)
 	if err != nil {
 		return err
 	}
@@ -21,10 +22,16 @@ func mapToChannel(mid *smf.SMF, ch uint8, melodyRE string, melodyTracks []int, m
 	for _, i := range melodyTracks {
 		isMelody[i] = true
 	}
+
+	bass, err := regexp.Compile(bassRE)
+	if err != nil {
+		return err
+	}
 	isBass := make(map[int]bool, len(bassTracks))
 	for _, i := range bassTracks {
 		isBass[i] = true
 	}
+
 	for i, t := range mid.Tracks {
 		var name string
 		for _, ev := range t {
@@ -42,14 +49,15 @@ func mapToChannel(mid *smf.SMF, ch uint8, melodyRE string, melodyTracks []int, m
 		}
 	}
 
-	if melodyCh == 255 || melodyCh == ch {
+	// Disable melody or bass coupler if no special channel is requested.
+	if melodyCh < 0 || melodyCh == ch {
 		isMelody = nil
 	}
-	if bassCh == 255 || bassCh == ch {
+	if bassCh < 0 || bassCh == ch {
 		isBass = nil
 	}
 
-	log.Printf("melody: %v bass: %v", isMelody, isBass)
+	log.Printf("Melody coupler tracks: %v; bass coupler tracks: %v", isMelody, isBass)
 
 	numTracks := len(mid.Tracks)
 	melodyTrack := numTracks
@@ -64,15 +72,16 @@ func mapToChannel(mid *smf.SMF, ch uint8, melodyRE string, melodyTracks []int, m
 	tracks := make([]smf.Track, numTracks)
 	trackTime := make([]int64, numTracks)
 	err = forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
-		out := func(outTrack int, outCh uint8) {
+		out := func(outTrack int, outCh int) {
 			newMsg := append(smf.Message(nil), msg...)
-			if outCh != 255 {
+			// Remap channel if requested.
+			if outCh >= 0 {
 				var evCh uint8
 				if newMsg.GetChannel(&evCh) {
-					newMsg[0] += outCh - evCh
+					newMsg[0] += uint8(outCh) - evCh
 				}
 				if newMsg.GetMetaChannel(&evCh) {
-					newMsg[3] += outCh - evCh
+					newMsg[3] += uint8(outCh) - evCh
 				}
 			}
 			tracks[outTrack] = append(tracks[outTrack], smf.Event{
