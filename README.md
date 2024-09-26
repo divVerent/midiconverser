@@ -14,7 +14,11 @@ FluidSynth).
 
    ```
    {
-     "channel": 2
+     "channel": 2,
+     "melody_channel": 1,
+     "melody_track_name_re": "^(Melody|Soprano|Voice|Voice 1)$",
+     "bass_channel": 3,
+     "bass_track_name_re": "^(Bass|Baritone)$"
    }
    ```
 
