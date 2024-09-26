@@ -27,7 +27,7 @@ func dumpTimeSig(prefix string, mid *smf.SMF, b bars) {
 				if i-start == 1 {
 					plural = ""
 				}
-				log.Printf("%s: %d @ %d: %d bar%s of %d/%d", prefix, start+1, startTicks, i-start, plural, sigBar.Num, sigBar.Denom)
+				log.Printf("%s: %d @ %d: %d bar%s of %d/%d (beat = %d/%d)", prefix, start+1, startTicks, i-start, plural, sigBar.Num, sigBar.Denom, sigBar.BeatNum, sigBar.Denom)
 			}
 			start = i
 			if thisBar != nil {
