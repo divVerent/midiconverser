@@ -21,7 +21,7 @@ FluidSynth).
    with the following keys:
 
    * `bpm_factor`: tempo factor as desired (default: 1.0).
-   * `channel`: MIDI channel (1-16) to map all notes to, or 0 to not remap (default).
+   * `channel`: MIDI channel (1-16) to map all notes to, or 0 to not remap (default). When using an organ, map this to the great manual.
    * `hold_redundant_notes`: `true` to keep redundant notes playing, `false` to restart them (default).
    * `fermata_extend_beats`: number of extra beats to hold fermata notes (default: 1). Affects only the pre-arranged MIDI outputs.
    * `fermata_rest_beats`: number of rest beats after a fermata (default: 1). Affects only the pre-arranged MIDI outputs.
@@ -29,7 +29,9 @@ FluidSynth).
    * `prelude_player_repeat`: number of times each hymn will be repeated in the prelude player (default: 2).
    * `prelude_player_sleep_sec`: number of seconds between hymns in the prelude player (default: 2).
    * `melody_track_name_re`: partial-match regular expression that melody track names should match (default: unset).
-   * `melody_channel`: additional channel for melody notes
+   * `melody_channel`: additional channel for melody notes (default: unset). When using an organ, map this to the swell manual. This is basically the "melody coupler" feature some organs have.
+   * `bass_track_name_re`: partial-match regular expression that bass track names should match (default: unset).
+   * `bass_channel`: additional channel for bass notes (default: unset). When using an organ, map this to the pedal. This is basically the "bass coupler" feature some organs have.
 
 1. Write a JSON file like the following:
 
@@ -64,6 +66,8 @@ FluidSynth).
    * `bpm_factor`: tempo factor to adjust the input (default: 1.0). Only really makes sense to use when not using `qpm_override`.
    * `max_adjust`: maximum number of MIDI ticks to adjust positions by (default: 64).
    * `keep_event_order`: try to retain event order within a tick (default: false).
+   * `melody_tracks`: list of track indexes (zero-based) to map to melody, overriding global settings (default: unset).
+   * `bass_tracks`: list of track indexes (zero-based) to map to bass, overriding global settings (default: unset).
 
    whereas a "position" is a quoted string of the form:
 
