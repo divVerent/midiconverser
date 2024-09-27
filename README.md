@@ -19,7 +19,8 @@ go build
 
 ### Generate Files For a Hymn
 
-1.  If not done yet, write a YAML file `config.yml` like the following:
+1.  If not done yet, write a YAML file `config.yml` like the following
+    (written for the LD-34 organ):
 
         channel: 2
         melody_channel: 1
@@ -56,7 +57,7 @@ go build
         unset). When using an organ, map this to the pedal. This is
         basically the "bass coupler" feature some organs have.
 
-2.  Write a YAML file like the following:
+3.  Write a YAML file like the following:
 
         input_file: ../hymns/27.mid
         fermatas:
@@ -102,7 +103,29 @@ go build
     -   `bar.beat+num/denom` to specify a position between two beats;
         the fraction is the fraction of the next beat to use
 
-3.  `go run main.go -i hymnnumber.yml`
+4.  `go run main.go -i hymnnumber.yml`
+
+### Prepare for Playing
+
+1.  Connect a MIDI device via USB, or launch FluidSynth as follows:
+
+        fluidsynth -f fluidsynth.conf
+
+    A sample `fluidsynth.conf` to sort of emulate the LD-34 organ:
+
+        # Swell: loud reed organ.
+        prog 0 20
+        cc 0 7 100
+        # Great: soft church organ.
+        prog 1 19
+        cc 1 7 60
+        # Pedal: medium drawbar organ.
+        prog 2 16
+        cc 2 7 80
+
+3.  Test that the desired output device exists:   
+
+        aplaymidi -l
 
 ### Play a Hymn
 
