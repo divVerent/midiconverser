@@ -126,6 +126,7 @@ type Options struct {
 	InputFile      string  `yaml:"input_file"`
 	Fermatas       []Pos   `yaml:"fermatas,omitempty"`
 	Prelude        []Range `yaml:"prelude,omitempty"`
+	Postlude       []Range `yaml:"postlude,omitempty"`
 	NumVerses      int     `yaml:"num_verses,omitempty"`
 	QPMOverride    float64 `yaml:"qpm_override,omitempty"`
 	BPMFactor      float64 `yaml:"bpm_factor,omitempty"`
@@ -234,6 +235,22 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 			End:   end,
 		})
 	}
+	var postludeTick []tickRange
+	for _, p := range options.Prelude {
+		begin, end := p.ToTick(bars)
+		begin, err := adjustToNoNotes(mid, begin, withDefault(options.MaxAdjust, 64))
+		if err != nil {
+			return nil, err
+		}
+		end, err = adjustToNoNotes(mid, end, withDefault(options.MaxAdjust, 64))
+		if err != nil {
+			return nil, err
+		}
+		postludeTick = append(postludeTick, tickRange{
+			Begin: begin,
+			End:   end,
+		})
+	}
 	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], withDefault(config.RestBetweenVersesBeats, 1))
 	totalTicks := bars[len(bars)-1].End()
 
@@ -257,6 +274,17 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		End:        totalTicks,
 	}, fermataTick)
 	log.Printf("verse cuts: %+v", verseCuts)
+	var postludeCuts []cut
+	for _, p := range postludeTick {
+		// Prelude does not execute fermatas.
+		postludeCuts = append(postludeCuts, cut{
+			RestBefore: ticksBetweenVerses,
+			Begin:      p.Begin,
+			End:        p.End,
+			RestAfter:  0,
+		})
+	}
+	log.Printf("postlude cuts: %+v", postludeCuts)
 
 	output := map[string]*smf.SMF{}
 
@@ -265,6 +293,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 	for i := 0; i < withDefault(options.NumVerses, 1); i++ {
 		cuts = append(cuts, verseCuts...)
 	}
+	cuts = append(cuts, postludeCuts...)
 	wholeMIDI, err := cutMIDI(mid, trim(cuts))
 	if err != nil {
 		return nil, err
@@ -299,6 +328,15 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		output[fmt.Sprintf("part%d", i)] = sectionMIDI
 		newBars := findBars(sectionMIDI)
 		dumpTimeSig(fmt.Sprintf("Section %d", i), sectionMIDI, newBars)
+	}
+	if len(postludeCuts) > 0 {
+		postludeMIDI, err := cutMIDI(mid, trim(postludeCuts))
+		if err != nil {
+			return nil, err
+		}
+		output["postlude"] = postludeMIDI
+		newBars := findBars(postludeMIDI)
+		dumpTimeSig("Postlude", postludeMIDI, newBars)
 	}
 	panicMIDI, err := panicMIDI(mid)
 	if err != nil {

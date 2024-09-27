@@ -107,6 +107,16 @@ if [ -n "$prefix" ]; then
 			part=$((part + 1))
 		done
 	done
+
+	if [ -f "$prefix.postlude.mid" ]; then
+		if $needwait; then
+			figlet "START POSTLUDE?"
+			waitkey
+		fi
+		echo "Playing postlude..."
+		player "$prefix.postlude.mid"
+	fi
+
 	echo "Done."
 else
 	repeat=$(yq < config.yml '.prelude_player_repeat // 2')
