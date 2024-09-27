@@ -1,11 +1,12 @@
 package processor
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"regexp"
 	"strconv"
+
+	"gopkg.in/yaml.v3"
 
 	"gitlab.com/gomidi/midi/v2/smf"
 )
@@ -17,55 +18,60 @@ type Pos struct {
 	BeatDenom int
 }
 
-func (p Pos) MarshalJSON() ([]byte, error) {
+var (
+	_ yaml.Marshaler   = Pos{}
+	_ yaml.Unmarshaler = &Pos{}
+)
+
+func (p Pos) MarshalYAML() (interface{}, error) {
 	if p.BeatNum > 0 {
-		return json.Marshal(fmt.Sprintf("%d.%d+%d/%d", p.Bar, p.Beat, p.BeatNum, p.BeatDenom))
+		return fmt.Sprintf("%d.%d+%d/%d", p.Bar, p.Beat, p.BeatNum, p.BeatDenom), nil
 	}
-	return json.Marshal(fmt.Sprintf("%d.%d", p.Bar, p.Beat))
+	return fmt.Sprintf("%d.%d", p.Bar, p.Beat), nil
 }
 
 var (
 	posFlagValue = regexp.MustCompile(`^(\d+)(?:\.(\d+))?(?:\+(\d+)/(\d+))?$`)
 )
 
-func (p *Pos) UnmarshalJSON(buf []byte) error {
-	if string(buf) == "null" {
-		return nil
-	}
-	var item string
-	if err := json.Unmarshal(buf, &item); err != nil {
+func (p *Pos) UnmarshalYAML(value *yaml.Node) error {
+	var item *string
+	err := value.Decode(&item)
+	if err != nil {
 		return err
 	}
-	result := posFlagValue.FindStringSubmatch(item)
+	if item == nil {
+		return nil
+	}
+	result := posFlagValue.FindStringSubmatch(*item)
 	if result == nil {
-		return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n", item)
+		return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n", *item)
 	}
 	*p = Pos{
 		Beat:      1,
 		BeatNum:   0,
 		BeatDenom: 1,
 	}
-	var err error
 	p.Bar, err = strconv.Atoi(result[1])
 	if err != nil {
-		return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", item)
+		return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", *item)
 	}
 	if result[2] != "" {
 		p.Beat, err = strconv.Atoi(result[2])
 		if err != nil {
-			return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", item)
+			return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", *item)
 		}
 	}
 	if result[3] != "" {
 		p.BeatNum, err = strconv.Atoi(result[3])
 		if err != nil {
-			return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", item)
+			return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", *item)
 		}
 	}
 	if result[4] != "" {
 		p.BeatDenom, err = strconv.Atoi(result[4])
 		if err != nil {
-			return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", item)
+			return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", *item)
 		}
 	}
 	return nil
@@ -76,8 +82,8 @@ func (p Pos) ToTick(b bars) int64 {
 }
 
 type Range struct {
-	Begin Pos `json:"begin"`
-	End   Pos `json:"end"`
+	Begin Pos `yaml:"begin"`
+	End   Pos `yaml:"end"`
 }
 
 func (r Range) ToTick(b bars) (int64, int64) {
@@ -97,36 +103,36 @@ func beatsOrNotesToTicks(b bar, n int) int64 {
 // Config define global settings.
 type Config struct {
 	// Organ specific configuration or override.
-	BPMFactor              float64 `json:"bpm_factor,omitempty"`
-	Channel                int     `json:"channel,omitempty"`
-	MelodyTrackNameRE      string  `json:"melody_track_name_re",omitempty`
-	MelodyChannel          int     `json:"melody_channel",omitempty`
-	BassTrackNameRE        string  `json:"bass_track_name_re",omitempty`
-	BassChannel            int     `json:"bass_channel",omitempty`
-	HoldRedundantNotes     bool    `json:"hold_redundant_notes,omitempty"`
-	FermataExtendBeats     int     `json:"fermata_extend_beats,omitempty"`
-	FermataRestBeats       int     `json:"fermata_rest_beats,omitempty"`
-	RestBetweenVersesBeats int     `json:"rest_between_verses_beats,omitempty"`
+	BPMFactor              float64 `yaml:"bpm_factor,omitempty"`
+	Channel                int     `yaml:"channel,omitempty"`
+	MelodyTrackNameRE      string  `yaml:"melody_track_name_re",omitempty`
+	MelodyChannel          int     `yaml:"melody_channel",omitempty`
+	BassTrackNameRE        string  `yaml:"bass_track_name_re",omitempty`
+	BassChannel            int     `yaml:"bass_channel",omitempty`
+	HoldRedundantNotes     bool    `yaml:"hold_redundant_notes,omitempty"`
+	FermataExtendBeats     int     `yaml:"fermata_extend_beats,omitempty"`
+	FermataRestBeats       int     `yaml:"fermata_rest_beats,omitempty"`
+	RestBetweenVersesBeats int     `yaml:"rest_between_verses_beats,omitempty"`
 
 	// Also future options:
 	// - Transpose
 
-	PreludePlayerRepeat   int     `json:"prelude_player_repeat,omitempty"`
-	PreludePlayerSleepSec float64 `json:"prelude_player_sleep_sec,omitempty"`
+	PreludePlayerRepeat   int     `yaml:"prelude_player_repeat,omitempty"`
+	PreludePlayerSleepSec float64 `yaml:"prelude_player_sleep_sec,omitempty"`
 }
 
 // Options define file specific options.
 type Options struct {
-	InputFile      string  `json:"input_file"`
-	Fermatas       []Pos   `json:"fermatas,omitempty"`
-	Prelude        []Range `json:"prelude,omitempty"`
-	NumVerses      int     `json:"num_verses,omitempty"`
-	QPMOverride    float64 `json:"qpm_override,omitempty"`
-	BPMFactor      float64 `json:"bpm_factor,omitemoty"`
-	MaxAdjust      int64   `json:"max_adjust,omitempty"`
-	KeepEventOrder bool    `json:"keep_event_order,omitempty"`
-	MelodyTracks   []int   `json:"melody_tracks,omitempty"`
-	BassTracks     []int   `json:"bass_tracks,omitempty"`
+	InputFile      string  `yaml:"input_file"`
+	Fermatas       []Pos   `yaml:"fermatas,omitempty"`
+	Prelude        []Range `yaml:"prelude,omitempty"`
+	NumVerses      int     `yaml:"num_verses,omitempty"`
+	QPMOverride    float64 `yaml:"qpm_override,omitempty"`
+	BPMFactor      float64 `yaml:"bpm_factor,omitempty"`
+	MaxAdjust      int64   `yaml:"max_adjust,omitempty"`
+	KeepEventOrder bool    `yaml:"keep_event_order,omitempty"`
+	MelodyTracks   []int   `yaml:"melody_tracks,omitempty"`
+	BassTracks     []int   `yaml:"bass_tracks,omitempty"`
 }
 
 func withDefault[T comparable](a, b T) T {

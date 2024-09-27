@@ -65,7 +65,7 @@ waitkey() {
 if [ -n "$prefix" ]; then
 	# Hymn player.
 	if [ -z "$verses" ]; then
-		verses=$(jq < "$prefix.json" .num_verses)
+		verses=$(yq < "$prefix.yml" .num_verses)
 	fi
 	echo "Note: will play $verses verses."
 
@@ -106,8 +106,8 @@ if [ -n "$prefix" ]; then
 	done
 	echo "Done."
 else
-	repeat=$(jq < config.json '.prelude_player_repeat // 2')
-	sleep=$(jq < config.json '.prelude_player_sleep_sec // 2')
+	repeat=$(yq < config.yml '.prelude_player_repeat // 2')
+	sleep=$(yq < config.yml '.prelude_player_sleep_sec // 2')
 	while :; do
 		verses=$(echo *.verse.mid | xargs -n 1 | shuf)"$LF"
 		while [ -n "$verses" ]; do
@@ -115,7 +115,7 @@ else
 			verses=${verses#*$LF}
 			prefix=${verse%.verse.mid}
 			# No xmas songs except in December.
-			# TODO move this into the json files.
+			# TODO move this into the yml files.
 			case "$prefix" in
 				20[1-9]|21[0-4]|12??)
 					case "$(date +%Y%m%d)" in
@@ -134,7 +134,7 @@ else
 			esac
 			thisrepeat=$repeat
 			# HACK; better migrate to a JSON file.
-			if [ x"$(jq < "$prefix.json" .num_verses)" = x"1" ]; then
+			if [ x"$(yq < "$prefix.yml" .num_verses)" = x"1" ]; then
 				# If -verses=1, then repeats are baked in.
 				# These are too long - skip them.
 				echo "Skipping $prefix due to baked-in repeats."

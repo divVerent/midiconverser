@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -9,13 +8,14 @@ import (
 	"strings"
 
 	"gitlab.com/gomidi/midi/v2/smf"
+	"gopkg.in/yaml.v3"
 
 	"github.com/divVerent/midiconverser/internal/processor"
 )
 
 var (
-	c       = flag.String("c", "config.json", "config file name (JSON)")
-	i       = flag.String("i", "", "input file name (JSON)")
+	c       = flag.String("c", "config.yml", "config file name (YAML)")
+	i       = flag.String("i", "", "input file name (YAML)")
 	oPrefix = flag.String("o_prefix", "", "output file name for outputting separate files")
 )
 
@@ -26,7 +26,7 @@ func Main() error {
 	}
 	defer f.Close()
 	var config processor.Config
-	err = json.NewDecoder(f).Decode(&config)
+	err = yaml.NewDecoder(f).Decode(&config)
 	if err != nil {
 		return fmt.Errorf("could not decode %v: %v", *c, err)
 	}
@@ -37,13 +37,13 @@ func Main() error {
 	}
 	defer f.Close()
 	var options processor.Options
-	err = json.NewDecoder(f).Decode(&options)
+	err = yaml.NewDecoder(f).Decode(&options)
 	if err != nil {
 		return fmt.Errorf("could not decode %v: %v", *i, err)
 	}
 
 	if *oPrefix == "" {
-		*oPrefix = strings.TrimSuffix(*i, ".json")
+		*oPrefix = strings.TrimSuffix(*i, ".yml")
 	}
 
 	in, err := smf.ReadFile(options.InputFile)
