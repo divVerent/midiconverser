@@ -70,6 +70,10 @@ with FluidSynth).
         beat where the next non-prelude portion begins. The last item
         can point behind the last bar.
     -   `num_verses`: number of verses of this hymn (default: 1).
+    -   `postlude`: list of begin/end positions for the postlude
+        (default: empty); the end positions are exclusive and thus
+        should be the beat where the next non-prelude portion begins.
+        The last item can point behind the last bar. Rarely ever needed.
     -   `qpm_override`: replacement value for tempo in quarter notes per
         minute, if nonzero (default: 0).
     -   `bpm_factor`: tempo factor to adjust the input (default: 1.0).
