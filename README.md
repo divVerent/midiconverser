@@ -6,6 +6,15 @@ electronic organs.
 Runs on Linux with ALSA and an USB MIDI device (or, for local testing,
 with FluidSynth).
 
+## Installation
+
+```
+sudo apt install golang                # For running the MIDI generator.
+sudo apt install alsa-utils figlet yq  # For using the included player.
+sudo apt install fluidsynth            # For playing with local speakers.
+go build
+```
+
 ## Usage
 
 ### Generate Files For a Hymn
@@ -107,7 +116,7 @@ with FluidSynth).
 3.  If needed, press `Ctrl-C` to exit (preferably during a break).
     Otherwise it will exit at the configured number of verses.
 
-### Play arbitrary hymns in random order (for prelude).
+### Play arbitrary hymns in random order (for prelude before the meeting).
 
 1.  `./player.sh`
 
