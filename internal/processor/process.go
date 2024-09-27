@@ -236,7 +236,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		})
 	}
 	var postludeTick []tickRange
-	for _, p := range options.Prelude {
+	for _, p := range options.Postlude {
 		begin, end := p.ToTick(bars)
 		begin, err := adjustToNoNotes(mid, begin, withDefault(options.MaxAdjust, 64))
 		if err != nil {
