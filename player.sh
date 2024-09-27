@@ -49,6 +49,7 @@ panic() {
 	if [ -n "$prefix" ]; then
 		player "$prefix.panic.mid"
 	fi
+	stty icanon echo
 	exit 1
 }
 
@@ -77,7 +78,8 @@ if [ -n "$prefix" ]; then
 
 	for i in $(seq 1 "$verses"); do
 		state=init
-		for part in $prefix.part*.mid; do
+		part=0
+		while [ -f "$prefix.part$part.mid" ]; do
 			case "$state" in
 				init)
 					text="START VERSE $i?"
@@ -100,8 +102,9 @@ if [ -n "$prefix" ]; then
 				waitkey
 			fi
 			echo "$answer"
-			player "$part"
+			player "$prefix.part$part.mid"
 			needwait=true
+			part=$((part + 1))
 		done
 	done
 	echo "Done."
