@@ -65,12 +65,12 @@ with FluidSynth).
 
         input_file: ../hymns/27.mid
         fermatas:
-          - '22.2+1/4'
+          - "22.2+1/4"
         prelude:
-          - begin: '1.1'
-            end: '5.1'
-          - begin: '29.1'
-            end: '33.1'
+          - begin: "1.1"
+            end: "5.1"
+          - begin: "29.1"
+            end: "33.1"
         num_verses: 4
         qpm_override: 86
 
