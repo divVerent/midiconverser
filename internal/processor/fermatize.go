@@ -21,7 +21,7 @@ func maybeFermatize(c cut, fermataTick []tickFermata, doit bool) []cut {
 func fermatize(c cut, fermataTick []tickFermata) []cut {
 	var result []cut
 	for _, tf := range fermataTick {
-		if tf.holdTick >= c.Begin && tf.holdTick < c.End && tf.releaseTick < c.End {
+		if tf.holdTick >= c.Begin && tf.holdTick <= c.End && tf.releaseTick <= c.End {
 			result = append(result,
 				cut{
 					RestBefore: c.RestBefore,
