@@ -93,7 +93,9 @@ func Main() (err error) {
 				err = closeErr
 			}
 		}()
-		err := yaml.NewEncoder(f).Encode(options)
+		enc := yaml.NewEncoder(f)
+		enc.SetIndent(2) // Match yq.
+		err := enc.Encode(options)
 		if err != nil {
 			return fmt.Errorf("could not encode %v: %v", *i, err)
 		}
