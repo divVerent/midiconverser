@@ -61,7 +61,7 @@ go build
 
         input_file: ../hymns/27.mid
         fermatas:
-          - 22.2+1/4
+          - '22.2+1/4'
         prelude:
           - begin: '1.1'
             end: '5.1'
