@@ -138,6 +138,9 @@ type Options struct {
 	BassTracks         []int   `yaml:"bass_tracks,omitempty"`
 	FermatasInPrelude  *bool   `yaml:"fermatas_in_prelude,omitempty"`
 	FermatasInPostlude *bool   `yaml:"fermatas_in_postlude,omitempty"`
+
+	// Managed by the main program right now.
+	SHA256 string `yaml:"sha256,omitempty"`
 }
 
 func withDefault[T comparable](a, b T) T {
