@@ -116,14 +116,14 @@ go build
         # Swell: loud reed organ.
         prog 0 20
         cc 0 7 100
-        # Great: soft church organ.
+        # Great: medium church organ.
         prog 1 19
-        cc 1 7 60
-        # Pedal: medium drawbar organ.
+        cc 1 7 90
+        # Pedal: soft drawbar organ.
         prog 2 16
         cc 2 7 80
 
-3.  Test that the desired output device exists:   
+3.  Test that the desired output device exists:
 
         aplaymidi -l
 
