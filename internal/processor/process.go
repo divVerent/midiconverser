@@ -125,7 +125,11 @@ type Config struct {
 
 // Options define file specific options.
 type Options struct {
-	InputFile          string  `yaml:"input_file"`
+	// Managed by the main program right now.
+	InputFile       string `yaml:"input_file"`
+	InputFileSHA256 string `yaml:"input_file_sha256,omitempty"`
+
+	// For this module.
 	Fermatas           []Pos   `yaml:"fermatas,omitempty"`
 	Prelude            []Range `yaml:"prelude,omitempty"`
 	Postlude           []Range `yaml:"postlude,omitempty"`
@@ -138,9 +142,6 @@ type Options struct {
 	BassTracks         []int   `yaml:"bass_tracks,omitempty"`
 	FermatasInPrelude  *bool   `yaml:"fermatas_in_prelude,omitempty"`
 	FermatasInPostlude *bool   `yaml:"fermatas_in_postlude,omitempty"`
-
-	// Managed by the main program right now.
-	InputFileSHA256 string `yaml:"input_file_sha256,omitempty"`
 
 	// Pure comment fields. Declared here to preserve them when rewriting the checksum.
 	// Can't use YAML # comments because yq loses them.
