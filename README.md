@@ -104,8 +104,9 @@ with FluidSynth).
       generating the prelude (default: same as config).
     - `fermatas_in_postlude`: interpret fermata instructions when
       generating the postlude (default: same as config).
-    - `sha256`: SHA-256 checksum of the input MIDI file content
-      (optional; can be auto filled in when passing `-add_checksum`).
+    - `input_file_sha256`: SHA-256 checksum of the input MIDI file
+      content (optional; can be auto filled in when passing
+      `-add_checksum`).
 
     whereas a "position" is a quoted string of the form:
 

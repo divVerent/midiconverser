@@ -58,8 +58,8 @@ func Main() (err error) {
 
 	sum := fmt.Sprintf("%x", sha256.Sum256(inBytes))
 
-	if options.SHA256 != "" && options.SHA256 != sum {
-		return fmt.Errorf("mismatching checksum of %v: got %v, want %v", options.InputFile, sum, options.SHA256)
+	if options.InputFileSHA256 != "" && options.InputFileSHA256 != sum {
+		return fmt.Errorf("mismatching checksum of %v: got %v, want %v", options.InputFile, sum, options.InputFileSHA256)
 	}
 
 	in, err := smf.ReadFrom(bytes.NewReader(inBytes))
@@ -80,8 +80,8 @@ func Main() (err error) {
 		}
 	}
 
-	if options.SHA256 != "" {
-		options.SHA256 = sum
+	if options.InputFileSHA256 == "" && *addChecksum {
+		options.InputFileSHA256 = sum
 
 		f, err = os.Create(*i)
 		if err != nil {
@@ -93,7 +93,9 @@ func Main() (err error) {
 				err = closeErr
 			}
 		}()
-		err := yaml.NewEncoder(f).Encode(options)
+		enc := yaml.NewEncoder(f)
+		enc.SetIndent(2) // Match yq.
+		err := enc.Encode(options)
 		if err != nil {
 			return fmt.Errorf("could not encode %v: %v", *i, err)
 		}

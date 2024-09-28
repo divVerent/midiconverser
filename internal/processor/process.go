@@ -140,7 +140,11 @@ type Options struct {
 	FermatasInPostlude *bool   `yaml:"fermatas_in_postlude,omitempty"`
 
 	// Managed by the main program right now.
-	SHA256 string `yaml:"sha256,omitempty"`
+	InputFileSHA256 string `yaml:"input_file_sha256,omitempty"`
+
+	// Pure comment fields. Declared here to preserve them when rewriting the checksum.
+	// Can't use YAML # comments because yq loses them.
+	Comment string `yaml:"_comment,omitempty"`
 }
 
 func withDefault[T comparable](a, b T) T {
