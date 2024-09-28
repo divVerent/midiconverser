@@ -113,6 +113,8 @@ type Config struct {
 	FermataExtendBeats     int     `yaml:"fermata_extend_beats,omitempty"`
 	FermataRestBeats       int     `yaml:"fermata_rest_beats,omitempty"`
 	RestBetweenVersesBeats int     `yaml:"rest_between_verses_beats,omitempty"`
+	FermatasInPrelude      bool    `yaml:"fermatas_in_prelude,omitempty"`
+	FermatasInPostlude     bool    `yaml:"fermatas_in_postlude,omitempty"`
 
 	// Also future options:
 	// - Transpose
@@ -123,17 +125,19 @@ type Config struct {
 
 // Options define file specific options.
 type Options struct {
-	InputFile      string  `yaml:"input_file"`
-	Fermatas       []Pos   `yaml:"fermatas,omitempty"`
-	Prelude        []Range `yaml:"prelude,omitempty"`
-	Postlude       []Range `yaml:"postlude,omitempty"`
-	NumVerses      int     `yaml:"num_verses,omitempty"`
-	QPMOverride    float64 `yaml:"qpm_override,omitempty"`
-	BPMFactor      float64 `yaml:"bpm_factor,omitempty"`
-	MaxAdjust      int64   `yaml:"max_adjust,omitempty"`
-	KeepEventOrder bool    `yaml:"keep_event_order,omitempty"`
-	MelodyTracks   []int   `yaml:"melody_tracks,omitempty"`
-	BassTracks     []int   `yaml:"bass_tracks,omitempty"`
+	InputFile          string  `yaml:"input_file"`
+	Fermatas           []Pos   `yaml:"fermatas,omitempty"`
+	Prelude            []Range `yaml:"prelude,omitempty"`
+	Postlude           []Range `yaml:"postlude,omitempty"`
+	NumVerses          int     `yaml:"num_verses,omitempty"`
+	QPMOverride        float64 `yaml:"qpm_override,omitempty"`
+	BPMFactor          float64 `yaml:"bpm_factor,omitempty"`
+	MaxAdjust          int64   `yaml:"max_adjust,omitempty"`
+	KeepEventOrder     bool    `yaml:"keep_event_order,omitempty"`
+	MelodyTracks       []int   `yaml:"melody_tracks,omitempty"`
+	BassTracks         []int   `yaml:"bass_tracks,omitempty"`
+	FermatasInPrelude  *bool   `yaml:"fermatas_in_prelude,omitempty"`
+	FermatasInPostlude *bool   `yaml:"fermatas_in_postlude,omitempty"`
 }
 
 func withDefault[T comparable](a, b T) T {
@@ -142,6 +146,13 @@ func withDefault[T comparable](a, b T) T {
 		return b
 	}
 	return a
+}
+
+func withDefaultPtr[T comparable](a *T, b T) T {
+	if a == nil {
+		return b
+	}
+	return *a
 }
 
 // Process processes the given MIDI file and writes the result to out.
@@ -260,12 +271,12 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 	var preludeCuts []cut
 	for _, p := range preludeTick {
 		// Prelude does not execute fermatas.
-		preludeCuts = append(preludeCuts, cut{
+		preludeCuts = append(preludeCuts, maybeFermatize(cut{
 			RestBefore: 0,
 			Begin:      p.Begin,
 			End:        p.End,
 			RestAfter:  0,
-		})
+		}, fermataTick, withDefaultPtr(options.FermatasInPrelude, config.FermatasInPrelude))...)
 	}
 	log.Printf("prelude cuts: %+v", preludeCuts)
 	verseCuts := fermatize(cut{
@@ -277,12 +288,12 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 	var postludeCuts []cut
 	for _, p := range postludeTick {
 		// Prelude does not execute fermatas.
-		postludeCuts = append(postludeCuts, cut{
+		postludeCuts = append(postludeCuts, maybeFermatize(cut{
 			RestBefore: ticksBetweenVerses,
 			Begin:      p.Begin,
 			End:        p.End,
 			RestAfter:  0,
-		})
+		}, fermataTick, withDefaultPtr(options.FermatasInPostlude, config.FermatasInPostlude))...)
 	}
 	log.Printf("postlude cuts: %+v", postludeCuts)
 

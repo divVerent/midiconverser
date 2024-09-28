@@ -10,6 +10,14 @@ type tickFermata struct {
 	releaseTick int64 // First tick with a note after the fermata; -1 indicates till end.
 }
 
+func maybeFermatize(c cut, fermataTick []tickFermata, doit bool) []cut {
+	if doit {
+		return fermatize(c, fermataTick)
+	} else {
+		return []cut{c}
+	}
+}
+
 func fermatize(c cut, fermataTick []tickFermata) []cut {
 	var result []cut
 	for _, tf := range fermataTick {
