@@ -1,11 +1,24 @@
 package processor
 
 import (
+	"sort"
+
 	"gitlab.com/gomidi/midi/v2/smf"
 )
 
 type Key struct {
 	ch, note uint8
+}
+
+func KeySorter(s []Key) func(i, j int) bool {
+	return func(i, j int) bool {
+		a, b := s[i].ch, s[j].ch
+		if a != b {
+			return a < b
+		}
+		a, b = s[i].note, s[j].note
+		return a < b
+	}
 }
 
 type activeNote struct {
@@ -35,6 +48,7 @@ func (t noteTracker) NotesPlaying() []Key {
 	for k := range t.activeNotes {
 		keys = append(keys, k)
 	}
+	sort.Slice(keys, KeySorter(keys))
 	return keys
 }
 

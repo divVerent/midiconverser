@@ -1,6 +1,8 @@
 package processor
 
 import (
+	"sort"
+
 	"gitlab.com/gomidi/midi/v2"
 	"gitlab.com/gomidi/midi/v2/smf"
 )
@@ -20,7 +22,12 @@ func panicMIDI(mid *smf.SMF) (*smf.SMF, error) {
 		return nil, err
 	}
 	var track smf.Track
+	var keys []Key
 	for k := range notes {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, KeySorter(keys))
+	for _, k := range keys {
 		track.Add(0, midi.NoteOff(k.ch, k.note))
 	}
 	track.Close(0)
