@@ -7,7 +7,7 @@ import (
 	"gitlab.com/gomidi/midi/v2/smf"
 )
 
-func trim(mid *smf.SMF) error {
+func trim(mid *smf.SMF) (*smf.SMF, error) {
 	// Decide start and length.
 	var firstTime int64 = math.MaxInt64
 	var lastTime int64 = math.MinInt64
@@ -24,7 +24,7 @@ func trim(mid *smf.SMF) error {
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if firstTime > lastTime {
@@ -52,8 +52,16 @@ func trim(mid *smf.SMF) error {
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	mid.Tracks = tracks
-	return nil
+	for track := range tracks {
+		tracks[track].Close(uint32((lastTime - firstTime) - trackTime[track]))
+	}
+
+	newMIDI := smf.NewSMF1()
+	newMIDI.TimeFormat = mid.TimeFormat
+	for _, t := range tracks {
+		newMIDI.Add(t)
+	}
+	return newMIDI, nil
 }

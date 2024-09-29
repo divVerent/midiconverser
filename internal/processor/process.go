@@ -317,7 +317,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 	if err != nil {
 		return nil, err
 	}
-	err = trim(wholeMIDI)
+	wholeMIDI, err = trim(wholeMIDI)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +330,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		if err != nil {
 			return nil, err
 		}
-		err = trim(preludeMIDI)
+		preludeMIDI, err = trim(preludeMIDI)
 		if err != nil {
 			return nil, err
 		}
@@ -343,7 +343,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		if err != nil {
 			return nil, err
 		}
-		err = trim(verseMIDI)
+		verseMIDI, err = trim(verseMIDI)
 		if err != nil {
 			return nil, err
 		}
@@ -356,7 +356,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		if err != nil {
 			return nil, err
 		}
-		err = trim(sectionMIDI)
+		sectionMIDI, err = trim(sectionMIDI)
 		if err != nil {
 			return nil, err
 		}
@@ -369,7 +369,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		if err != nil {
 			return nil, err
 		}
-		err = trim(postludeMIDI)
+		postludeMIDI, err = trim(postludeMIDI)
 		if err != nil {
 			return nil, err
 		}
