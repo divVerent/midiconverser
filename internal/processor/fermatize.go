@@ -41,6 +41,7 @@ func fermatize(c cut, fermataTick []tickFermata) []cut {
 						DirtyBegin:       true,
 						DirtyEnd:         false,
 						AllNotesOffAtEnd: true,
+						MayTrimRestAfter: true,
 					})
 				c.Begin = tf.releaseTick
 				c.RestBefore = 0
