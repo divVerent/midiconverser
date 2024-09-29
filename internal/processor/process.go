@@ -313,7 +313,11 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		cuts = append(cuts, verseCuts...)
 	}
 	cuts = append(cuts, postludeCuts...)
-	wholeMIDI, err := cutMIDI(mid, trim(cuts))
+	wholeMIDI, err := cutMIDI(mid, cuts)
+	if err != nil {
+		return nil, err
+	}
+	err = trim(wholeMIDI)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +326,11 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 	//dumpTimeSig("Whole", wholeMIDI, newBars)
 
 	if len(preludeCuts) > 0 {
-		preludeMIDI, err := cutMIDI(mid, trim(preludeCuts))
+		preludeMIDI, err := cutMIDI(mid, preludeCuts)
+		if err != nil {
+			return nil, err
+		}
+		err = trim(preludeMIDI)
 		if err != nil {
 			return nil, err
 		}
@@ -331,7 +339,11 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		dumpTimeSig("Prelude", preludeMIDI, newBars)
 	}
 	if len(verseCuts) > 0 {
-		verseMIDI, err := cutMIDI(mid, trim(verseCuts))
+		verseMIDI, err := cutMIDI(mid, verseCuts)
+		if err != nil {
+			return nil, err
+		}
+		err = trim(verseMIDI)
 		if err != nil {
 			return nil, err
 		}
@@ -340,7 +352,11 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		//dumpTimeSig("Verse", verseMIDI, newBars)
 	}
 	for i, c := range verseCuts {
-		sectionMIDI, err := cutMIDI(mid, trim([]cut{c}))
+		sectionMIDI, err := cutMIDI(mid, []cut{c})
+		if err != nil {
+			return nil, err
+		}
+		err = trim(sectionMIDI)
 		if err != nil {
 			return nil, err
 		}
@@ -349,7 +365,11 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		dumpTimeSig(fmt.Sprintf("Section %d", i), sectionMIDI, newBars)
 	}
 	if len(postludeCuts) > 0 {
-		postludeMIDI, err := cutMIDI(mid, trim(postludeCuts))
+		postludeMIDI, err := cutMIDI(mid, postludeCuts)
+		if err != nil {
+			return nil, err
+		}
+		err = trim(postludeMIDI)
 		if err != nil {
 			return nil, err
 		}
