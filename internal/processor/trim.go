@@ -1,6 +1,10 @@
 package processor
 
 func trim(c []cut) []cut {
+	// TODO also accept the MIDI file, and _really_ trim out silence parts as well?
+	// I.e. remove fully silent segments at beginning or end.
+	// Then cut first and last segment until first/last event.
+
 	if len(c) == 0 {
 		return c
 	}
