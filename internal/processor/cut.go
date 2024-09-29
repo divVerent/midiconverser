@@ -17,7 +17,6 @@ type cut struct {
 	RestAfter            int64
 	DirtyBegin, DirtyEnd bool
 	AllNotesOffAtEnd     bool
-	MayTrimRestAfter     bool
 }
 
 // cutMIDI generates a new MIDI file from the input and a set of ranges.
