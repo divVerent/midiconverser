@@ -1,13 +1,18 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"slices"
+	"strings"
 	"time"
 
 	"gitlab.com/gomidi/midi/v2"
@@ -20,18 +25,60 @@ import (
 	"github.com/divVerent/midiconverser/internal/processor"
 )
 
+type tagList []string
+
+func (l tagList) String() string {
+	return strings.Join([]string(l), " ")
+}
+
+func (l *tagList) Set(s string) error {
+	*l = strings.Split(s, " ")
+	return nil
+}
+
+func noTagsDefault() tagList {
+	noTags := tagList{"noprelude", "national"}
+	// Find out if we're in advent or Christmas.
+	now := time.Now()
+	endTime := time.Date(now.Year(), 12, 27, 0, 0, 0, 0, time.Local)
+	// Latest possible 4th Advent.
+	beginTime := time.Date(now.Year(), 12, 24, 0, 0, 0, 0, time.Local)
+	// Find real 4th Advent.
+	for beginTime.Weekday() != time.Sunday {
+		beginTime = beginTime.Add(-24 * time.Hour)
+	}
+	// Go back to 1st Advent.
+	beginTime = beginTime.Add(-3 * 7 * 24 * time.Hour)
+	log.Printf("First Advent: %w", beginTime)
+	log.Printf("Xmas ends: %w", endTime)
+	if now.Before(beginTime) || !now.Before(endTime) {
+		noTags = append(noTags, "xmas")
+	}
+	return noTags
+}
+
 var (
-	c    = flag.String("c", "config.yml", "config file name (YAML)")
-	i    = flag.String("i", "", "input file name (YAML)")
-	port = flag.String("port", "", "regular expression to match the preferred output port")
+	c        = flag.String("c", "config.yml", "config file name (YAML)")
+	i        = flag.String("i", "", "input file name (YAML)")
+	port     = flag.String("port", "", "regular expression to match the preferred output port")
+	wantTags tagList
+	noTags   tagList
 )
+
+func init() {
+	flag.Var(&wantTags, "want_tags", "list of tags any of which must be in each prelude hymn")
+	noTags = noTagsDefault()
+	flag.Var(&noTags, "no_tags", "list of tags all of which must not be in each prelude hymn")
+}
+
+var sigIntError = errors.New("SIGINT caught")
 
 var sigInt chan os.Signal
 
 func sigSleep(t time.Duration) error {
 	select {
 	case <-sigInt:
-		return fmt.Errorf("SIGINT caught")
+		return sigIntError
 	// TODO hook here: button to cancel playback.
 	case <-time.After(t):
 		return nil
@@ -73,21 +120,54 @@ func PlayMIDI(mid *smf.SMF) error {
 	})
 }
 
-// PreludePlayer plays the given file's whole verse for prelude purposes.
-func PreludePlayer(config *processor.Config, optionsFile string) error {
+func fixOutput(output map[processor.OutputKey]*smf.SMF) error {
+	// Reprocess entire file just in case.
+	// This fixes missing tempo change events.
+	for k, v := range output {
+		var b bytes.Buffer
+		_, err := v.WriteTo(&b)
+		if err != nil {
+			return fmt.Errorf("cannot rewrite MIDI %v: %w", k, err)
+		}
+		fixed, err := smf.ReadFrom(&b)
+		if err != nil {
+			return fmt.Errorf("cannot reread MIDI %v: %w", k, err)
+		}
+		output[k] = fixed
+	}
+	return nil
+}
+
+// Load loads and processes the given input.
+func Load(config *processor.Config, optionsFile string) (map[processor.OutputKey]*smf.SMF, *processor.Options, error) {
 	options, err := file.ReadOptions(optionsFile)
 	if err != nil {
-		return fmt.Errorf("failed to read %v: %v", optionsFile, err)
+		return nil, nil, fmt.Errorf("failed to read %v: %w", optionsFile, err)
+	}
+
+	output, err := file.Process(config, options)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to process %v: %w", optionsFile, err)
+	}
+
+	err = fixOutput(output)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to autofix %v: %w", optionsFile, err)
+	}
+
+	return output, options, nil
+}
+
+// PreludePlayerOne plays the given file's whole verse for prelude purposes.
+func PreludePlayerOne(config *processor.Config, optionsFile string) error {
+	output, options, err := Load(config, optionsFile)
+	if err != nil {
+		return err
 	}
 
 	if options.NumVerses <= 1 {
 		log.Printf("Skipping %s due to baked-in repeats.", optionsFile)
 		return nil
-	}
-
-	output, err := file.Process(config, options)
-	if err != nil {
-		return fmt.Errorf("failed to process %v: %v", optionsFile, err)
 	}
 
 	verse := output[processor.OutputKey{Special: processor.Verse}]
@@ -96,14 +176,13 @@ func PreludePlayer(config *processor.Config, optionsFile string) error {
 	}
 
 	allOff := output[processor.OutputKey{Special: processor.Panic}]
-
 	defer PlayMIDI(allOff)
 
+	log.Printf("Playing full verses for prelude: %w", optionsFile)
 	for i := 0; i < processor.WithDefault(config.PreludePlayerRepeat, 2); i++ {
-		// TODO hook here: if cancel key was pressed, exit.
 		err := PlayMIDI(verse)
 		if err != nil {
-			return fmt.Errorf("could not play %v: %v", optionsFile, err)
+			return fmt.Errorf("could not play %v: %w", optionsFile, err)
 		}
 		err = sigSleep(time.Duration(float64(time.Second) * processor.WithDefault(config.PreludePlayerSleepSec, 2.0)))
 		if err != nil {
@@ -111,6 +190,33 @@ func PreludePlayer(config *processor.Config, optionsFile string) error {
 		}
 	}
 	return nil
+}
+
+// PreludePlayer plays random hymns.
+func PreludePlayer(config *processor.Config) error {
+	for {
+		all, err := filepath.Glob("*.yml")
+		if err != nil {
+			return fmt.Errorf("glob: %w", err)
+		}
+		rand.Shuffle(len(all), func(i, j int) {
+			all[i], all[j] = all[j], all[i]
+		})
+		gotOne := false
+		for _, f := range all {
+			if f == *c {
+				continue
+			}
+			err := PreludePlayerOne(config, f)
+			if err != nil {
+				return err
+			}
+			gotOne = true
+		}
+		if !gotOne {
+			return fmt.Errorf("no single prelude file found")
+		}
+	}
 }
 
 var (
@@ -124,7 +230,7 @@ func findBestPort() (drivers.Out, error) {
 	if *port != "" {
 		portRE, err := regexp.Compile(*port)
 		if err != nil {
-			return nil, fmt.Errorf("failed to compile -port RE %v: %v", *port, err)
+			return nil, fmt.Errorf("failed to compile -port RE %v: %w", *port, err)
 		}
 		for _, port := range midi.GetOutPorts() {
 			if !portRE.MatchString(port.String()) {
@@ -175,27 +281,36 @@ func Main() error {
 	var err error
 	outPort, err = findBestPort()
 	if err != nil {
-		return fmt.Errorf("could not find MIDI port: %v", err)
+		return fmt.Errorf("could not find MIDI port: %w", err)
 	}
-	log.Printf("Picked output port: %v", outPort)
+	log.Printf("Picked output port: %w", outPort)
 
 	err = outPort.Open()
 	if err != nil {
-		return fmt.Errorf("could not open MIDI port %v: %v", outPort, err)
+		return fmt.Errorf("could not open MIDI port %v: %w", outPort, err)
 	}
 	defer outPort.Close()
 
 	config, err := file.ReadConfig(*c)
 	if err != nil {
-		return fmt.Errorf("failed to read config: %v", err)
+		return fmt.Errorf("failed to read config: %w", err)
 	}
 
-	return PreludePlayer(config, *i)
+	if *i == "" {
+		return PreludePlayer(config)
+	}
+
+	// TODO play a single file properly.
+
+	return nil
 }
 
 func main() {
 	flag.Parse()
 	err := Main()
+	if errors.Is(err, sigIntError) {
+		os.Exit(127)
+	}
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)

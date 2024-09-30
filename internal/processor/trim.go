@@ -63,5 +63,6 @@ func trim(mid *smf.SMF) (*smf.SMF, error) {
 	for _, t := range tracks {
 		newMIDI.Add(t)
 	}
+
 	return newMIDI, nil
 }
