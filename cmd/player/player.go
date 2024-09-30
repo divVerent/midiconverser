@@ -361,10 +361,10 @@ func load(config *processor.Config, optionsFile string) (map[processor.OutputKey
 }
 
 // preludePlayerOne plays the given file's whole verse for prelude purposes.
-func (b *Backend) preludePlayerOne(optionsFile string) error {
+func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 	output, options, err := load(&b.config, optionsFile)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	tags := make(map[string]bool, len(options.Tags))
@@ -379,20 +379,20 @@ func (b *Backend) preludePlayerOne(optionsFile string) error {
 			}
 		}
 		if !hit {
-			log.Printf("Skipping %s due to no matching tags (want one of %v).", wantTags)
-			return nil
+			log.Printf("Skipping %s due to no matching tags (want one of %v).", optionsFile, wantTags)
+			return false, nil
 		}
 	}
 	for _, t := range noTags {
 		if tags[t] {
-			log.Printf("Skipping %s due to no forbidden tags (want none of %v).", noTags)
-			return nil
+			log.Printf("Skipping %s due to no forbidden tags (want none of %v).", optionsFile, noTags)
+			return false, nil
 		}
 	}
 
 	if options.NumVerses <= 1 {
 		log.Printf("Skipping %s due to baked-in repeats.", optionsFile)
-		return nil
+		return false, nil
 	}
 
 	key := processor.OutputKey{Special: processor.Panic}
@@ -409,7 +409,7 @@ func (b *Backend) preludePlayerOne(optionsFile string) error {
 	key = processor.OutputKey{Special: processor.Verse}
 	verse := output[processor.OutputKey{Special: processor.Verse}]
 	if verse == nil {
-		return fmt.Errorf("no verse file for %v", optionsFile)
+		return false, fmt.Errorf("no verse file for %v", optionsFile)
 	}
 
 	log.Printf("Playing full verses for prelude: %v", optionsFile)
@@ -417,14 +417,14 @@ func (b *Backend) preludePlayerOne(optionsFile string) error {
 		b.uiState.Verse = i
 		err := b.playMIDI(verse, key)
 		if err != nil {
-			return fmt.Errorf("could not play %v: %w", optionsFile, err)
+			return false, fmt.Errorf("could not play %v: %w", optionsFile, err)
 		}
 		err = b.sigSleep(time.Duration(float64(time.Second) * processor.WithDefault(b.config.PreludePlayerSleepSec, 2.0)))
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
-	return nil
+	return true, nil
 }
 
 // preludePlayer plays random hymns.
@@ -454,11 +454,13 @@ func (b *Backend) preludePlayer() error {
 			if f == *c {
 				continue
 			}
-			err := b.preludePlayerOne(f)
+			played, err := b.preludePlayerOne(f)
 			if err != nil {
 				return err
 			}
-			gotOne = true
+			if played {
+				gotOne = true
+			}
 		}
 		if !gotOne {
 			return fmt.Errorf("no single prelude file found")
