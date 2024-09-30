@@ -94,14 +94,17 @@ type Command struct {
 	Answer bool
 }
 
+// IsZero returns if the command is an empty message. If so, this likely indicates a closed channel.
 func (c Command) IsZero() bool {
 	return c == Command{}
 }
 
+// IsMainLoopCommands returns if the command can only be handled by the main loop.
 func (c Command) IsMainLoopCommand() bool {
 	return c.Exit || c.Quit || c.PlayOne != "" || c.PlayPrelude || c.IsZero()
 }
 
+// UIState is the state of the user interface.
 type UIState struct {
 	// Err is set to show an error message. The backend is dead, but can be
 	// restarted by sending a PlayOne or PlayPrelude message.
@@ -138,6 +141,9 @@ type UIState struct {
 
 	// Playing is whether we are currently playing.
 	Playing bool
+
+	// PlaybackPosTime is the wall time PlaybackPos was last updated.
+	PlaybackPosTime time.Time
 
 	// PlaybackPos is the current playback position.
 	PlaybackPos time.Duration
@@ -266,6 +272,7 @@ func (b *Backend) playMIDI(mid *smf.SMF, key processor.OutputKey) error {
 	b.uiState.CurrentPart = key
 	b.uiState.PlaybackLen = maxT
 	b.uiState.PlaybackPos = 0
+	b.uiState.PlaybackPosTime = time.Time{}
 	b.sendUIState()
 
 	defer func() {
@@ -273,6 +280,7 @@ func (b *Backend) playMIDI(mid *smf.SMF, key processor.OutputKey) error {
 		b.uiState.CurrentPart = processor.OutputKey{}
 		b.uiState.PlaybackLen = 0
 		b.uiState.PlaybackPos = 0
+		b.uiState.PlaybackPosTime = time.Time{}
 		b.sendUIState()
 	}()
 
@@ -304,6 +312,7 @@ func (b *Backend) playMIDI(mid *smf.SMF, key processor.OutputKey) error {
 		prevNow = newNow
 
 		b.uiState.PlaybackPos = midiT
+		b.uiState.PlaybackPosTime = newNow
 		b.sendUIState()
 
 		// Write to output.
@@ -754,7 +763,9 @@ func textModeUI(b *Backend) error {
 		if ui.Playing {
 			bar = ">>> "
 			if ui.PlaybackLen > 0 {
-				fReal := float64(ui.PlaybackPos) / float64(ui.PlaybackLen)
+				delta := time.Duration(float64(time.Since(ui.PlaybackPosTime)) * ui.Tempo)
+				playbackRealPos := ui.PlaybackPos + delta
+				fReal := float64(playbackRealPos) / float64(ui.PlaybackLen)
 				for i := 0; i <= 74; i++ {
 					f := float64(i) / 74
 					if fReal >= f {
@@ -873,6 +884,8 @@ func textModeUI(b *Backend) error {
 					}
 				}
 			}
+		case <-time.After(50 * time.Millisecond):
+			// At least 20 fps update.
 		}
 	}
 	return nil
