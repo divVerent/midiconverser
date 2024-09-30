@@ -18,7 +18,19 @@ var (
 )
 
 func Main() (err error) {
-	output, err := file.Process(*c, *i, *addChecksum)
+	config, err := file.ReadConfig(*c)
+	if err != nil {
+		return fmt.Errorf("failed to read config: %v", err)
+	}
+
+	options, err := file.ReadOptions(*i)
+	if err != nil {
+		return fmt.Errorf("failed to read options: %v", err)
+	}
+
+	wantChecksum := options.InputFileSHA256 == ""
+
+	output, err := file.Process(config, options)
 	if err != nil {
 		return fmt.Errorf("failed to process: %v", err)
 	}
@@ -31,7 +43,14 @@ func Main() (err error) {
 		name := fmt.Sprintf("%s.%s.mid", *oPrefix, key)
 		err := mid.WriteFile(name)
 		if err != nil {
-			return fmt.Errorf("Failed to write %v: %v", name, err)
+			return fmt.Errorf("failed to write %v: %v", name, err)
+		}
+	}
+
+	if wantChecksum && options.InputFileSHA256 != "" {
+		err := file.WriteOptions(*i, options)
+		if err != nil {
+			return fmt.Errorf("failed to write %v: %v", *i, err)
 		}
 	}
 
