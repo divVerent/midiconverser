@@ -133,6 +133,15 @@ type UIState struct {
 	Verse int
 }
 
+func (ui UIState) ActualPlaybackPos() time.Duration {
+	delta := time.Duration(float64(time.Since(ui.PlaybackPosTime)) * ui.Tempo)
+	return ui.PlaybackPos + delta
+}
+
+func (ui UIState) ActualPlaybackFraction() float64 {
+	return float64(ui.ActualPlaybackPos()) / float64(ui.PlaybackLen)
+}
+
 type Backend struct {
 	// Commands can be used to send commands to the UI.
 	Commands chan Command

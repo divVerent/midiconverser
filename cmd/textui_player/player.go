@@ -168,9 +168,7 @@ func textModeUI(b *player.Backend) error {
 		if ui.Playing {
 			bar = ">>> "
 			if ui.PlaybackLen > 0 {
-				delta := time.Duration(float64(time.Since(ui.PlaybackPosTime)) * ui.Tempo)
-				playbackRealPos := ui.PlaybackPos + delta
-				fReal := float64(playbackRealPos) / float64(ui.PlaybackLen)
+				fReal := ui.ActualPlaybackFraction()
 				for i := 0; i <= 74; i++ {
 					f := float64(i) / 74
 					if fReal >= f {
