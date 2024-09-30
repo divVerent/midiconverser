@@ -71,7 +71,7 @@ func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, mel
 
 	tracks := make([]smf.Track, numTracks)
 	trackTime := make([]int64, numTracks)
-	err = forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+	err = ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		channels := map[uint8]bool{}
 		out := func(outTrack int, outCh int) {
 			newMsg := append(smf.Message(nil), msg...)

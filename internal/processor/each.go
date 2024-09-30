@@ -6,9 +6,11 @@ import (
 	"gitlab.com/gomidi/midi/v2/smf"
 )
 
-var StopIteration = errors.New("forEachEventWithTime: StopIteration")
+// StopIteration can be returned to return without failure.
+var StopIteration = errors.New("ForEachEventWithTime: StopIteration")
 
-func forEachEventWithTime(mid *smf.SMF, yield func(time int64, track int, msg smf.Message) error) error {
+// ForEachEventWithTime runs the given function for each event, with current absolute time and other info.
+func ForEachEventWithTime(mid *smf.SMF, yield func(time int64, track int, msg smf.Message) error) error {
 	// trackPos is the index of the NEXT event from each track.
 	trackPos := make([]int, len(mid.Tracks))
 	// trackTime is the time of the LAST event from each track.

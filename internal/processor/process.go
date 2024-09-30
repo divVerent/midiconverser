@@ -148,7 +148,7 @@ type Options struct {
 	Comment string `yaml:"_comment,omitempty"`
 }
 
-func withDefault[T comparable](a, b T) T {
+func WithDefault[T comparable](a, b T) T {
 	var empty T
 	if a == empty {
 		return b
@@ -156,7 +156,7 @@ func withDefault[T comparable](a, b T) T {
 	return a
 }
 
-func withDefaultPtr[T comparable](a *T, b T) T {
+func WithDefaultPtr[T comparable](a *T, b T) T {
 	if a == nil {
 		return b
 	}
@@ -271,8 +271,8 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 	for _, f := range options.Fermatas {
 		tf := tickFermata{
 			tick:   f.ToTick(bars),
-			extend: beatsOrNotesToTicks(bars[f.Bar-1], withDefault(config.FermataExtendBeats, 1)),
-			rest:   beatsOrNotesToTicks(bars[f.Bar-1], withDefault(config.FermataRestBeats, 1)),
+			extend: beatsOrNotesToTicks(bars[f.Bar-1], WithDefault(config.FermataExtendBeats, 1)),
+			rest:   beatsOrNotesToTicks(bars[f.Bar-1], WithDefault(config.FermataRestBeats, 1)),
 		}
 		err := adjustFermata(mid, &tf)
 		if err != nil {
@@ -283,11 +283,11 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 	var preludeTick []tickRange
 	for _, p := range options.Prelude {
 		begin, end := p.ToTick(bars)
-		begin, err := adjustToNoNotes(mid, begin, withDefault(options.MaxAdjust, 64))
+		begin, err := adjustToNoNotes(mid, begin, WithDefault(options.MaxAdjust, 64))
 		if err != nil {
 			return nil, err
 		}
-		end, err = adjustToNoNotes(mid, end, withDefault(options.MaxAdjust, 64))
+		end, err = adjustToNoNotes(mid, end, WithDefault(options.MaxAdjust, 64))
 		if err != nil {
 			return nil, err
 		}
@@ -299,11 +299,11 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 	var postludeTick []tickRange
 	for _, p := range options.Postlude {
 		begin, end := p.ToTick(bars)
-		begin, err := adjustToNoNotes(mid, begin, withDefault(options.MaxAdjust, 64))
+		begin, err := adjustToNoNotes(mid, begin, WithDefault(options.MaxAdjust, 64))
 		if err != nil {
 			return nil, err
 		}
-		end, err = adjustToNoNotes(mid, end, withDefault(options.MaxAdjust, 64))
+		end, err = adjustToNoNotes(mid, end, WithDefault(options.MaxAdjust, 64))
 		if err != nil {
 			return nil, err
 		}
@@ -312,7 +312,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 			End:   end,
 		})
 	}
-	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], withDefault(config.RestBetweenVersesBeats, 1))
+	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], WithDefault(config.RestBetweenVersesBeats, 1))
 	totalTicks := bars[len(bars)-1].End()
 
 	log.Printf("fermata data: %+v", fermataTick)
@@ -326,7 +326,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 			Begin:      p.Begin,
 			End:        p.End,
 			RestAfter:  0,
-		}, fermataTick, withDefaultPtr(options.FermatasInPrelude, config.FermatasInPrelude))...)
+		}, fermataTick, WithDefaultPtr(options.FermatasInPrelude, config.FermatasInPrelude))...)
 	}
 	log.Printf("prelude cuts: %+v", preludeCuts)
 	verseCuts := fermatize(cut{
@@ -343,7 +343,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 			Begin:      p.Begin,
 			End:        p.End,
 			RestAfter:  0,
-		}, fermataTick, withDefaultPtr(options.FermatasInPostlude, config.FermatasInPostlude))...)
+		}, fermataTick, WithDefaultPtr(options.FermatasInPostlude, config.FermatasInPostlude))...)
 	}
 	log.Printf("postlude cuts: %+v", postludeCuts)
 
@@ -351,7 +351,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 
 	var cuts []cut
 	cuts = append(cuts, preludeCuts...)
-	for i := 0; i < withDefault(options.NumVerses, 1); i++ {
+	for i := 0; i < WithDefault(options.NumVerses, 1); i++ {
 		cuts = append(cuts, verseCuts...)
 	}
 	cuts = append(cuts, postludeCuts...)

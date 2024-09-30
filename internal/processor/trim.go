@@ -11,7 +11,7 @@ func trim(mid *smf.SMF) (*smf.SMF, error) {
 	// Decide start and length.
 	var firstTime int64 = math.MaxInt64
 	var lastTime int64 = math.MinInt64
-	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+	err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if !msg.GetNoteStart(nil, nil, nil) && !msg.GetNoteEnd(nil, nil) {
 			return nil
 		}
@@ -36,7 +36,7 @@ func trim(mid *smf.SMF) (*smf.SMF, error) {
 	// Fixup timestamps.
 	tracks := make([]smf.Track, len(mid.Tracks))
 	trackTime := make([]int64, len(mid.Tracks))
-	err = forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+	err = ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if time < firstTime {
 			time = 0
 		} else if time > lastTime {

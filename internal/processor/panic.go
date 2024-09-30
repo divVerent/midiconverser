@@ -10,7 +10,7 @@ import (
 // panicMIDI generates a new MIDI file that turns all notes off that the input file ever plays.
 func panicMIDI(mid *smf.SMF) (*smf.SMF, error) {
 	notes := map[Key]struct{}{}
-	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+	err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		var ch, note uint8
 		if msg.GetNoteStart(&ch, &note, nil) {
 			k := Key{ch, note}

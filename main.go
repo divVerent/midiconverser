@@ -17,7 +17,7 @@ var (
 	oPrefix     = flag.String("o_prefix", "", "output file name for outputting separate files")
 )
 
-func Main() (err error) {
+func Main() error {
 	config, err := file.ReadConfig(*c)
 	if err != nil {
 		return fmt.Errorf("failed to read config: %v", err)

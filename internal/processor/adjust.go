@@ -17,7 +17,7 @@ func adjustToNoNotes(mid *smf.SMF, tick, maxDelta int64) (int64, error) {
 	// Look for a tick with zero notes playing at start.
 	tracker := newNoteTracker(false)
 	var bestTick, maxTick int64
-	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+	err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if !tracker.Playing() {
 			if time > maxTick {
 				//log.Printf("nothing at %v .. %v", maxTick+1, time)
@@ -64,7 +64,7 @@ func adjustFermata(mid *smf.SMF, tf *tickFermata) error {
 	finished := false
 	tracker := newNoteTracker(false)
 	//log.Printf("fermata %v", tf)
-	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+	err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if time < tf.tick {
 			tracker.Handle(time, track, msg)
 			return nil

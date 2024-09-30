@@ -9,7 +9,7 @@ import (
 func removeUnneededEvents(mid *smf.SMF) error {
 	tracks := make([]smf.Track, len(mid.Tracks))
 	trackTime := make([]int64, len(mid.Tracks))
-	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+	err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if msg.IsOneOf(midi.ControlChangeMsg, midi.ProgramChangeMsg) {
 			return nil
 		}
@@ -32,7 +32,7 @@ func removeRedundantNoteEvents(mid *smf.SMF, refcounting, holding bool) error {
 	tracker := newNoteTracker(refcounting)
 	tracks := make([]smf.Track, len(mid.Tracks))
 	trackTime := make([]int64, len(mid.Tracks))
-	err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+	err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		include, track := tracker.Handle(time, track, msg)
 		if !include {
 			var ch, note uint8

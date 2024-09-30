@@ -8,7 +8,7 @@ import (
 
 // dumpTimeSig prints the time signatures the song uses in concise form.
 func dumpTimeSig(prefix string, mid *smf.SMF, b bars) {
-	forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+	ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		var bpm float64
 		if !msg.GetMetaTempo(&bpm) {
 			return nil

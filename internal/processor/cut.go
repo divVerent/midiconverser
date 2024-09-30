@@ -47,7 +47,7 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 		tracker = newNoteTracker(false) // TODO: make it fully local.
 		first := true
 		wasPlayingAtEnd := false
-		err := forEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+		err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 			wasPlaying := tracker.Playing()
 			if time > to {
 				return StopIteration
