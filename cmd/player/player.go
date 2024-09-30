@@ -703,7 +703,7 @@ func textModeUI(b *Backend) error {
 		if inputMode {
 			inputModePrompt = ":" + string(inputCommand)
 		}
-		log.Printf("%+v\r\n%s\r\n", ui, inputModePrompt)
+		fmt.Fprintf(os.Stderr, "\r\n\r\n%+v\r\n%s", ui, inputModePrompt)
 		select {
 		case ui, ok = <-b.UIStates:
 			if !ok {
