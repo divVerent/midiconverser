@@ -265,6 +265,11 @@ func (b *Backend) playMIDI(mid *smf.SMF) error {
 	b.uiState.PlaybackPos = 0
 	b.sendUIState()
 
+	defer func() {
+		b.uiState.Playing = false
+		b.sendUIState()
+	}()
+
 	var prevT time.Duration
 	prevNow := time.Now()
 
@@ -298,8 +303,7 @@ func (b *Backend) playMIDI(mid *smf.SMF) error {
 		// Write to output.
 		return b.outPort.Send(midiMsg)
 	})
-	b.uiState.Playing = false
-	b.sendUIState()
+
 	return err
 }
 
@@ -420,7 +424,6 @@ func (b *Backend) prompt(ask, response string) error {
 			}
 		}
 	}()
-	b.sendUIState()
 	err := <-errC
 	if !errors.Is(err, promptAnsweredError) {
 		return err
@@ -444,6 +447,7 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 	n := processor.WithDefault(options.NumVerses, 1)
 	b.uiState.CurrentFile = optionsFile
 	b.uiState.NumVerses = n
+	b.sendUIState()
 	defer func() {
 		b.uiState.CurrentFile = ""
 		b.sendUIState()
@@ -526,6 +530,7 @@ func (b *Backend) handleMainLoopCommand(cmd Command) error {
 
 func (b *Backend) Loop() error {
 	defer close(b.UIStates)
+	b.sendUIState()
 	for {
 		var cmd Command
 		if b.nextCommand != nil {
