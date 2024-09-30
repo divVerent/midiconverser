@@ -143,6 +143,9 @@ type Options struct {
 	FermatasInPrelude  *bool   `yaml:"fermatas_in_prelude,omitempty"`
 	FermatasInPostlude *bool   `yaml:"fermatas_in_postlude,omitempty"`
 
+	// Tags for automatic selection for prelude.
+	Tags []string `yaml:"tags,omitempty"`
+
 	// Pure comment fields. Declared here to preserve them when rewriting the checksum.
 	// Can't use YAML # comments because yq loses them.
 	Comment string `yaml:"_comment,omitempty"`

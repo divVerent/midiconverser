@@ -119,6 +119,17 @@ if [ -n "$prefix" ]; then
 
 	echo "Done."
 else
+	want_tags=
+	no_tags='noprelude national'
+	case "$(date +%Y%m%d)" in
+		????12[01]?|????122[0-6])
+			# want_tags="$want_tags xmas"
+			;;
+		*)
+			no_tags="$no_tags xmas"
+			;;
+	esac
+
 	repeat=$(yq < config.yml '.prelude_player_repeat // 2')
 	sleep=$(yq < config.yml '.prelude_player_sleep_sec // 2')
 	while :; do
@@ -127,34 +138,44 @@ else
 			verse=${verses%%$LF*}
 			verses=${verses#*$LF}
 			prefix=${verse%.verse.mid}
-			# No xmas songs except in December.
-			# TODO move this into the yml files.
-			case "$prefix" in
-				20[1-9]|21[0-4]|12??)
-					case "$(date +%Y%m%d)" in
-						????12[01]?|????122[0-6])
-							;;
-						*)
-							echo "Skipping $prefix due to it not being Christmas."
-							continue
-							;;
-					esac
-					;;
-				33[89]|34[01])
-					echo "Skipping $prefix due to it being for special occasions."
-					continue
-					;;
-			esac
-			thisrepeat=$repeat
-			# HACK; better migrate to a JSON file.
+			repeat=$repeat
+			tags=$(yq < "$prefix.yml" '.tags[]')
+			# Must not contain any no_tags.
+			# Must contain at least one of want_tags.
+			want_tags_needed=false
+			want_tags_hit=false
+			for t in $want_tags; do
+				want_tags_needed=true
+				case "$LF$tags$LF" in
+					*$LF$t$LF*)
+						want_tags_hit=true
+						;;
+				esac
+			done
+			no_tags_hit=false
+			for t in $no_tags; do
+				case "$LF$tags$LF" in
+					*$LF$t$LF*)
+						no_tags_hit=true
+						;;
+				esac
+			done
+			if $want_tags_needed && ! $want_tags_hit; then
+				echo "Skipping $prefix due to missing tags ($want_tags is not in" $tags ")."
+				continue
+			fi
+			if $no_tags_hit; then
+				echo "Skipping $prefix due to avoided tags ($no_tags is in" $tags ")."
+				continue
+			fi
 			if [ x"$(yq < "$prefix.yml" .num_verses)" = x"1" ]; then
 				# If -verses=1, then repeats are baked in.
 				# These are too long - skip them.
 				echo "Skipping $prefix due to baked-in repeats."
 				continue
 			fi
-			for i in $(seq 1 $thisrepeat); do
-				echo "Playing repeat $i/$thisrepeat of verse of $prefix..."
+			for i in $(seq 1 $repeat); do
+				echo "Playing repeat $i/$repeat of verse of $prefix..."
 				player "$prefix.verse.mid"
 				echo "Waiting $sleep seconds..."
 				sleep 2
