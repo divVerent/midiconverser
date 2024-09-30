@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"slices"
 	"strings"
@@ -26,19 +27,8 @@ import (
 	"github.com/divVerent/midiconverser/internal/processor"
 )
 
-type tagList []string
-
-func (l tagList) String() string {
-	return strings.Join([]string(l), " ")
-}
-
-func (l *tagList) Set(s string) error {
-	*l = strings.Split(s, " ")
-	return nil
-}
-
-func noTagsDefault() tagList {
-	noTags := tagList{"noprelude", "national"}
+func tagsDefault() map[string]bool {
+	tags := map[string]bool{"noprelude": false, "national": false}
 	// Find out if we're in advent or Christmas.
 	now := time.Now()
 	endTime := time.Date(now.Year(), 12, 27, 0, 0, 0, 0, time.Local)
@@ -53,23 +43,15 @@ func noTagsDefault() tagList {
 	log.Printf("First Advent: %v", beginTime)
 	log.Printf("Xmas ends: %v", endTime)
 	if now.Before(beginTime) || !now.Before(endTime) {
-		noTags = append(noTags, "xmas")
+		tags["xmas"] = false
 	}
-	return noTags
+	return tags
 }
 
 var (
-	c        = flag.String("c", "config.yml", "config file name (YAML)")
-	port     = flag.String("port", "", "regular expression to match the preferred output port")
-	wantTags tagList
-	noTags   tagList
+	c    = flag.String("c", "config.yml", "config file name (YAML)")
+	port = flag.String("port", "", "regular expression to match the preferred output port")
 )
-
-func init() {
-	flag.Var(&wantTags, "want_tags", "list of tags any of which must be in each prelude hymn")
-	noTags = noTagsDefault()
-	flag.Var(&noTags, "no_tags", "list of tags all of which must not be in each prelude hymn")
-}
 
 type Command struct {
 	// Exit exits all current playbacks and returns to waiting state.
@@ -84,6 +66,9 @@ type Command struct {
 	// PlayPrelude enters prelude player mode.
 	PlayPrelude bool
 
+	// New list of tags for prelude selection.
+	PreludeTags map[string]bool
+
 	// Tempo sets the tempo to a new factor.
 	Tempo float64
 
@@ -96,7 +81,7 @@ type Command struct {
 
 // IsZero returns if the command is an empty message. If so, this likely indicates a closed channel.
 func (c Command) IsZero() bool {
-	return c == Command{}
+	return reflect.DeepEqual(c, Command{})
 }
 
 // IsMainLoopCommands returns if the command can only be handled by the main loop.
@@ -117,6 +102,9 @@ type UIState struct {
 
 	// PlayPrelude indicates if we're in the prelude player.
 	PlayPrelude bool
+
+	// List of tags for prelude selection.
+	PreludeTags map[string]bool
 
 	// Tempo is the current tempo as a factor of normal.
 	Tempo float64
@@ -184,6 +172,7 @@ func NewBackend(config *processor.Config, outPort drivers.Out) *Backend {
 		config:   *config,
 		outPort:  outPort,
 		uiState: UIState{
+			PreludeTags:    tagsDefault(),
 			Tempo:          1.0,
 			CurrentMessage: "initializing player",
 		},
@@ -239,6 +228,10 @@ func (b *Backend) handleCommandDuringSleep(cmd Command) error {
 		return exitPlaybackError
 	}
 	switch {
+	case cmd.PreludeTags != nil:
+		b.uiState.PreludeTags = cmd.PreludeTags
+		b.sendUIState()
+		return nil
 	case cmd.Tempo != 0:
 		b.uiState.Tempo = cmd.Tempo
 		b.sendUIState()
@@ -371,23 +364,25 @@ func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 	for _, t := range options.Tags {
 		tags[t] = true
 	}
-	if len(wantTags) > 0 {
-		hit := false
-		for _, t := range wantTags {
-			if tags[t] {
-				hit = true
+
+	needWant := false
+	haveWant := false
+	for k, v := range b.uiState.PreludeTags {
+		if v {
+			needWant = true
+			if tags[k] {
+				haveWant = true
+			}
+		} else {
+			if tags[k] {
+				log.Printf("Skipping %s due to no forbidden tags (want no %v).", optionsFile, k)
+				return false, nil
 			}
 		}
-		if !hit {
-			log.Printf("Skipping %s due to no matching tags (want one of %v).", optionsFile, wantTags)
-			return false, nil
-		}
 	}
-	for _, t := range noTags {
-		if tags[t] {
-			log.Printf("Skipping %s due to no forbidden tags (want none of %v).", optionsFile, noTags)
-			return false, nil
-		}
+	if needWant && !haveWant {
+		log.Printf("Skipping %s due to no matching tags (want one of %v).", optionsFile, b.uiState.PreludeTags)
+		return false, nil
 	}
 
 	if options.NumVerses <= 1 {
@@ -686,6 +681,7 @@ func findBestPort() (drivers.Out, error) {
 var (
 	preludeRE = regexp.MustCompile(`^prelude$`)
 	playRE    = regexp.MustCompile(`^play (\S+)$`)
+	tagsRE    = regexp.MustCompile(`^tags((?: -?\w+)*)$`)
 	tempoRE   = regexp.MustCompile(`^tempo ([\d.]+)$`)
 	versesRE  = regexp.MustCompile(`^verses (\d+)$`)
 	quitRE    = regexp.MustCompile(`^q(?:u(?:it?)?)?$`)
@@ -701,6 +697,12 @@ func processCommand(b *Backend, cmd []byte) error {
 	if sub := playRE.FindSubmatch(cmd); sub != nil {
 		b.Commands <- Command{
 			PlayOne: string(sub[1]),
+		}
+		return nil
+	}
+	if sub := tagsRE.FindSubmatch(cmd); sub != nil {
+		b.Commands <- Command{
+			PreludeTags: preludeTagsFromStr(string(sub[1])),
 		}
 		return nil
 	}
@@ -739,6 +741,40 @@ func processCommand(b *Backend, cmd []byte) error {
 		return nil
 	}
 	return errors.New("unknown command")
+}
+
+func preludeTagsStr(tags map[string]bool) string {
+	var keys []string
+	for k := range tags {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	out := make([]string, 0, len(keys))
+	for _, k := range keys {
+		v := tags[k]
+		if v {
+			out = append(out, k)
+		} else {
+			out = append(out, "-"+k)
+		}
+	}
+	return strings.Join(out, " ")
+}
+
+func preludeTagsFromStr(s string) map[string]bool {
+	words := strings.Split(s, " ")
+	tags := make(map[string]bool, len(words))
+	for _, w := range words {
+		if w == "" {
+			continue
+		}
+		if w[0] == '-' {
+			tags[w[1:]] = false
+			continue
+		}
+		tags[w] = true
+	}
+	return tags
 }
 
 func textModeUI(b *Backend) error {
@@ -815,6 +851,7 @@ func textModeUI(b *Backend) error {
 			ifLine(np != "", fmt.Sprintf("\033[1mCurrently Playing:\033[m %v", np)),
 			ifLine(ui.CurrentMessage != "", fmt.Sprintf("\033[1mStatus:\033[m %v", ui.CurrentMessage)),
 			"",
+			ifLine(len(ui.PreludeTags) != 0, fmt.Sprintf("\033[1mPrelude tags:\033[m %v", preludeTagsStr(ui.PreludeTags))),
 			ifLine(ui.Tempo != 0, fmt.Sprintf("\033[1mTempo:\033[m %.0f%%", 100*ui.Tempo)),
 			ifLine(ui.NumVerses != 0, fmt.Sprintf("\033[1mVerse:\033[m %d/%d", ui.Verse+1, ui.NumVerses)),
 			"",
