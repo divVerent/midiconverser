@@ -130,6 +130,9 @@ type UIState struct {
 	// CurrentFile is the currently being played file.
 	CurrentFile string
 
+	// CurrentPart is the currently being played part.
+	CurrentPart processor.OutputKey
+
 	// CurrentMessage is a message for what is currently playing.
 	CurrentMessage string
 
@@ -171,7 +174,7 @@ type Backend struct {
 func NewBackend(config *processor.Config, outPort drivers.Out) *Backend {
 	return &Backend{
 		Commands: make(chan Command, 10),
-		UIStates: make(chan UIState, 10),
+		UIStates: make(chan UIState, 100),
 		config:   *config,
 		outPort:  outPort,
 		uiState: UIState{
@@ -252,7 +255,7 @@ func (b *Backend) handleCommandDuringSleep(cmd Command) error {
 var outPort drivers.Out
 
 // playMIDI plays a MIDI file on the current thread.
-func (b *Backend) playMIDI(mid *smf.SMF) error {
+func (b *Backend) playMIDI(mid *smf.SMF, key processor.OutputKey) error {
 	var maxTick int64
 	err := processor.ForEachEventWithTime(mid, func(t int64, track int, msg smf.Message) error {
 		maxTick = t
@@ -260,13 +263,16 @@ func (b *Backend) playMIDI(mid *smf.SMF) error {
 	})
 	maxT := time.Microsecond * time.Duration(mid.TimeAt(maxTick))
 	b.uiState.Playing = true
-	b.uiState.Err = nil
+	b.uiState.CurrentPart = key
 	b.uiState.PlaybackLen = maxT
 	b.uiState.PlaybackPos = 0
 	b.sendUIState()
 
 	defer func() {
 		b.uiState.Playing = false
+		b.uiState.CurrentPart = processor.OutputKey{}
+		b.uiState.PlaybackLen = 0
+		b.uiState.PlaybackPos = 0
 		b.sendUIState()
 	}()
 
@@ -357,17 +363,27 @@ func (b *Backend) preludePlayerOne(optionsFile string) error {
 		return nil
 	}
 
-	allOff := output[processor.OutputKey{Special: processor.Panic}]
-	defer b.playMIDI(allOff)
+	key := processor.OutputKey{Special: processor.Panic}
+	allOff := output[key]
+	defer b.playMIDI(allOff, key)
 
+	b.uiState.CurrentFile = optionsFile
+	// b.sendUIState() // Redundant with playMIDI.
+	defer func() {
+		b.uiState.CurrentFile = ""
+		b.sendUIState()
+	}()
+
+	key = processor.OutputKey{Special: processor.Verse}
 	verse := output[processor.OutputKey{Special: processor.Verse}]
 	if verse == nil {
 		return fmt.Errorf("no verse file for %v", optionsFile)
 	}
 
 	log.Printf("Playing full verses for prelude: %v", optionsFile)
-	for i := 0; i < processor.WithDefault(b.config.PreludePlayerRepeat, 2); i++ {
-		err := b.playMIDI(verse)
+	for i := 0; i < b.uiState.NumVerses; i++ {
+		b.uiState.Verse = i
+		err := b.playMIDI(verse, key)
 		if err != nil {
 			return fmt.Errorf("could not play %v: %w", optionsFile, err)
 		}
@@ -381,6 +397,18 @@ func (b *Backend) preludePlayerOne(optionsFile string) error {
 
 // preludePlayer plays random hymns.
 func (b *Backend) preludePlayer() error {
+	n := processor.WithDefault(b.config.PreludePlayerRepeat, 2)
+	b.uiState.PlayPrelude = true
+	b.uiState.NumVerses = n
+	b.uiState.Verse = 0
+	// b.sendUIState() // Redundant with playMIDI.
+	defer func() {
+		b.uiState.PlayPrelude = false
+		b.uiState.NumVerses = 0
+		b.uiState.Verse = 0
+		b.sendUIState()
+	}()
+
 	for {
 		all, err := filepath.Glob("*.yml")
 		if err != nil {
@@ -439,27 +467,35 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 		return err
 	}
 
-	allOff := output[processor.OutputKey{Special: processor.Panic}]
-	defer b.playMIDI(allOff)
+	key := processor.OutputKey{Special: processor.Panic}
+	allOff := output[key]
+	defer b.playMIDI(allOff, key)
 
 	log.Printf("Playing all verses of %v", optionsFile)
 
 	n := processor.WithDefault(options.NumVerses, 1)
+	b.uiState.PlayOne = optionsFile
 	b.uiState.CurrentFile = optionsFile
 	b.uiState.NumVerses = n
-	b.sendUIState()
+	b.uiState.Verse = 0
+	// b.sendUIState() // Redundant with prompt.
 	defer func() {
+		b.uiState.PlayOne = ""
 		b.uiState.CurrentFile = ""
+		b.uiState.NumVerses = 0
+		b.uiState.Verse = 0
+		b.uiState.CurrentMessage = "" // Written to by prompt.
 		b.sendUIState()
 	}()
 
-	prelude := output[processor.OutputKey{Special: processor.Prelude}]
+	key = processor.OutputKey{Special: processor.Prelude}
+	prelude := output[key]
 	if prelude != nil {
 		err := b.prompt("start prelude", "playing prelude")
 		if err != nil {
 			return err
 		}
-		err = b.playMIDI(prelude)
+		err = b.playMIDI(prelude, key)
 		if err != nil {
 			return fmt.Errorf("could not play %v prelude: %w", optionsFile, err)
 		}
@@ -468,7 +504,8 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 	for i := 0; i < b.uiState.NumVerses; i++ {
 		b.uiState.Verse = i
 		for j := 0; ; j++ {
-			part := output[processor.OutputKey{Part: j}]
+			key := processor.OutputKey{Part: j}
+			part := output[key]
 			if part == nil {
 				break
 			}
@@ -484,20 +521,21 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 			if err != nil {
 				return err
 			}
-			err = b.playMIDI(part)
+			err = b.playMIDI(part, key)
 			if err != nil {
 				return fmt.Errorf("could not play %v part %v: %w", optionsFile, j, err)
 			}
 		}
 	}
 
-	postlude := output[processor.OutputKey{Special: processor.Postlude}]
+	key = processor.OutputKey{Special: processor.Postlude}
+	postlude := output[key]
 	if postlude != nil {
 		err := b.prompt("postlude", "playing postlude")
 		if err != nil {
 			return err
 		}
-		err = b.playMIDI(postlude)
+		err = b.playMIDI(postlude, key)
 		if err != nil {
 			return fmt.Errorf("could not play %v postlude: %w", optionsFile, err)
 		}
@@ -530,8 +568,10 @@ func (b *Backend) handleMainLoopCommand(cmd Command) error {
 
 func (b *Backend) Loop() error {
 	defer close(b.UIStates)
-	b.sendUIState()
+	b.uiState.Err = nil
+	b.uiState.CurrentMessage = ""
 	for {
+		b.sendUIState()
 		var cmd Command
 		if b.nextCommand != nil {
 			cmd = *b.nextCommand
@@ -539,7 +579,8 @@ func (b *Backend) Loop() error {
 		} else {
 			cmd = <-b.Commands
 		}
-		log.Printf("running %v", cmd)
+		b.uiState.Err = nil
+		b.uiState.CurrentMessage = ""
 		err := b.handleMainLoopCommand(cmd)
 		if errors.Is(err, sigIntError) || errors.Is(err, quitError) {
 			return err
@@ -547,7 +588,7 @@ func (b *Backend) Loop() error {
 			continue
 		} else if err != nil {
 			b.uiState.Err = err
-			b.sendUIState()
+			// Updated on next iteration.
 		}
 	}
 	return nil
@@ -697,13 +738,60 @@ func textModeUI(b *Backend) error {
 	var ok bool
 	inputMode := true
 	var inputCommand []byte
+	var commandErr error
 
 	for {
-		inputModePrompt := ""
-		if inputMode {
-			inputModePrompt = ":" + string(inputCommand)
+		var np string
+		if ui.PlayPrelude {
+			np = fmt.Sprintf("%v (prelude player)", ui.CurrentFile)
+		} else if ui.PlayOne != "" && ui.Playing {
+			np = fmt.Sprintf("%v (%v)", ui.CurrentFile, ui.CurrentPart)
+		} else if ui.PlayOne != "" {
+			np = ui.CurrentFile
 		}
-		fmt.Fprintf(os.Stderr, "\r\n\r\n%+v\r\n%s", ui, inputModePrompt)
+
+		var bar string
+		if ui.Playing {
+			bar = ">>> "
+			if ui.PlaybackLen > 0 {
+				fReal := float64(ui.PlaybackPos) / float64(ui.PlaybackLen)
+				for i := 0; i <= 74; i++ {
+					f := float64(i) / 74
+					if fReal >= f {
+						bar += "#"
+					} else {
+						bar += "="
+					}
+				}
+			}
+		} else {
+			bar = "[ ] ---------------------------------------------------------------------------"
+		}
+		ifLine := func(b bool, s string) string {
+			if !b {
+				return ""
+			}
+			return s
+		}
+		lines := []string{
+			"\033[m\033[2J\033[H\033[1;34mMIDI Converser - text mode player\033[m",
+			"",
+			ifLine(np != "", fmt.Sprintf("\033[1mCurrently Playing:\033[m %v", np)),
+			ifLine(ui.CurrentMessage != "", fmt.Sprintf("\033[1mStatus:\033[m %v", ui.CurrentMessage)),
+			"",
+			ifLine(ui.Tempo != 0, fmt.Sprintf("\033[1mTempo:\033[m %.0f%%", 100*ui.Tempo)),
+			ifLine(ui.NumVerses != 0, fmt.Sprintf("\033[1mVerse:\033[m %d/%d", ui.Verse+1, ui.NumVerses)),
+			"",
+			bar,
+			"",
+			ifLine(ui.Err != nil, fmt.Sprintf("\033[1;31mError:\033[0;31m %v\033[m", ui.Err)),
+			ifLine(ui.Prompt != "", fmt.Sprintf("\033[1;33mPrompt: %v\033[m", ui.Prompt)),
+			"",
+			ifLine(commandErr != nil, fmt.Sprintf("\033[1;31mCommand Error:\033[0;31m %v\033[m", commandErr)),
+			ifLine(inputMode, fmt.Sprintf("\033[1m:\033[m%s", inputCommand)),
+		}
+		os.Stderr.Write([]byte(strings.Join(lines, "\r\n")))
+
 		select {
 		case ui, ok = <-b.UIStates:
 			if !ok {
@@ -722,11 +810,16 @@ func textModeUI(b *Backend) error {
 					if len(inputCommand) > 0 {
 						err := processCommand(b, inputCommand)
 						if err != nil {
-							fmt.Printf("could not parse command %q: %v", inputCommand, err)
+							commandErr = fmt.Errorf("could not parse command %q: %v", inputCommand, err)
 						}
 					}
 					inputCommand = inputCommand[:0]
 					inputMode = false
+				case 0x03:
+					// Ctrl-C. Quit right away.
+					b.Commands <- Command{
+						Quit: true,
+					}
 				case 0x1B:
 					inputMode = false
 				default:
@@ -765,9 +858,11 @@ func textModeUI(b *Backend) error {
 					b.Commands <- Command{
 						Exit: true,
 					}
+					commandErr = nil
 					inputMode = true
 				case ':':
 					// Input mode during playback.
+					commandErr = nil
 					inputMode = true
 				default:
 					// "Any key".
