@@ -1,18 +1,13 @@
 package main
 
 import (
-	"bytes"
-	"crypto/sha256"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 
-	"gitlab.com/gomidi/midi/v2/smf"
-	"gopkg.in/yaml.v3"
-
-	"github.com/divVerent/midiconverser/internal/processor"
+	"github.com/divVerent/midiconverser/internal/file"
 )
 
 var (
@@ -23,53 +18,13 @@ var (
 )
 
 func Main() (err error) {
-	f, err := os.Open(*c)
+	output, err := file.Process(*c, *i, *addChecksum)
 	if err != nil {
-		return fmt.Errorf("could not open %v: %v", *c, err)
+		return fmt.Errorf("failed to process: %v", err)
 	}
-	defer f.Close()
-	var config processor.Config
-	err = yaml.NewDecoder(f).Decode(&config)
-	if err != nil {
-		return fmt.Errorf("could not decode %v: %v", *c, err)
-	}
-
-	f, err = os.Open(*i)
-	// NOTE: Not deferring closing this file, as it may get reopened.
-	if err != nil {
-		return fmt.Errorf("could not open %v: %v", *i, err)
-	}
-	var options processor.Options
-	err = yaml.NewDecoder(f).Decode(&options)
-	if err != nil {
-		f.Close()
-		return fmt.Errorf("could not decode %v: %v", *i, err)
-	}
-	f.Close()
 
 	if *oPrefix == "" {
 		*oPrefix = strings.TrimSuffix(*i, ".yml")
-	}
-
-	inBytes, err := os.ReadFile(options.InputFile)
-	if err != nil {
-		return fmt.Errorf("could not read %v: %v", options.InputFile, err)
-	}
-
-	sum := fmt.Sprintf("%x", sha256.Sum256(inBytes))
-
-	if options.InputFileSHA256 != "" && options.InputFileSHA256 != sum {
-		return fmt.Errorf("mismatching checksum of %v: got %v, want %v", options.InputFile, sum, options.InputFileSHA256)
-	}
-
-	in, err := smf.ReadFrom(bytes.NewReader(inBytes))
-	if err != nil {
-		return fmt.Errorf("could not parse %v: %v", options.InputFile, err)
-	}
-
-	output, err := processor.Process(in, &config, &options)
-	if err != nil {
-		return fmt.Errorf("Failed to process: %v", err)
 	}
 
 	for key, mid := range output {
@@ -77,27 +32,6 @@ func Main() (err error) {
 		err := mid.WriteFile(name)
 		if err != nil {
 			return fmt.Errorf("Failed to write %v: %v", name, err)
-		}
-	}
-
-	if options.InputFileSHA256 == "" && *addChecksum {
-		options.InputFileSHA256 = sum
-
-		f, err = os.Create(*i)
-		if err != nil {
-			return fmt.Errorf("could not recreate %v: %v", *i, err)
-		}
-		defer func() {
-			closeErr := f.Close()
-			if closeErr != nil && err == nil {
-				err = closeErr
-			}
-		}()
-		enc := yaml.NewEncoder(f)
-		enc.SetIndent(2) // Match yq.
-		err := enc.Encode(options)
-		if err != nil {
-			return fmt.Errorf("could not encode %v: %v", *i, err)
 		}
 	}
 

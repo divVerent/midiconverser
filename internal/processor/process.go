@@ -163,8 +163,50 @@ func withDefaultPtr[T comparable](a *T, b T) T {
 	return *a
 }
 
+type SpecialPart int
+
+const (
+	// Single indicates that this file covers a single part of a verse.
+	Single SpecialPart = iota
+	// Whole indicates that this file covers the whole output with prelude, all verses and postlude.
+	Whole
+	// Prelude indicates that this file covers the prelude.
+	Prelude
+	// Verse indicates that this file covers an entire verse.
+	Verse
+	// Postlude indicates that this file covers the postlude.
+	Postlude
+	// Panic indicates that this file just stops all notes.
+	Panic
+)
+
+type OutputKey struct {
+	// Special indicates which part this is.
+	Special SpecialPart
+	// Part indicates the part index in case Special is Single.
+	Part int
+}
+
+// String converts OutputKey to a string like in a filename.
+func (k OutputKey) String() string {
+	switch k.Special {
+	case Single:
+		return fmt.Sprintf("part%d", k.Part)
+	case Whole:
+		return "whole"
+	case Prelude:
+		return "prelude"
+	case Verse:
+		return "verse"
+	case Postlude:
+		return "postlude"
+	default:
+		return fmt.Sprintf("unknown%d.%d", k.Special, k.Part)
+	}
+}
+
 // Process processes the given MIDI file and writes the result to out.
-func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SMF, error) {
+func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf.SMF, error) {
 	bars := findBars(mid)
 	log.Printf("bars: %+v", bars)
 	dumpTimeSig("Before", mid, bars)
@@ -305,7 +347,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 	}
 	log.Printf("postlude cuts: %+v", postludeCuts)
 
-	output := map[string]*smf.SMF{}
+	output := map[OutputKey]*smf.SMF{}
 
 	var cuts []cut
 	cuts = append(cuts, preludeCuts...)
@@ -321,7 +363,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 	if err != nil {
 		return nil, err
 	}
-	output["whole"] = wholeMIDI
+	output[OutputKey{Special: Whole}] = wholeMIDI
 	//newBars := findBars(wholeMIDI)
 	//dumpTimeSig("Whole", wholeMIDI, newBars)
 
@@ -334,7 +376,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		if err != nil {
 			return nil, err
 		}
-		output["prelude"] = preludeMIDI
+		output[OutputKey{Special: Prelude}] = preludeMIDI
 		newBars := findBars(preludeMIDI)
 		dumpTimeSig("Prelude", preludeMIDI, newBars)
 	}
@@ -347,7 +389,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		if err != nil {
 			return nil, err
 		}
-		output["verse"] = verseMIDI
+		output[OutputKey{Special: Verse}] = verseMIDI
 		//newBars := findBars(verseMIDI)
 		//dumpTimeSig("Verse", verseMIDI, newBars)
 	}
@@ -360,7 +402,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		if err != nil {
 			return nil, err
 		}
-		output[fmt.Sprintf("part%d", i)] = sectionMIDI
+		output[OutputKey{Part: i}] = sectionMIDI
 		newBars := findBars(sectionMIDI)
 		dumpTimeSig(fmt.Sprintf("Section %d", i), sectionMIDI, newBars)
 	}
@@ -373,7 +415,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 		if err != nil {
 			return nil, err
 		}
-		output["postlude"] = postludeMIDI
+		output[OutputKey{Special: Postlude}] = postludeMIDI
 		newBars := findBars(postludeMIDI)
 		dumpTimeSig("Postlude", postludeMIDI, newBars)
 	}
@@ -381,7 +423,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[string]*smf.SM
 	if err != nil {
 		return nil, err
 	}
-	output["panic"] = panicMIDI
+	output[OutputKey{Special: Panic}] = panicMIDI
 
 	return output, nil
 }
