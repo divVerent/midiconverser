@@ -367,6 +367,29 @@ func (b *Backend) preludePlayerOne(optionsFile string) error {
 		return err
 	}
 
+	tags := make(map[string]bool, len(options.Tags))
+	for _, t := range options.Tags {
+		tags[t] = true
+	}
+	if len(wantTags) > 0 {
+		hit := false
+		for _, t := range wantTags {
+			if tags[t] {
+				hit = true
+			}
+		}
+		if !hit {
+			log.Printf("Skipping %s due to no matching tags (want one of %v).", wantTags)
+			return nil
+		}
+	}
+	for _, t := range noTags {
+		if tags[t] {
+			log.Printf("Skipping %s due to no forbidden tags (want none of %v).", noTags)
+			return nil
+		}
+	}
+
 	if options.NumVerses <= 1 {
 		log.Printf("Skipping %s due to baked-in repeats.", optionsFile)
 		return nil
