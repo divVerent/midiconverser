@@ -3,4 +3,4 @@
 set -ex
 
 go build
-go build ./cmd/player
+go build ./cmd/textui_layer
