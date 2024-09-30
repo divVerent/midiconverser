@@ -203,6 +203,8 @@ func (k OutputKey) String() string {
 		return "verse"
 	case Postlude:
 		return "postlude"
+	case Panic:
+		return "panic"
 	default:
 		return fmt.Sprintf("unknown%d.%d", k.Special, k.Part)
 	}
