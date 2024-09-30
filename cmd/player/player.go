@@ -20,6 +20,7 @@ import (
 	_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 	_ "gitlab.com/gomidi/midi/v2/drivers/webmididrv"
 	"gitlab.com/gomidi/midi/v2/smf"
+	"golang.org/x/term"
 
 	"github.com/divVerent/midiconverser/internal/file"
 	"github.com/divVerent/midiconverser/internal/processor"
@@ -49,8 +50,8 @@ func noTagsDefault() tagList {
 	}
 	// Go back to 1st Advent.
 	beginTime = beginTime.Add(-3 * 7 * 24 * time.Hour)
-	log.Printf("First Advent: %w", beginTime)
-	log.Printf("Xmas ends: %w", endTime)
+	log.Printf("First Advent: %v", beginTime)
+	log.Printf("Xmas ends: %v", endTime)
 	if now.Before(beginTime) || !now.Before(endTime) {
 		noTags = append(noTags, "xmas")
 	}
@@ -170,15 +171,15 @@ func PreludePlayerOne(config *processor.Config, optionsFile string) error {
 		return nil
 	}
 
+	allOff := output[processor.OutputKey{Special: processor.Panic}]
+	defer PlayMIDI(allOff)
+
 	verse := output[processor.OutputKey{Special: processor.Verse}]
 	if verse == nil {
 		return fmt.Errorf("no verse file for %v", optionsFile)
 	}
 
-	allOff := output[processor.OutputKey{Special: processor.Panic}]
-	defer PlayMIDI(allOff)
-
-	log.Printf("Playing full verses for prelude: %w", optionsFile)
+	log.Printf("Playing full verses for prelude: %v", optionsFile)
 	for i := 0; i < processor.WithDefault(config.PreludePlayerRepeat, 2); i++ {
 		err := PlayMIDI(verse)
 		if err != nil {
@@ -217,6 +218,95 @@ func PreludePlayer(config *processor.Config) error {
 			return fmt.Errorf("no single prelude file found")
 		}
 	}
+}
+
+func prompt(ask, response string) error {
+	// TODO ebitenify.
+	fmt.Printf("\n\n\n%v\nPress any key...\n", ask)
+	buf, err := func() ([]byte, error) {
+		save, err := term.MakeRaw(int(os.Stdin.Fd()))
+		if err != nil {
+			return nil, err
+		}
+		defer term.Restore(int(os.Stdin.Fd()), save)
+		buf := make([]byte, 1)
+		_, err = os.Stdin.Read(buf)
+		return buf, err
+	}()
+	if err != nil {
+		return err
+	}
+	if buf[0] == 0x03 {
+		return sigIntError
+	}
+	fmt.Printf("%v\n", response)
+	return nil
+}
+
+// SinglePlayer plays the given file interactively.
+func SinglePlayer(config *processor.Config, optionsFile string) error {
+	output, options, err := Load(config, optionsFile)
+	if err != nil {
+		return err
+	}
+
+	allOff := output[processor.OutputKey{Special: processor.Panic}]
+	defer PlayMIDI(allOff)
+
+	log.Printf("Playing all verses of %v", optionsFile)
+
+	prelude := output[processor.OutputKey{Special: processor.Prelude}]
+	if prelude != nil {
+		err := prompt("start prelude", "playing prelude")
+		if err != nil {
+			return err
+		}
+		err = PlayMIDI(prelude)
+		if err != nil {
+			return fmt.Errorf("could not play %v prelude: %w", optionsFile, err)
+		}
+	}
+
+	n := processor.WithDefault(options.NumVerses, 1)
+	for i := 0; i < n; i++ {
+		verseStr := fmt.Sprintf("verse %d/%d", i+1, n)
+		for j := 0; ; j++ {
+			part := output[processor.OutputKey{Part: j}]
+			if part == nil {
+				break
+			}
+			var msg string
+			if j == 0 {
+				msg = fmt.Sprintf("start %v", verseStr)
+			} else if j%2 == 1 {
+				msg = fmt.Sprintf("end %v fermata", verseStr)
+			} else {
+				msg = fmt.Sprintf("continue %v", verseStr)
+			}
+			err := prompt(msg, fmt.Sprintf("playing %v", verseStr))
+			if err != nil {
+				return err
+			}
+			err = PlayMIDI(part)
+			if err != nil {
+				return fmt.Errorf("could not play %v part %v: %w", optionsFile, j, err)
+			}
+		}
+	}
+
+	postlude := output[processor.OutputKey{Special: processor.Postlude}]
+	if postlude != nil {
+		err := prompt("postlude", "playing postlude")
+		if err != nil {
+			return err
+		}
+		err = PlayMIDI(postlude)
+		if err != nil {
+			return fmt.Errorf("could not play %v postlude: %w", optionsFile, err)
+		}
+	}
+
+	return nil
 }
 
 var (
@@ -283,7 +373,7 @@ func Main() error {
 	if err != nil {
 		return fmt.Errorf("could not find MIDI port: %w", err)
 	}
-	log.Printf("Picked output port: %w", outPort)
+	log.Printf("Picked output port: %v", outPort)
 
 	err = outPort.Open()
 	if err != nil {
@@ -300,9 +390,7 @@ func Main() error {
 		return PreludePlayer(config)
 	}
 
-	// TODO play a single file properly.
-
-	return nil
+	return SinglePlayer(config, *i)
 }
 
 func main() {
