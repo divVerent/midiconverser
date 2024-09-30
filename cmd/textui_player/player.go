@@ -39,8 +39,17 @@ func processCommand(b *player.Backend, cmd []byte) error {
 		return nil
 	}
 	if sub := playRE.FindSubmatch(cmd); sub != nil {
+		filename := string(sub[1])
+		_, err := os.Stat(filename)
+		if err != nil {
+			altName := filename + ".yml"
+			_, err := os.Stat(altName)
+			if err == nil {
+				filename = altName
+			}
+		}
 		b.Commands <- player.Command{
-			PlayOne: string(sub[1]),
+			PlayOne: filename,
 		}
 		return nil
 	}
