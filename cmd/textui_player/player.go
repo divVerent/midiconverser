@@ -11,10 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/gomidi/midi/v2"
-	"gitlab.com/gomidi/midi/v2/drivers"
-	_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
-	_ "gitlab.com/gomidi/midi/v2/drivers/webmididrv"
 	"golang.org/x/term"
 
 	"github.com/divVerent/midiconverser/internal/file"
@@ -25,61 +21,6 @@ var (
 	c    = flag.String("c", "config.yml", "config file name (YAML)")
 	port = flag.String("port", "", "regular expression to match the preferred output port")
 )
-
-var (
-	badPortsRE       = regexp.MustCompile(`\bMidi Through\b`)
-	usbPortsRE       = regexp.MustCompile(`\bUSB|\bUM-`)
-	softSynthPortsRE = regexp.MustCompile(`\bFLUID\b|\bTiMidity\b`)
-)
-
-func findBestPort() (drivers.Out, error) {
-	var goodPorts []drivers.Out
-	if *port != "" {
-		portRE, err := regexp.Compile(*port)
-		if err != nil {
-			return nil, fmt.Errorf("failed to compile -port RE %v: %w", *port, err)
-		}
-		for _, port := range midi.GetOutPorts() {
-			if !portRE.MatchString(port.String()) {
-				continue
-			}
-			goodPorts = append(goodPorts, port)
-		}
-	}
-	if len(goodPorts) == 0 {
-		for _, port := range midi.GetOutPorts() {
-			if badPortsRE.MatchString(port.String()) {
-				continue
-			}
-			goodPorts = append(goodPorts, port)
-		}
-	}
-	if len(goodPorts) == 0 {
-		return nil, fmt.Errorf("no selected port found")
-	}
-	return slices.MinFunc(goodPorts, func(a, b drivers.Out) int {
-		aUSB := usbPortsRE.MatchString(a.String())
-		bUSB := usbPortsRE.MatchString(b.String())
-		if aUSB != bUSB {
-			// Prefer USB.
-			if aUSB {
-				return -1
-			}
-			return 1
-		}
-		aSoftSynth := softSynthPortsRE.MatchString(a.String())
-		bSoftSynth := softSynthPortsRE.MatchString(b.String())
-		if aSoftSynth != bSoftSynth {
-			// Avoid software synthesizers.
-			if aSoftSynth {
-				return 1
-			}
-			return -1
-		}
-		// Otherwise sort arbitrarily.
-		return a.Number() - b.Number()
-	}), nil
-}
 
 var (
 	preludeRE = regexp.MustCompile(`^prelude$`)
@@ -358,7 +299,7 @@ func textModeUI(b *player.Backend) error {
 
 func Main() error {
 	var err error
-	outPort, err := findBestPort()
+	outPort, err := player.FindBestPort(*port)
 	if err != nil {
 		return fmt.Errorf("could not find MIDI port: %w", err)
 	}
@@ -379,7 +320,7 @@ func Main() error {
 
 	var loopErr error
 	go func() {
-		err = b.Loop()
+		loopErr = b.Loop()
 	}()
 
 	err = textModeUI(b)
