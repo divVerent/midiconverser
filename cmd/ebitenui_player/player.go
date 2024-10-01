@@ -36,10 +36,6 @@ type playerUI struct {
 	outPort drivers.Out
 	uiState player.UIState
 
-	rootContainer *widget.Container
-	mainContainer *widget.Container
-	playContainer *widget.Container
-
 	currentlyPlaying *widget.Label
 	statusLabel      *widget.Label
 	status           *widget.Label
@@ -47,8 +43,9 @@ type playerUI struct {
 	tempo            *widget.Slider
 	playbackLabel    *widget.Label
 	playback         *widget.ProgressBar
-	playHymn         *widget.Button
-	playPrelude      *widget.Button
+	verseLabel       *widget.Label
+	moreVerses       *widget.Button
+	fewerVerses      *widget.Button
 	stop             *widget.Button
 	prompt           *widget.Button
 
@@ -140,7 +137,7 @@ func (p *playerUI) initUI() {
 		Size:   32,
 	}
 
-	p.rootContainer = widget.NewContainer(
+	rootContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(1),
@@ -151,10 +148,10 @@ func (p *playerUI) initUI() {
 	)
 
 	p.ui = &ebitenui.UI{
-		Container: p.rootContainer,
+		Container: rootContainer,
 	}
 
-	p.mainContainer = widget.NewContainer(
+	mainContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(2),
@@ -162,7 +159,7 @@ func (p *playerUI) initUI() {
 			widget.GridLayoutOpts.Stretch([]bool{false, true}, []bool{false, false}),
 		)),
 	)
-	p.rootContainer.AddChild(p.mainContainer)
+	rootContainer.AddChild(mainContainer)
 
 	labelColors := &widget.LabelColor{
 		Idle:     color.Black,
@@ -199,27 +196,27 @@ func (p *playerUI) initUI() {
 	currentlyPlayingLabel := widget.NewLabel(
 		widget.LabelOpts.Text("Currently Playing: ", fontFace, labelColors),
 	)
-	p.mainContainer.AddChild(currentlyPlayingLabel)
+	mainContainer.AddChild(currentlyPlayingLabel)
 	p.currentlyPlaying = widget.NewLabel(
 		widget.LabelOpts.Text("...", fontFace, labelColors),
 	)
-	p.mainContainer.AddChild(p.currentlyPlaying)
+	mainContainer.AddChild(p.currentlyPlaying)
 
 	p.statusLabel = widget.NewLabel(
 		widget.LabelOpts.Text("Status: ", fontFace, labelColors),
 	)
-	p.mainContainer.AddChild(p.statusLabel)
+	mainContainer.AddChild(p.statusLabel)
 	p.status = widget.NewLabel(
 		widget.LabelOpts.Text("...", fontFace, labelColors),
 	)
-	p.mainContainer.AddChild(p.status)
+	mainContainer.AddChild(p.status)
 
 	// TODO add a control for prelude tags.
 
 	p.tempoLabel = widget.NewLabel(
 		widget.LabelOpts.Text("Tempo: ...", fontFace, labelColors),
 	)
-	p.mainContainer.AddChild(p.tempoLabel)
+	mainContainer.AddChild(p.tempoLabel)
 	p.tempo = widget.NewSlider(
 		widget.SliderOpts.MinMax(50, 200),
 		widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
@@ -228,20 +225,49 @@ func (p *playerUI) initUI() {
 			return 1
 		}),
 	)
-	p.mainContainer.AddChild(p.tempo)
+	mainContainer.AddChild(p.tempo)
 
-	// TODO add a control for verse count and current verse.
+	p.verseLabel = widget.NewLabel(
+		widget.LabelOpts.Text("Verse: ...", fontFace, labelColors),
+	)
+	mainContainer.AddChild(p.verseLabel)
+
+	versesContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(3),
+			widget.GridLayoutOpts.Spacing(16, 16),
+			widget.GridLayoutOpts.Stretch([]bool{false, false, true}, []bool{false}),
+		)),
+	)
+	mainContainer.AddChild(versesContainer)
+
+	p.fewerVerses = widget.NewButton(
+		widget.ButtonOpts.Text("-", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.Insets{Left: 8, Right: 8}),
+		widget.ButtonOpts.ClickedHandler(p.fewerVersesClicked),
+	)
+	versesContainer.AddChild(p.fewerVerses)
+
+	p.moreVerses = widget.NewButton(
+		widget.ButtonOpts.Text("+", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.Insets{Left: 8, Right: 8}),
+		widget.ButtonOpts.ClickedHandler(p.moreVersesClicked),
+	)
+	versesContainer.AddChild(p.moreVerses)
 
 	p.playbackLabel = widget.NewLabel(
 		widget.LabelOpts.Text("Playback: ...", fontFace, labelColors),
 	)
-	p.mainContainer.AddChild(p.playbackLabel)
+	mainContainer.AddChild(p.playbackLabel)
 	p.playback = widget.NewProgressBar(
 		widget.ProgressBarOpts.Images(progressTrackImage, progressImage),
 	)
-	p.mainContainer.AddChild(p.playback)
+	mainContainer.AddChild(p.playback)
 
-	p.playContainer = widget.NewContainer(
+	playContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(3),
@@ -249,23 +275,23 @@ func (p *playerUI) initUI() {
 			widget.GridLayoutOpts.Stretch([]bool{true, false, false}, []bool{false}),
 		)),
 	)
-	p.rootContainer.AddChild(p.playContainer)
+	rootContainer.AddChild(playContainer)
 
-	p.playHymn = widget.NewButton(
+	playHymn := widget.NewButton(
 		widget.ButtonOpts.Text("Play Hymn...", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(8)),
 		widget.ButtonOpts.ClickedHandler(p.playHymnClicked),
 	)
-	p.playContainer.AddChild(p.playHymn)
+	playContainer.AddChild(playHymn)
 
-	p.playPrelude = widget.NewButton(
+	playPrelude := widget.NewButton(
 		widget.ButtonOpts.Text("Play Prelude", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(8)),
 		widget.ButtonOpts.ClickedHandler(p.playPreludeClicked),
 	)
-	p.playContainer.AddChild(p.playPrelude)
+	playContainer.AddChild(playPrelude)
 
 	p.stop = widget.NewButton(
 		widget.ButtonOpts.Text("Stop", fontFace, buttonTextColor),
@@ -273,7 +299,7 @@ func (p *playerUI) initUI() {
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(8)),
 		widget.ButtonOpts.ClickedHandler(p.stopClicked),
 	)
-	p.playContainer.AddChild(p.stop)
+	playContainer.AddChild(p.stop)
 
 	p.prompt = widget.NewButton(
 		widget.ButtonOpts.Text("b", fontFace, buttonTextColor),
@@ -281,7 +307,7 @@ func (p *playerUI) initUI() {
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(8)),
 		widget.ButtonOpts.ClickedHandler(p.promptClicked),
 	)
-	p.rootContainer.AddChild(p.prompt)
+	rootContainer.AddChild(p.prompt)
 }
 
 func (p *playerUI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
@@ -295,7 +321,6 @@ func (p *playerUI) playPreludeClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) stopClicked(args *widget.ButtonClickedEventArgs) {
-	// TODO handle the entire app quitting.
 	p.backend.Commands <- player.Command{
 		Exit: true,
 	}
@@ -312,6 +337,18 @@ func (p *playerUI) tempoChanged(args *widget.SliderChangedEventArgs) {
 		Tempo: float64(args.Current) / 100.0,
 	}
 	p.tempoLastChange = time.Now()
+}
+
+func (p *playerUI) fewerVersesClicked(args *widget.ButtonClickedEventArgs) {
+	p.backend.Commands <- player.Command{
+		NumVerses: p.uiState.NumVerses - 1,
+	}
+}
+
+func (p *playerUI) moreVersesClicked(args *widget.ButtonClickedEventArgs) {
+	p.backend.Commands <- player.Command{
+		NumVerses: p.uiState.NumVerses + 1,
+	}
 }
 
 // updateUI updates all widgets to current playback state.
@@ -346,6 +383,21 @@ func (p *playerUI) updateWidgets() {
 	}
 	p.tempoLabel.Label = fmt.Sprintf("Tempo: %d%%", p.tempo.Current)
 
+	if p.uiState.NumVerses > 0 {
+		p.verseLabel.Label = fmt.Sprintf("Verse: %d/%d", p.uiState.Verse+1, p.uiState.NumVerses)
+		p.verseLabel.GetWidget().Visibility = widget.Visibility_Show
+		p.fewerVerses.GetWidget().Visibility = widget.Visibility_Show
+		p.moreVerses.GetWidget().Visibility = widget.Visibility_Show
+		p.fewerVerses.GetWidget().Disabled = p.uiState.NumVerses <= 1
+		p.moreVerses.GetWidget().Disabled = p.uiState.NumVerses >= 10
+	} else {
+		p.verseLabel.GetWidget().Visibility = widget.Visibility_Hide_Blocking
+		p.fewerVerses.GetWidget().Visibility = widget.Visibility_Hide_Blocking
+		p.moreVerses.GetWidget().Visibility = widget.Visibility_Hide_Blocking
+		p.fewerVerses.GetWidget().Disabled = true
+		p.moreVerses.GetWidget().Disabled = true
+	}
+
 	if p.uiState.Playing {
 		p.playbackLabel.Label = "Playing:"
 		p.playbackLabel.GetWidget().Disabled = false
@@ -353,21 +405,26 @@ func (p *playerUI) updateWidgets() {
 		p.playback.Max = 1000000
 		p.playback.SetCurrent(int(math.Round(1000000 * p.uiState.ActualPlaybackFraction())))
 		p.playback.GetWidget().Disabled = false
+		p.stop.GetWidget().Disabled = false
 	} else if p.uiState.CurrentFile != "" {
 		p.playbackLabel.Label = "Waiting:"
 		p.playbackLabel.GetWidget().Disabled = false
 		p.playback.GetWidget().Disabled = true
+		p.stop.GetWidget().Disabled = false
 	} else {
 		p.playbackLabel.Label = "Stopped"
 		p.playbackLabel.GetWidget().Disabled = true
 		p.playback.GetWidget().Disabled = true
+		p.stop.GetWidget().Disabled = true
 	}
 
 	if p.uiState.Prompt != "" {
 		p.prompt.Text().Label = p.uiState.Prompt
 		p.prompt.GetWidget().Visibility = widget.Visibility_Show
+		p.prompt.GetWidget().Disabled = false
 	} else {
 		p.prompt.GetWidget().Visibility = widget.Visibility_Hide_Blocking
+		p.prompt.GetWidget().Disabled = true
 	}
 }
 
