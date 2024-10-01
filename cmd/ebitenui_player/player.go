@@ -12,7 +12,6 @@ import (
 	"math"
 	"os"
 	"slices"
-	"time"
 
 	"golang.org/x/image/font/gofont/goregular"
 
@@ -57,8 +56,8 @@ type playerUI struct {
 	hymnList         *widget.List
 	hymnsWindow      *widget.Window
 
-	tempoLastChange time.Time
-	loopErr         error
+	prevTempo float64
+	loopErr   error
 }
 
 func Main() error {
@@ -480,7 +479,6 @@ func (p *playerUI) tempoChanged(args *widget.SliderChangedEventArgs) {
 	p.backend.Commands <- player.Command{
 		Tempo: float64(args.Current) / 100.0,
 	}
-	p.tempoLastChange = time.Now()
 }
 
 func (p *playerUI) fewerVersesClicked(args *widget.ButtonClickedEventArgs) {
@@ -536,8 +534,9 @@ func (p *playerUI) updateWidgets() {
 		p.status.GetWidget().Visibility = widget.Visibility_Hide_Blocking
 	}
 
-	if time.Since(p.tempoLastChange) > time.Second {
+	if p.uiState.Tempo != p.prevTempo {
 		p.tempo.Current = int(math.Round(100.0 * p.uiState.Tempo))
+		p.prevTempo = p.uiState.Tempo
 	}
 	p.tempoLabel.Label = fmt.Sprintf("Tempo: %d%%", p.tempo.Current)
 
