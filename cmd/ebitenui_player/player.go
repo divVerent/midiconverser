@@ -395,7 +395,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 			widget.ScrollContainerOpts.Image(scrollContainerImage),
 		),
 		widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
-			widget.SliderOpts.MinHandleSize(64),
+			widget.SliderOpts.MinHandleSize(32),
 		),
 		widget.ListOpts.HideHorizontalSlider(),
 		widget.ListOpts.EntryFontFace(fontFace),
@@ -417,21 +417,31 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 
 	hymnsTitleContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Black)),
-		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(2),
+			widget.GridLayoutOpts.Spacing(16, 16),
+			widget.GridLayoutOpts.Stretch([]bool{true, false}, []bool{true}),
+		)),
 	)
-	hymnsTitleContainer.AddChild(widget.NewText(
+	hymnsTitle := widget.NewText(
 		widget.TextOpts.Text("Play Hymn...", fontFace, color.White),
-		widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-			HorizontalPosition: widget.AnchorLayoutPositionCenter,
-			VerticalPosition:   widget.AnchorLayoutPositionCenter,
-		})),
-	))
+		widget.TextOpts.Insets(widget.Insets{Left: 8, Right: 8}),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+	)
+	hymnsTitleContainer.AddChild(hymnsTitle)
+	hymnsCloseButton := widget.NewButton(
+		widget.ButtonOpts.Text("X", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.Insets{Left: 8, Right: 8}),
+		widget.ButtonOpts.ClickedHandler(p.hymnsCloseClicked),
+	)
+	hymnsTitleContainer.AddChild(hymnsCloseButton)
 
 	p.hymnsWindow = widget.NewWindow(
 		widget.WindowOpts.Contents(hymnsWindowContainer),
 		widget.WindowOpts.TitleBar(hymnsTitleContainer, 48),
 		widget.WindowOpts.Modal(),
-		widget.WindowOpts.CloseMode(widget.CLICK_OUT),
+		widget.WindowOpts.CloseMode(widget.NONE),
 	)
 
 	return nil
@@ -495,6 +505,10 @@ func (p *playerUI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
 	p.backend.Commands <- player.Command{
 		PlayOne: e,
 	}
+}
+
+func (p *playerUI) hymnsCloseClicked(args *widget.ButtonClickedEventArgs) {
+	p.hymnsWindow.Close()
 }
 
 // updateUI updates all widgets to current playback state.
