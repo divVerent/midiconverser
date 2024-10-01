@@ -1,6 +1,8 @@
 package processor
 
 import (
+	"log"
+
 	"gitlab.com/gomidi/midi/v2"
 	"gitlab.com/gomidi/midi/v2/smf"
 )
@@ -12,6 +14,40 @@ func removeUnneededEvents(mid *smf.SMF) error {
 	err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if msg.IsOneOf(midi.ControlChangeMsg, midi.ProgramChangeMsg) {
 			return nil
+		}
+		tracks[track] = append(tracks[track], smf.Event{
+			Delta:   uint32(time - trackTime[track]),
+			Message: msg,
+		})
+		trackTime[track] = time
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	mid.Tracks = tracks
+	return nil
+}
+
+// removeRedundantTempoEvents removes multiple tempi at the same timestamp.
+func removeRedundantTempoEvents(mid *smf.SMF) error {
+	tracks := make([]smf.Track, len(mid.Tracks))
+	trackTime := make([]int64, len(mid.Tracks))
+	haveLastTempo := false
+	var lastTempoTrack int
+	var lastTempoIndex int
+	var lastTempoTime int64
+	err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
+		if msg.GetMetaTempo(nil) {
+			if time == lastTempoTime && haveLastTempo {
+				log.Printf("removed redundant tempo event at %v", time)
+				tracks[lastTempoTrack][lastTempoIndex].Message = msg // Keep newest tempo.
+				return nil                                           // Discard second event.
+			}
+			lastTempoTrack = track
+			lastTempoIndex = len(tracks[track])
+			lastTempoTime = time
+			haveLastTempo = true
 		}
 		tracks[track] = append(tracks[track], smf.Event{
 			Delta:   uint32(time - trackTime[track]),

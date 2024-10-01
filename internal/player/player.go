@@ -296,8 +296,11 @@ func (b *Backend) playMIDI(mid *smf.SMF, key processor.OutputKey) error {
 		b.sendUIState()
 	}()
 
+	var prevTick int64
 	var prevT time.Duration
 	prevNow := time.Now()
+
+	var fixOffsetT time.Duration
 
 	err = processor.ForEachEventWithTime(mid, func(t int64, track int, msg smf.Message) error {
 		if msg.IsMeta() {
@@ -305,11 +308,19 @@ func (b *Backend) playMIDI(mid *smf.SMF, key processor.OutputKey) error {
 		}
 
 		// Parse MIDI.
-		midiT := time.Microsecond * time.Duration(mid.TimeAt(t))
+		midiT := time.Microsecond*time.Duration(mid.TimeAt(t)) + fixOffsetT
 		midiMsg := midi.Message(msg)
+
+		if midiT < prevT {
+			log.Printf("playback time went backwards from %v to %v for timestamps %v to %v", prevT, midiT, prevTick, t)
+			fixOffsetT += prevT - midiT
+			midiT = prevT
+		}
 
 		// Back to delta.
 		deltaT := midiT - prevT
+
+		prevTick = t
 		prevT = midiT
 
 		// Timing.
@@ -347,6 +358,9 @@ func fixOutput(output map[processor.OutputKey]*smf.SMF) error {
 		if err != nil {
 			return fmt.Errorf("cannot reread MIDI %v: %w", k, err)
 		}
+		for _, c := range fixed.TempoChanges() {
+			log.Printf("post fix %v: %+v", k, *c)
+		}
 		output[k] = fixed
 	}
 	return nil
@@ -376,7 +390,8 @@ func (b *Backend) load(optionsFile string) (map[processor.OutputKey]*smf.SMF, *p
 func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 	output, options, err := b.load(optionsFile)
 	if err != nil {
-		return false, err
+		log.Printf("skipping prelude file %v due to: %v", optionsFile, err)
+		return false, nil
 	}
 
 	tags := make(map[string]bool, len(options.Tags))
@@ -612,7 +627,6 @@ func (b *Backend) handleMainLoopCommand(cmd Command) error {
 }
 
 func (b *Backend) Loop() error {
-	defer close(b.UIStates)
 	b.uiState.Err = nil
 	b.uiState.CurrentMessage = ""
 

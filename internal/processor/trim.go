@@ -54,13 +54,20 @@ func trim(mid *smf.SMF) (*smf.SMF, error) {
 	if err != nil {
 		return nil, err
 	}
-	for track := range tracks {
-		tracks[track].Close(uint32((lastTime - firstTime) - trackTime[track]))
+
+	mid.Tracks = tracks
+	err = removeRedundantTempoEvents(mid)
+	if err != nil {
+		return nil, err
+	}
+
+	for track := range mid.Tracks {
+		mid.Tracks[track].Close(uint32((lastTime - firstTime) - trackTime[track]))
 	}
 
 	newMIDI := smf.NewSMF1()
 	newMIDI.TimeFormat = mid.TimeFormat
-	for _, t := range tracks {
+	for _, t := range mid.Tracks {
 		newMIDI.Add(t)
 	}
 
