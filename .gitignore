@@ -1,3 +1,5 @@
 /ebitenui_player
+/ebitenui_player.wasm
 /process
 /textui_player
+/wasm_exec.js

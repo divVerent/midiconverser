@@ -14,8 +14,6 @@ import (
 
 	"gitlab.com/gomidi/midi/v2"
 	"gitlab.com/gomidi/midi/v2/drivers"
-	_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
-	_ "gitlab.com/gomidi/midi/v2/drivers/webmididrv"
 	"gitlab.com/gomidi/midi/v2/smf"
 
 	"github.com/divVerent/midiconverser/internal/file"

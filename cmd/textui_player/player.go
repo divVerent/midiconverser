@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 	"golang.org/x/term"
 
 	"github.com/divVerent/midiconverser/internal/file"
