@@ -3,3 +3,4 @@
 /process
 /textui_player
 /wasm_exec.js
+/cmd/ebitenui_player/vfs

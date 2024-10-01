@@ -40,6 +40,8 @@ type playerUI struct {
 	outPort drivers.Out
 	uiState player.UIState
 
+	width, height int
+
 	currentlyPlaying *widget.Label
 	statusLabel      *widget.Label
 	status           *widget.Label
@@ -67,11 +69,10 @@ func Main() error {
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowClosingHandled(true)
 
-	cwd, err := os.Getwd()
+	fsys, err := openFS()
 	if err != nil {
-		return fmt.Errorf("failed to get current directory: %v", err)
+		return fmt.Errorf("failed to open FS: %v", err)
 	}
-	fsys := os.DirFS(cwd)
 
 	var playerUI playerUI
 	err = playerUI.initBackend(fsys)
@@ -448,11 +449,10 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 }
 
 func (p *playerUI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
-	totalW, totalH := ebiten.WindowSize()
-	w := totalW - 32
-	h := totalH - 32
-	x := (totalW - w) / 2
-	y := (totalH - h) / 2
+	w := p.width - 32
+	h := p.height - 32
+	x := (p.width - w) / 2
+	y := (p.height - h) / 2
 	r := go_image.Rect(x, y, x+w, y+h)
 	p.hymnsWindow.SetLocation(r)
 	p.ui.AddWindow(p.hymnsWindow)
@@ -623,5 +623,7 @@ func (p *playerUI) Draw(screen *ebiten.Image) {
 }
 
 func (p *playerUI) Layout(outsideWidth int, outsideHeight int) (int, int) {
-	return outsideWidth, outsideHeight
+	p.width = outsideWidth
+	p.height = outsideHeight
+	return p.width, p.height
 }
