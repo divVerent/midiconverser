@@ -165,21 +165,39 @@ type Backend struct {
 	// immediately are enqueued here and handled by the main loop. There can be
 	// only one.
 	nextCommand *Command
+
+	// If set, running the main loop will just play this.
+	playOnly string
 }
 
-func NewBackend(fsys fs.FS, config *processor.Config, outPort drivers.Out) *Backend {
+type Options struct {
+	// FSys is the virtual file system to use.
+	FSys fs.FS
+
+	// Config is the global configuration to use.
+	Config *processor.Config
+
+	// OutPort is the MIDI output port to use.
+	OutPort drivers.Out
+
+	// PlayOnly is the single file to play.
+	PlayOnly string
+}
+
+func NewBackend(options *Options) *Backend {
 	return &Backend{
 		Commands: make(chan Command, 10),
 		UIStates: make(chan UIState, 100),
-		fsys:     fsys,
-		config:   *config,
-		outPort:  outPort,
+		fsys:     options.FSys,
+		config:   *options.Config,
+		outPort:  options.OutPort,
 		uiState: UIState{
 			PreludeTags:    tagsDefault(),
 			Tempo:          1.0,
 			CurrentMessage: "initializing player",
 		},
 		nextCommand: nil,
+		playOnly:    options.PlayOnly,
 	}
 }
 
@@ -597,6 +615,17 @@ func (b *Backend) Loop() error {
 	defer close(b.UIStates)
 	b.uiState.Err = nil
 	b.uiState.CurrentMessage = ""
+
+	// If only one file should be played, set it here.
+	if b.playOnly != "" {
+		b.sendUIState()
+		err := b.singlePlayer(b.playOnly)
+		if err != nil {
+			return err
+		}
+		return QuitError
+	}
+
 	for {
 		b.sendUIState()
 		var cmd Command

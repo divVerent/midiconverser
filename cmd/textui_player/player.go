@@ -138,12 +138,6 @@ func preludeTagsFromStr(s string) map[string]bool {
 func textModeUI(b *player.Backend, fsys fs.FS) error {
 	defer close(b.Commands) // This will invariably cause failure when reading.
 
-	if *i != "" {
-		b.Commands <- player.Command{
-			PlayOne: *i,
-		}
-	}
-
 	stdinFD := int(os.Stdin.Fd())
 	oldState, err := term.MakeRaw(stdinFD)
 	if err != nil {
@@ -173,8 +167,6 @@ func textModeUI(b *player.Backend, fsys fs.FS) error {
 	inputMode := false
 	var inputCommand []byte
 	var commandErr error
-	wasPlaying := false
-	quitSent := false
 
 	for {
 		var np string
@@ -200,10 +192,8 @@ func textModeUI(b *player.Backend, fsys fs.FS) error {
 					}
 				}
 			}
-			wasPlaying = true
 		} else if ui.CurrentFile != "" {
 			bar = " ||  =========================================================================="
-			wasPlaying = true
 		} else {
 			bar = "[  ] --------------------------------------------------------------------------"
 		}
@@ -238,14 +228,6 @@ func textModeUI(b *player.Backend, fsys fs.FS) error {
 			if !ok {
 				// UI channel was closed.
 				return nil
-			}
-			if *i != "" {
-				if !quitSent && (ui.Err != nil || (wasPlaying && ui.CurrentFile == "")) {
-					b.Commands <- player.Command{
-						Quit: true,
-					}
-					quitSent = true
-				}
 			}
 			// Rest handled above.
 		case ch := <-stdin:
@@ -353,7 +335,12 @@ func Main() error {
 		return fmt.Errorf("failed to read config: %w", err)
 	}
 
-	b := player.NewBackend(fsys, config, outPort)
+	b := player.NewBackend(&player.Options{
+		FSys:     fsys,
+		Config:   config,
+		OutPort:  outPort,
+		PlayOnly: *i,
+	})
 
 	var loopErr error
 	go func() {
