@@ -20,6 +20,7 @@ import (
 var (
 	c    = flag.String("c", "config.yml", "config file name (YAML)")
 	port = flag.String("port", "", "regular expression to match the preferred output port")
+	i    = flag.String("i", "", "when set, just play this file then exit")
 )
 
 var (
@@ -133,6 +134,12 @@ func preludeTagsFromStr(s string) map[string]bool {
 func textModeUI(b *player.Backend) error {
 	defer close(b.Commands) // This will invariably cause failure when reading.
 
+	if *i != "" {
+		b.Commands <- player.Command{
+			PlayOne: *i,
+		}
+	}
+
 	stdinFD := int(os.Stdin.Fd())
 	oldState, err := term.MakeRaw(stdinFD)
 	if err != nil {
@@ -159,9 +166,11 @@ func textModeUI(b *player.Backend) error {
 
 	var ui player.UIState
 	var ok bool
-	inputMode := true
+	inputMode := false
 	var inputCommand []byte
 	var commandErr error
+	wasPlaying := false
+	quitSent := false
 
 	for {
 		var np string
@@ -175,11 +184,11 @@ func textModeUI(b *player.Backend) error {
 
 		var bar string
 		if ui.Playing {
-			bar = ">>> "
+			bar = " >>  "
 			if ui.PlaybackLen > 0 {
 				fReal := ui.ActualPlaybackFraction()
-				for i := 0; i <= 74; i++ {
-					f := float64(i) / 74
+				for i := 0; i <= 73; i++ {
+					f := float64(i) / 73
 					if fReal >= f {
 						bar += "#"
 					} else {
@@ -187,8 +196,12 @@ func textModeUI(b *player.Backend) error {
 					}
 				}
 			}
+			wasPlaying = true
+		} else if ui.CurrentFile != "" {
+			bar = " ||  =========================================================================="
+			wasPlaying = true
 		} else {
-			bar = "[ ] ---------------------------------------------------------------------------"
+			bar = "[  ] --------------------------------------------------------------------------"
 		}
 		ifLine := func(b bool, s string) string {
 			if !b {
@@ -222,7 +235,15 @@ func textModeUI(b *player.Backend) error {
 				// UI channel was closed.
 				return nil
 			}
-			// Rest handled below.
+			if *i != "" {
+				if !quitSent && (ui.Err != nil || (wasPlaying && ui.CurrentFile == "")) {
+					b.Commands <- player.Command{
+						Quit: true,
+					}
+					quitSent = true
+				}
+			}
+			// Rest handled above.
 		case ch := <-stdin:
 			if inputMode {
 				switch ch {
