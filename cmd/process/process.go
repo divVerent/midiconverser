@@ -18,19 +18,25 @@ var (
 )
 
 func Main() error {
-	config, err := file.ReadConfig(*c)
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current directory: %v", err)
+	}
+	fsys := os.DirFS(cwd)
+
+	config, err := file.ReadConfig(fsys, *c)
 	if err != nil {
 		return fmt.Errorf("failed to read config: %v", err)
 	}
 
-	options, err := file.ReadOptions(*i)
+	options, err := file.ReadOptions(fsys, *i)
 	if err != nil {
 		return fmt.Errorf("failed to read options: %v", err)
 	}
 
 	wantChecksum := options.InputFileSHA256 == ""
 
-	output, err := file.Process(config, options)
+	output, err := file.Process(fsys, config, options)
 	if err != nil {
 		return fmt.Errorf("failed to process: %v", err)
 	}

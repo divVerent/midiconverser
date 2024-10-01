@@ -2,15 +2,15 @@ package file
 
 import (
 	"fmt"
-	"os"
+	"io/fs"
 
 	"gopkg.in/yaml.v3"
 
 	"github.com/divVerent/midiconverser/internal/processor"
 )
 
-func ReadConfig(configFile string) (*processor.Config, error) {
-	f, err := os.Open(configFile)
+func ReadConfig(fsys fs.FS, configFile string) (*processor.Config, error) {
+	f, err := fsys.Open(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("could not open %v: %v", configFile, err)
 	}

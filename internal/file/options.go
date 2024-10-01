@@ -2,6 +2,7 @@ package file
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -9,8 +10,8 @@ import (
 	"github.com/divVerent/midiconverser/internal/processor"
 )
 
-func ReadOptions(optionsFile string) (*processor.Options, error) {
-	f, err := os.Open(optionsFile)
+func ReadOptions(fsys fs.FS, optionsFile string) (*processor.Options, error) {
+	f, err := fsys.Open(optionsFile)
 	if err != nil {
 		return nil, fmt.Errorf("could not open %v: %v", optionsFile, err)
 	}

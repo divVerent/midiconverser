@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"regexp"
@@ -32,7 +33,7 @@ var (
 	quitRE    = regexp.MustCompile(`^q(?:u(?:it?)?)?$`)
 )
 
-func processCommand(b *player.Backend, cmd []byte) error {
+func processCommand(b *player.Backend, fsys fs.FS, cmd []byte) error {
 	if preludeRE.Match(cmd) {
 		b.Commands <- player.Command{
 			PlayPrelude: true,
@@ -41,11 +42,14 @@ func processCommand(b *player.Backend, cmd []byte) error {
 	}
 	if sub := playRE.FindSubmatch(cmd); sub != nil {
 		filename := string(sub[1])
-		_, err := os.Stat(filename)
-		if err != nil {
+		f, err := fsys.Open(filename)
+		if err == nil {
+			f.Close()
+		} else {
 			altName := filename + ".yml"
-			_, err := os.Stat(altName)
+			f, err := fsys.Open(altName)
 			if err == nil {
+				f.Close()
 				filename = altName
 			}
 		}
@@ -131,7 +135,7 @@ func preludeTagsFromStr(s string) map[string]bool {
 	return tags
 }
 
-func textModeUI(b *player.Backend) error {
+func textModeUI(b *player.Backend, fsys fs.FS) error {
 	defer close(b.Commands) // This will invariably cause failure when reading.
 
 	if *i != "" {
@@ -253,7 +257,7 @@ func textModeUI(b *player.Backend) error {
 					}
 				case 0x0A, 0x0D:
 					if len(inputCommand) > 0 {
-						err := processCommand(b, inputCommand)
+						err := processCommand(b, fsys, inputCommand)
 						if err != nil {
 							commandErr = fmt.Errorf("could not parse command %q: %v", inputCommand, err)
 						}
@@ -326,7 +330,12 @@ func textModeUI(b *player.Backend) error {
 }
 
 func Main() error {
-	var err error
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current directory: %v", err)
+	}
+	fsys := os.DirFS(cwd)
+
 	outPort, err := player.FindBestPort(*port)
 	if err != nil {
 		return fmt.Errorf("could not find MIDI port: %w", err)
@@ -339,19 +348,19 @@ func Main() error {
 	}
 	defer outPort.Close()
 
-	config, err := file.ReadConfig(*c)
+	config, err := file.ReadConfig(fsys, *c)
 	if err != nil {
 		return fmt.Errorf("failed to read config: %w", err)
 	}
 
-	b := player.NewBackend(config, outPort)
+	b := player.NewBackend(fsys, config, outPort)
 
 	var loopErr error
 	go func() {
 		loopErr = b.Loop()
 	}()
 
-	err = textModeUI(b)
+	err = textModeUI(b, fsys)
 	if err != nil {
 		return err
 	}

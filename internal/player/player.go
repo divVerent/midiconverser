@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"math/rand/v2"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"reflect"
 	"time"
 
@@ -149,6 +149,9 @@ type Backend struct {
 	// UIStates receives updates to the UI state non-blockingly.
 	UIStates chan UIState
 
+	// fs is the file system.
+	fsys fs.FS
+
 	// The configuration data.
 	config processor.Config
 
@@ -164,10 +167,11 @@ type Backend struct {
 	nextCommand *Command
 }
 
-func NewBackend(config *processor.Config, outPort drivers.Out) *Backend {
+func NewBackend(fsys fs.FS, config *processor.Config, outPort drivers.Out) *Backend {
 	return &Backend{
 		Commands: make(chan Command, 10),
 		UIStates: make(chan UIState, 100),
+		fsys:     fsys,
 		config:   *config,
 		outPort:  outPort,
 		uiState: UIState{
@@ -331,13 +335,13 @@ func fixOutput(output map[processor.OutputKey]*smf.SMF) error {
 }
 
 // load loads and processes the given input.
-func load(config *processor.Config, optionsFile string) (map[processor.OutputKey]*smf.SMF, *processor.Options, error) {
-	options, err := file.ReadOptions(optionsFile)
+func (b *Backend) load(optionsFile string) (map[processor.OutputKey]*smf.SMF, *processor.Options, error) {
+	options, err := file.ReadOptions(b.fsys, optionsFile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read %v: %w", optionsFile, err)
 	}
 
-	output, err := file.Process(config, options)
+	output, err := file.Process(b.fsys, &b.config, options)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to process %v: %w", optionsFile, err)
 	}
@@ -352,7 +356,7 @@ func load(config *processor.Config, optionsFile string) (map[processor.OutputKey
 
 // preludePlayerOne plays the given file's whole verse for prelude purposes.
 func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
-	output, options, err := load(&b.config, optionsFile)
+	output, options, err := b.load(optionsFile)
 	if err != nil {
 		return false, err
 	}
@@ -434,7 +438,7 @@ func (b *Backend) preludePlayer() error {
 	}()
 
 	for {
-		all, err := filepath.Glob("*.yml")
+		all, err := fs.Glob(b.fsys, "*.yml")
 		if err != nil {
 			return fmt.Errorf("glob: %w", err)
 		}
@@ -485,7 +489,7 @@ func (b *Backend) prompt(ask, response string) error {
 
 // singlePlayer plays the given file interactively.
 func (b *Backend) singlePlayer(optionsFile string) error {
-	output, options, err := load(&b.config, optionsFile)
+	output, options, err := b.load(optionsFile)
 	if err != nil {
 		return err
 	}

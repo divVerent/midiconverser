@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"os"
+	"io/fs"
 
 	"gitlab.com/gomidi/midi/v2/smf"
 
@@ -12,8 +12,8 @@ import (
 )
 
 // Process processes the given options file. May mutate options - if so, main program may want to write it back.
-func Process(config *processor.Config, options *processor.Options) (map[processor.OutputKey]*smf.SMF, error) {
-	inBytes, err := os.ReadFile(options.InputFile)
+func Process(fsys fs.FS, config *processor.Config, options *processor.Options) (map[processor.OutputKey]*smf.SMF, error) {
+	inBytes, err := fs.ReadFile(fsys, options.InputFile)
 	if err != nil {
 		return nil, fmt.Errorf("could not read %v: %v", options.InputFile, err)
 	}
