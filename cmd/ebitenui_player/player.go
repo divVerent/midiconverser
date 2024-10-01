@@ -2,12 +2,16 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"flag"
 	"fmt"
+	go_image "image"
 	"image/color"
+	"io/fs"
 	"log"
 	"math"
 	"os"
+	"slices"
 	"time"
 
 	"golang.org/x/image/font/gofont/goregular"
@@ -48,12 +52,14 @@ type playerUI struct {
 	fewerVerses      *widget.Button
 	stop             *widget.Button
 	prompt           *widget.Button
+	hymnList         *widget.List
+	hymnsWindow      *widget.Window
 
 	tempoLastChange time.Time
 	loopErr         error
 }
 
-func main() {
+func Main() error {
 	flag.Parse()
 
 	ebiten.SetWindowSize(720, 1280)
@@ -61,28 +67,36 @@ func main() {
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowClosingHandled(true)
 
-	var playerUI playerUI
-	err := playerUI.initBackend()
-	if err != nil {
-		log.Print(err)
-		os.Exit(1)
-	}
-	defer playerUI.shutdownBackend()
-	playerUI.initUI()
-	err = ebiten.RunGame(&playerUI)
-	if err != nil {
-		log.Print(err)
-		os.Exit(1)
-	}
-}
-
-func (p *playerUI) initBackend() error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get current directory: %v", err)
 	}
 	fsys := os.DirFS(cwd)
 
+	var playerUI playerUI
+	err = playerUI.initBackend(fsys)
+	if err != nil {
+		return err
+	}
+	defer playerUI.shutdownBackend()
+	err = playerUI.initUI(fsys)
+	if err != nil {
+		return err
+	}
+	return ebiten.RunGame(&playerUI)
+}
+
+func main() {
+	flag.Parse()
+	err := Main()
+	if err != nil {
+		log.Print(err)
+		os.Exit(1)
+	}
+}
+
+func (p *playerUI) initBackend(fsys fs.FS) error {
+	var err error
 	p.outPort, err = player.FindBestPort(*port)
 	if err != nil {
 		return fmt.Errorf("could not find MIDI port: %w", err)
@@ -127,7 +141,32 @@ func (p *playerUI) shutdownBackend() {
 	p.outPort.Close()
 }
 
-func (p *playerUI) initUI() {
+func listHymns(fsys fs.FS) ([]string, error) {
+	all, err := fs.Glob(fsys, "*.yml")
+	if err != nil {
+		return nil, fmt.Errorf("glob: %w", err)
+	}
+	var result []string
+	for _, f := range all {
+		_, err := file.ReadOptions(fsys, f)
+		if err != nil {
+			continue
+		}
+		result = append(result, f)
+	}
+	slices.SortFunc(result, func(a, b string) int {
+		aNum, bNum := 0, 0
+		fmt.Sscanf(a, "%d", &aNum)
+		fmt.Sscanf(b, "%d", &bNum)
+		if aNum != bNum {
+			return cmp.Compare(aNum, bNum)
+		}
+		return cmp.Compare(a, b)
+	})
+	return result, nil
+}
+
+func (p *playerUI) initUI(fsys fs.FS) error {
 	font, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	if err != nil {
 		log.Fatal(err)
@@ -191,6 +230,23 @@ func (p *playerUI) initUI() {
 	progressImage := &widget.ProgressBarImage{
 		Idle:     image.NewNineSliceColor(color.Black),
 		Disabled: image.NewNineSliceColor(color.Gray{Y: 192}),
+	}
+	scrollContainerImage := &widget.ScrollContainerImage{
+		Idle:     image.NewNineSliceColor(color.Gray{Y: 192}),
+		Disabled: image.NewNineSliceColor(color.Gray{Y: 192}),
+		Mask:     image.NewNineSliceColor(color.Gray{Y: 192}),
+	}
+	listEntryColor := &widget.ListEntryColor{
+		Selected:                   color.White,
+		Unselected:                 color.Black,
+		SelectedBackground:         color.Black,
+		SelectingBackground:        color.White,
+		SelectingFocusedBackground: color.Gray{Y: 192},
+		SelectedFocusedBackground:  color.Black,
+		FocusedBackground:          color.White,
+		DisabledUnselected:         color.Black,
+		DisabledSelected:           color.White,
+		DisabledSelectedBackground: color.Black,
 	}
 
 	currentlyPlayingLabel := widget.NewLabel(
@@ -277,13 +333,13 @@ func (p *playerUI) initUI() {
 	)
 	rootContainer.AddChild(playContainer)
 
-	playHymn := widget.NewButton(
+	selectHymn := widget.NewButton(
 		widget.ButtonOpts.Text("Play Hymn...", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(8)),
-		widget.ButtonOpts.ClickedHandler(p.playHymnClicked),
+		widget.ButtonOpts.ClickedHandler(p.selectHymnClicked),
 	)
-	playContainer.AddChild(playHymn)
+	playContainer.AddChild(selectHymn)
 
 	playPrelude := widget.NewButton(
 		widget.ButtonOpts.Text("Play Prelude", fontFace, buttonTextColor),
@@ -308,10 +364,88 @@ func (p *playerUI) initUI() {
 		widget.ButtonOpts.ClickedHandler(p.promptClicked),
 	)
 	rootContainer.AddChild(p.prompt)
+
+	hymnsWindowContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Gray{Y: 224})),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Spacing(16, 16),
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(16)),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true, false}),
+		)),
+	)
+
+	chooseHymnLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Choose Hymn: ", fontFace, labelColors),
+	)
+	hymnsWindowContainer.AddChild(chooseHymnLabel)
+
+	hymns, err := listHymns(fsys)
+	if err != nil {
+		return err
+	}
+	hymnsAny := make([]any, 0, len(hymns))
+	for _, h := range hymns {
+		hymnsAny = append(hymnsAny, h)
+	}
+
+	p.hymnList = widget.NewList(
+		widget.ListOpts.Entries(hymnsAny),
+		widget.ListOpts.ScrollContainerOpts(
+			widget.ScrollContainerOpts.Image(scrollContainerImage),
+		),
+		widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+			widget.SliderOpts.MinHandleSize(64),
+		),
+		widget.ListOpts.HideHorizontalSlider(),
+		widget.ListOpts.EntryFontFace(fontFace),
+		widget.ListOpts.EntryColor(listEntryColor),
+		widget.ListOpts.EntryLabelFunc(func(e interface{}) string {
+			return e.(string)
+		}),
+		widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(8)),
+	)
+	hymnsWindowContainer.AddChild(p.hymnList)
+
+	playHymn := widget.NewButton(
+		widget.ButtonOpts.Text("Play Hymn", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(8)),
+		widget.ButtonOpts.ClickedHandler(p.playHymnClicked),
+	)
+	hymnsWindowContainer.AddChild(playHymn)
+
+	hymnsTitleContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Black)),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+	hymnsTitleContainer.AddChild(widget.NewText(
+		widget.TextOpts.Text("Play Hymn...", fontFace, color.White),
+		widget.TextOpts.WidgetOpts(widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+			HorizontalPosition: widget.AnchorLayoutPositionCenter,
+			VerticalPosition:   widget.AnchorLayoutPositionCenter,
+		})),
+	))
+
+	p.hymnsWindow = widget.NewWindow(
+		widget.WindowOpts.Contents(hymnsWindowContainer),
+		widget.WindowOpts.TitleBar(hymnsTitleContainer, 48),
+		widget.WindowOpts.Modal(),
+		widget.WindowOpts.CloseMode(widget.CLICK_OUT),
+	)
+
+	return nil
 }
 
-func (p *playerUI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
-	fmt.Println("click")
+func (p *playerUI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
+	totalW, totalH := ebiten.WindowSize()
+	w := totalW - 32
+	h := totalH - 32
+	x := (totalW - w) / 2
+	y := (totalH - h) / 2
+	r := go_image.Rect(x, y, x+w, y+h)
+	p.hymnsWindow.SetLocation(r)
+	p.ui.AddWindow(p.hymnsWindow)
 }
 
 func (p *playerUI) playPreludeClicked(args *widget.ButtonClickedEventArgs) {
@@ -351,14 +485,24 @@ func (p *playerUI) moreVersesClicked(args *widget.ButtonClickedEventArgs) {
 	}
 }
 
+func (p *playerUI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
+	p.hymnsWindow.Close()
+	e, ok := p.hymnList.SelectedEntry().(string)
+	if !ok {
+		log.Printf("no hymn selected")
+		return
+	}
+	p.backend.Commands <- player.Command{
+		PlayOne: e,
+	}
+}
+
 // updateUI updates all widgets to current playback state.
 func (p *playerUI) updateWidgets() {
 	var np string
-	if p.uiState.PlayPrelude {
-		np = fmt.Sprintf("%v (prelude player)", p.uiState.CurrentFile)
-	} else if p.uiState.PlayOne != "" && p.uiState.Playing {
+	if p.uiState.PlayOne != "" && p.uiState.Playing {
 		np = fmt.Sprintf("%v (%v)", p.uiState.CurrentFile, p.uiState.CurrentPart)
-	} else if p.uiState.PlayOne != "" {
+	} else {
 		np = p.uiState.CurrentFile
 	}
 	p.currentlyPlaying.Label = np

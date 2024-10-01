@@ -12,13 +12,13 @@ import (
 func ReadConfig(fsys fs.FS, configFile string) (*processor.Config, error) {
 	f, err := fsys.Open(configFile)
 	if err != nil {
-		return nil, fmt.Errorf("could not open %v: %v", configFile, err)
+		return nil, fmt.Errorf("could not open: %v", err)
 	}
 	defer f.Close()
 	var config processor.Config
 	err = yaml.NewDecoder(f).Decode(&config)
 	if err != nil {
-		return nil, fmt.Errorf("could not decode %v: %v", configFile, err)
+		return nil, fmt.Errorf("could not decode: %v", err)
 	}
 	return &config, nil
 }
