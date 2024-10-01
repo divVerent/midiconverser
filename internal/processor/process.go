@@ -5,6 +5,7 @@ import (
 	"log"
 	"regexp"
 	"strconv"
+	"time"
 
 	"gopkg.in/yaml.v3"
 
@@ -121,6 +122,7 @@ type Config struct {
 
 	PreludePlayerRepeat   int     `yaml:"prelude_player_repeat,omitempty"`
 	PreludePlayerSleepSec float64 `yaml:"prelude_player_sleep_sec,omitempty"`
+	WholeExportSleepSec   float64 `yaml:"whole_export_sleep_sec,omitempty"`
 }
 
 // Options define file specific options.
@@ -364,7 +366,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 	if err != nil {
 		return nil, err
 	}
-	wholeMIDI, err = trim(wholeMIDI)
+	wholeMIDI, err = trim(wholeMIDI, time.Duration(float64(time.Second)*config.WholeExportSleepSec))
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +379,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 		if err != nil {
 			return nil, err
 		}
-		preludeMIDI, err = trim(preludeMIDI)
+		preludeMIDI, err = trim(preludeMIDI, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -390,7 +392,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 		if err != nil {
 			return nil, err
 		}
-		verseMIDI, err = trim(verseMIDI)
+		verseMIDI, err = trim(verseMIDI, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -403,7 +405,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 		if err != nil {
 			return nil, err
 		}
-		sectionMIDI, err = trim(sectionMIDI)
+		sectionMIDI, err = trim(sectionMIDI, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -416,7 +418,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 		if err != nil {
 			return nil, err
 		}
-		postludeMIDI, err = trim(postludeMIDI)
+		postludeMIDI, err = trim(postludeMIDI, 0)
 		if err != nil {
 			return nil, err
 		}

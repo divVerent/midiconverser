@@ -30,15 +30,16 @@ func removeUnneededEvents(mid *smf.SMF) error {
 }
 
 // removeRedundantTempoEvents removes multiple tempi at the same timestamp.
-func removeRedundantTempoEvents(mid *smf.SMF) error {
+func removeRedundantTempoEvents(mid *smf.SMF) (float64, error) {
 	tracks := make([]smf.Track, len(mid.Tracks))
 	trackTime := make([]int64, len(mid.Tracks))
 	haveLastTempo := false
 	var lastTempoTrack int
 	var lastTempoIndex int
 	var lastTempoTime int64
+	var qpm float64
 	err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
-		if msg.GetMetaTempo(nil) {
+		if msg.GetMetaTempo(&qpm) {
 			if time == lastTempoTime && haveLastTempo {
 				log.Printf("removed redundant tempo event at %v", time)
 				tracks[lastTempoTrack][lastTempoIndex].Message = msg // Keep newest tempo.
@@ -57,10 +58,10 @@ func removeRedundantTempoEvents(mid *smf.SMF) error {
 		return nil
 	})
 	if err != nil {
-		return err
+		return 0, err
 	}
 	mid.Tracks = tracks
-	return nil
+	return qpm, nil
 }
 
 // removeRedundantNoteEvents removes overlapping note start events in the song.

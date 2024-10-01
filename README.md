@@ -60,6 +60,8 @@ with FluidSynth).
         generating the prelude (default: false).
     -   `fermatas_in_postlude`: interpret fermata instructions when
         generating the postlude (default: false).
+    -   `whole_export_sleep_sec`: number of seconds at the end of a
+        "whole" exported MIDI (default: 0).
 
 2.  Write a YAML file like the following:
 

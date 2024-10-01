@@ -3,11 +3,12 @@ package processor
 import (
 	"log"
 	"math"
+	"time"
 
 	"gitlab.com/gomidi/midi/v2/smf"
 )
 
-func trim(mid *smf.SMF) (*smf.SMF, error) {
+func trim(mid *smf.SMF, extraTimeAtEnd time.Duration) (*smf.SMF, error) {
 	// Decide start and length.
 	var firstTime int64 = math.MaxInt64
 	var lastTime int64 = math.MinInt64
@@ -56,13 +57,14 @@ func trim(mid *smf.SMF) (*smf.SMF, error) {
 	}
 
 	mid.Tracks = tracks
-	err = removeRedundantTempoEvents(mid)
+	lastTempo, err := removeRedundantTempoEvents(mid)
 	if err != nil {
 		return nil, err
 	}
 
+	extraTicks := mid.TimeFormat.(smf.MetricTicks).Ticks(lastTempo, extraTimeAtEnd)
 	for track := range mid.Tracks {
-		mid.Tracks[track].Close(uint32((lastTime - firstTime) - trackTime[track]))
+		mid.Tracks[track].Close(uint32((lastTime-firstTime)-trackTime[track]) + extraTicks)
 	}
 
 	newMIDI := smf.NewSMF1()
