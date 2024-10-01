@@ -277,13 +277,13 @@ func textModeUI(b *player.Backend) error {
 					b.Commands <- player.Command{
 						Quit: true,
 					}
-				case 0x1B:
-					// Exit to input mode.
+				case 0x08, 0x7F:
 					b.Commands <- player.Command{
 						Exit: true,
 					}
 					commandErr = nil
-					inputMode = true
+				case 0x1B:
+					commandErr = nil
 				case ':':
 					// Input mode during playback.
 					commandErr = nil

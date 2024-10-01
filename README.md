@@ -11,7 +11,7 @@ with FluidSynth).
     sudo apt install golang                # For running the MIDI generator.
     sudo apt install alsa-utils figlet yq  # For using the included player.
     sudo apt install fluidsynth            # For playing with local speakers.
-    go build
+    ./build.sh
 
 ## Usage
 
@@ -140,21 +140,46 @@ with FluidSynth).
 
 ### Play a Hymn
 
-1.  `./player.sh hymnnumber`
+1.  `./textui_player` and hit `Return`.
 
-2.  When prompted, hit any key to proceed with the hymn. It waits twice
+2.  Type: `:play ` followed by the name of the YAML file.
+
+3.  When prompted, hit any key to proceed with the hymn. It waits twice
     at a fermata (once to stop the note, and a second time to resume the
     hymn), and once before each verse. Watch the conductor at these
     points.
 
-3.  If needed, press `Ctrl-C` to exit (preferably during a break).
-    Otherwise it will exit at the configured number of verses.
+4.  If needed, press `Backspace` or `Ctrl-C` to exit (preferably during
+    a break). Otherwise it will finish at the configured number of
+    verses.
 
 ### Play arbitrary hymns in random order (for prelude before the meeting).
 
-1.  `./player.sh`
+1.  `./textui_player`
 
-2.  Press `Ctrl-C` to exit (preferably during a break).
+2.  Type: `:prelude` and hit `Return`.
+
+3.  Press `Ctrl-C` to exit (preferably during a break).
+
+### Player Commands
+
+The player supports the following keyboard commands:
+
+-   `+`, `=` or `.`: speed up.
+-   `-`, `_` or `,`: slow down.
+-   `Ctrl-C`: exit right away.
+-   `Backspace`: stop playing.
+-   Type `:prelude` and hit `Return`: enter prelude player (randomly
+    play hymns).
+-   Type `:play `, then type a file name and hit `Return`: interactively
+    play the given hymn.
+-   Type `:tempo `, then type a fractional number and hit `Return`: set
+    tempo modifier to that value (value `1` selects original tempo).
+-   Type `:verses `, then type an integer and hit `Return`: change the
+    number of verses for the currently playback.
+-   Type `:q` and hit `Return`: exit right away.
+-   `Escape`: leave the `:` prompt, or clear error status.
+-   `Space` (or any other unmapped key): proceed playing when paused.
 
 ## Where to Get Hymns
 
