@@ -462,11 +462,13 @@ func (b *Backend) preludePlayer() error {
 	b.uiState.PlayPrelude = true
 	b.uiState.NumVerses = n
 	b.uiState.Verse = 0
+	b.uiState.CurrentMessage = "prelude player running"
 	// b.sendUIState() // Redundant with playMIDI.
 	defer func() {
 		b.uiState.PlayPrelude = false
 		b.uiState.NumVerses = 0
 		b.uiState.Verse = 0
+		b.uiState.CurrentMessage = ""
 		b.sendUIState()
 	}()
 

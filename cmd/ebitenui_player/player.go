@@ -57,7 +57,7 @@ func main() {
 	flag.Parse()
 
 	ebiten.SetWindowSize(720, 1280)
-	ebiten.SetWindowTitle("MIDI Converser - graphical playerUI")
+	ebiten.SetWindowTitle("MIDI Converser - graphical player")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowClosingHandled(true)
 
@@ -355,7 +355,7 @@ func (p *playerUI) moreVersesClicked(args *widget.ButtonClickedEventArgs) {
 func (p *playerUI) updateWidgets() {
 	var np string
 	if p.uiState.PlayPrelude {
-		np = fmt.Sprintf("%v (prelude playerUI)", p.uiState.CurrentFile)
+		np = fmt.Sprintf("%v (prelude player)", p.uiState.CurrentFile)
 	} else if p.uiState.PlayOne != "" && p.uiState.Playing {
 		np = fmt.Sprintf("%v (%v)", p.uiState.CurrentFile, p.uiState.CurrentPart)
 	} else if p.uiState.PlayOne != "" {
