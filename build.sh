@@ -2,6 +2,17 @@
 
 set -ex
 
+smallbinary='
+	-ldflags=all=-s
+	-a
+	-trimpath
+	-gcflags=all=-B
+	-gcflags=all=-dwarf=false
+	-gcflags=all=-l
+'
+
+# -gcflags=all=-wb=false
+
 go build ./cmd/ebitenui_player
 go build ./cmd/process
 go build ./cmd/textui_player
@@ -16,6 +27,8 @@ if [ -d ../midi ]; then
 		cd cmd/ebitenui_player/vfs
 		tar xvf -
 	}
-	GOOS=js GOARCH=wasm go build -ldflags=all=-s -ldflags=all=-w -a -trimpath -o ebitenui_player.wasm ./cmd/ebitenui_player
+	GOOS=js GOARCH=wasm go build $smallbinary -o ebitenui_player.wasm ./cmd/ebitenui_player
 	cp "$(cd / && GOOS=js GOARCH=wasm go env GOROOT)"/misc/wasm/wasm_exec.js .
+	sw-precache --config=ebitenui_player.sw-precache-config.js --verbose
+	mv service-worker.js ebitenui_player.sw-precache.js
 fi

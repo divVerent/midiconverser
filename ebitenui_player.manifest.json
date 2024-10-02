@@ -1,0 +1,26 @@
+{
+  "background_color": "#ffffff",
+  "categories": "music",
+  "display": "standalone",
+  "display_override": [
+    "fullscreen"
+  ],
+  "icons": [
+    {
+      "src": "ebitenui_player.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": [
+      "focus-existing",
+      "auto"
+    ]
+  },
+  "name": "MIDI Converser - web player",
+  "orientation": "any",
+  "short_name": "MIDI Converser",
+  "start_url": "ebitenui_player.html",
+  "theme_color": "#000000"
+}

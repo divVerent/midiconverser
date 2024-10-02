@@ -2,92 +2,123 @@
 <html>
 <head>
   <meta name="generator" content="HTML Tidy for HTML5 for Linux version 5.6.0">
+  <link rel="manifest" href="ebitenui_player.manifest.json" crossorigin="use-credentials">
   <script src="wasm_exec.js"></script>
   <script>
-  // Polyfill
-  if (!WebAssembly.instantiateStreaming) {
-    WebAssembly.instantiateStreaming = async (resp, importObject) => {
-      const source = await (await resp).arrayBuffer();
-      return await WebAssembly.instantiate(source, importObject);
-    };
-  }
-
-  let wakelockGoal = false;
-
-  let wakelockWarned = false;
-  let wakelockPromise = null;
-  let wakelockSentinel = null;
-
-  function wakelockUpdate() {
-    if (!navigator.wakeLock) {
-      if (!wakelockWarned) {
-        console.error("Wakelock not supported.");
-        wakelockWarned = true;
-      }
-      return;
-    }
-    if (wakelockPromise != null) {
-      // Ongoing operation - handle later.
-      return;
-    }
-    if (wakelockSentinel != null && wakelockSentinel.released) {
-      console.warn("Lost wakelock.");
-      wakelockSentinel = null;
-    }
-    if (wakelockSentinel == null) {
-      if (wakelockGoal) {
-        console.info("Acquiring wakelock...");
-        wakelockPromise = navigator.wakeLock.request("screen").then((lock) => {
-          console.info("Acquired wakelock.");
-          wakelockSentinel = lock;
-          wakelockPromise = null;
-        }).catch((err) => {
-          console.error("Failed to acquire wakelock: ", err);
-          wakelockSentinel = null;
-          wakelockPromise = null;
+    // PWA stuff.
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("ebitenui_player.sw-precache.js").then(r => {
+          r.onupdatefound = function() {
+            let installingWorker = r.installing;
+            installingWorker.onstatechange = () => {
+              switch (installingWorker.state) {
+                case "installed":
+                  if (navigator.serviceWorker.controller) {
+                    console.log("Service worker updated.");
+                  } else {
+                    console.log("Service worker available offline.");
+                  }
+                  break;
+                case "redundant":
+                  console.error("Service worker redundant.");
+                  break;
+              }
+            };
+          };
+        }).catch(e => {
+          console.error("Could not register service worker: ", e);
         });
+      });
+    }
+
+    // Wakelock handling.
+    let wakelockGoal = false;
+
+    let wakelockWarned = false;
+    let wakelockPromise = null;
+    let wakelockSentinel = null;
+
+    function wakelockUpdate() {
+      if (!navigator.wakeLock) {
+        if (!wakelockWarned) {
+          console.error("Wakelock not supported.");
+          wakelockWarned = true;
+        }
+        return;
       }
-    } else {
-      if (!wakelockGoal) {
-        console.info("Releasing wakelock...");
-        wakelockPromise = wakelockSentinel.release().then(() => {
-          console.info("Released wakelock.");
-          wakelockSentinel = null;
-          wakelockPromise = null;
-        }).catch((err) => {
-          console.error("Failed to release wakelock: ", err);
-          wakelockSentinel = null;
-          wakelockPromise = null;
-        });
+      if (wakelockPromise != null) {
+        // Ongoing operation - handle later.
+        return;
+      }
+      if (wakelockSentinel != null && wakelockSentinel.released) {
+        console.warn("Lost wakelock.");
+        wakelockSentinel = null;
+      }
+      if (wakelockSentinel == null) {
+        if (wakelockGoal) {
+          console.info("Acquiring wakelock...");
+          wakelockPromise = navigator.wakeLock.request("screen").then((lock) => {
+            console.info("Acquired wakelock.");
+            wakelockSentinel = lock;
+            wakelockPromise = null;
+          }).catch((err) => {
+            console.error("Failed to acquire wakelock: ", err);
+            wakelockSentinel = null;
+            wakelockPromise = null;
+          });
+        }
+      } else {
+        if (!wakelockGoal) {
+          console.info("Releasing wakelock...");
+          wakelockPromise = wakelockSentinel.release().then(() => {
+            console.info("Released wakelock.");
+            wakelockSentinel = null;
+            wakelockPromise = null;
+          }).catch((err) => {
+            console.error("Failed to release wakelock: ", err);
+            wakelockSentinel = null;
+            wakelockPromise = null;
+          });
+        }
       }
     }
-  }
 
-  // wakelockSet is a simple synchronous API for Go code to use.
-  function wakelockSet(state) {
-    wakelockGoal = state;
-    wakelockUpdate();
-  }
+    // wakelockSet is a simple synchronous API for Go code to use.
+    function wakelockSet(state) {
+      wakelockGoal = state;
+      wakelockUpdate();
+    }
 
-  // Automatic refresh routine for the wakelock state.
-  const wakelockTimer = setInterval(wakelockUpdate, 10000);
+    // Automatic refresh routine for the wakelock state.
+    const wakelockTimer = setInterval(wakelockUpdate, 10000);
 
-  const go = new Go();
-  WebAssembly.instantiateStreaming(fetch("ebitenui_player.wasm"), go.importObject).then(result => {
-    go.run(result.instance);
-  });
+    // Polyfill.
+    if (!WebAssembly.instantiateStreaming) {
+      WebAssembly.instantiateStreaming = async (resp, importObject) => {
+        const source = await (await resp).arrayBuffer();
+        return await WebAssembly.instantiate(source, importObject);
+      };
+    }
 
-  function help() {
-    console.info('Functions by MIDI Converser:');
-    console.info('  resetConfig();  // clears the configuration');
-  }
+    // Load the Go code.
+    const go = new Go();
+    WebAssembly.instantiateStreaming(fetch("ebitenui_player.wasm"), go.importObject).then(result => {
+      go.run(result.instance);
+    });
 
-  console.info('Welcome to MIDI Converser console. Type help(); for more info.');
+    // Functions for the console.
+    function help() {
+      console.info("Functions by MIDI Converser:");
+      console.info("  resetConfig();  // clears the configuration");
+    }
 
-  function resetConfig() {
-    window.localStorage.removeItem('midiconverser.yml');
-    location.reload();
-  }
+    console.info('Welcome to MIDI Converser console. Type help(); for more info.');
+
+    function resetConfig() {
+      window.localStorage.removeItem("midiconverser.yml");
+      location.reload();
+    }
   </script>
   <title>MIDI Converser - web player</title>
 </head>
