@@ -43,8 +43,13 @@ type playerUI struct {
 	outPort drivers.Out
 	uiState player.UIState
 
-	width, height int
+	hymnsAny []any
+	font     *text.GoTextFaceSource
 
+	width, height int
+	scale         int
+
+	rootContainer    *widget.Container
 	currentlyPlaying *widget.Label
 	statusLabel      *widget.Label
 	status           *widget.Label
@@ -57,17 +62,19 @@ type playerUI struct {
 	fewerVerses      *widget.Button
 	stop             *widget.Button
 	prompt           *widget.Button
-	hymnList         *widget.List
 	hymnsWindow      *widget.Window
+	hymnList         *widget.List
 
-	prevTempo float64
-	loopErr   error
+	prevTempo       float64
+	loopErr         error
+	hymnsWindowOpen bool
 }
 
 func Main() error {
 	flag.Parse()
 
-	ebiten.SetWindowSize(360, 800)
+	w, h := 360, 800
+	ebiten.SetWindowSize(w, h)
 	ebiten.SetWindowTitle("MIDI Converser - graphical player")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowClosingHandled(true)
@@ -77,17 +84,28 @@ func Main() error {
 		return fmt.Errorf("failed to open FS: %v", err)
 	}
 
-	var playerUI playerUI
-	err = playerUI.initBackend(fsys)
+	p := playerUI{
+		width:  w,
+		height: h,
+	}
+
+	err = p.initHymnsList(fsys)
 	if err != nil {
 		return err
 	}
-	defer playerUI.shutdownBackend()
-	err = playerUI.initUI(fsys)
+
+	err = p.initBackend(fsys)
 	if err != nil {
 		return err
 	}
-	return ebiten.RunGame(&playerUI)
+	defer p.shutdownBackend()
+
+	err = p.initUI()
+	if err != nil {
+		return err
+	}
+
+	return ebiten.RunGame(&p)
 }
 
 func main() {
@@ -170,24 +188,50 @@ func listHymns(fsys fs.FS) ([]string, error) {
 	return result, nil
 }
 
-func (p *playerUI) initUI(fsys fs.FS) error {
-	fontSize := 16.0
-	spacing := 12
-	listSliderSize := 32
-	buttonInsets := 4
+func (p *playerUI) initHymnsList(fsys fs.FS) error {
+	hymns, err := listHymns(fsys)
+	if err != nil {
+		return err
+	}
+	p.hymnsAny = make([]any, 0, len(hymns))
+	for _, h := range hymns {
+		p.hymnsAny = append(p.hymnsAny, h)
+	}
+	return nil
+}
+
+func (p *playerUI) initUI() error {
+	var err error
+	p.font, err = text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		return err
+	}
+	p.rootContainer = widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
+		widget.ContainerOpts.Layout(widget.NewAnchorLayout()),
+	)
+	p.ui = &ebitenui.UI{
+		Container: p.rootContainer,
+	}
+	return nil
+}
+
+func (p *playerUI) recreateUI() {
+	fontSize := 4.0 * float64(p.scale)
+	spacing := 3 * p.scale
+	listSliderSize := 8 * p.scale
+	buttonInsets := p.scale
 
 	titleBarHeight := int(fontSize + 2*float64(buttonInsets))
 
-	font, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
-	if err != nil {
-		log.Fatal(err)
-	}
 	fontFace := &text.GoTextFace{
-		Source: font,
+		Source: p.font,
 		Size:   fontSize,
 	}
 
-	rootContainer := widget.NewContainer(
+	p.rootContainer.RemoveChildren()
+
+	mainContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(1),
@@ -195,13 +239,15 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
 			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, false, true}),
 		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				StretchHorizontal: true,
+				StretchVertical:   true,
+			})),
 	)
+	p.rootContainer.AddChild(mainContainer)
 
-	p.ui = &ebitenui.UI{
-		Container: rootContainer,
-	}
-
-	mainContainer := widget.NewContainer(
+	tableContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(2),
@@ -209,7 +255,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 			widget.GridLayoutOpts.Stretch([]bool{false, true}, []bool{false, false}),
 		)),
 	)
-	rootContainer.AddChild(mainContainer)
+	mainContainer.AddChild(tableContainer)
 
 	labelColors := &widget.LabelColor{
 		Idle:     color.Black,
@@ -263,27 +309,27 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	currentlyPlayingLabel := widget.NewLabel(
 		widget.LabelOpts.Text("Currently Playing: ", fontFace, labelColors),
 	)
-	mainContainer.AddChild(currentlyPlayingLabel)
+	tableContainer.AddChild(currentlyPlayingLabel)
 	p.currentlyPlaying = widget.NewLabel(
 		widget.LabelOpts.Text("...", fontFace, labelColors),
 	)
-	mainContainer.AddChild(p.currentlyPlaying)
+	tableContainer.AddChild(p.currentlyPlaying)
 
 	p.statusLabel = widget.NewLabel(
 		widget.LabelOpts.Text("Status: ", fontFace, labelColors),
 	)
-	mainContainer.AddChild(p.statusLabel)
+	tableContainer.AddChild(p.statusLabel)
 	p.status = widget.NewLabel(
 		widget.LabelOpts.Text("...", fontFace, labelColors),
 	)
-	mainContainer.AddChild(p.status)
+	tableContainer.AddChild(p.status)
 
 	// TODO add a control for prelude tags.
 
 	p.tempoLabel = widget.NewLabel(
 		widget.LabelOpts.Text("Tempo: ...", fontFace, labelColors),
 	)
-	mainContainer.AddChild(p.tempoLabel)
+	tableContainer.AddChild(p.tempoLabel)
 	p.tempo = widget.NewSlider(
 		widget.SliderOpts.MinMax(50, 200),
 		widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
@@ -292,12 +338,12 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 			return 1
 		}),
 	)
-	mainContainer.AddChild(p.tempo)
+	tableContainer.AddChild(p.tempo)
 
 	p.verseLabel = widget.NewLabel(
 		widget.LabelOpts.Text("Verse: ...", fontFace, labelColors),
 	)
-	mainContainer.AddChild(p.verseLabel)
+	tableContainer.AddChild(p.verseLabel)
 
 	versesContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
@@ -307,7 +353,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 			widget.GridLayoutOpts.Stretch([]bool{false, false, true}, []bool{false}),
 		)),
 	)
-	mainContainer.AddChild(versesContainer)
+	tableContainer.AddChild(versesContainer)
 
 	p.fewerVerses = widget.NewButton(
 		widget.ButtonOpts.Text("-", fontFace, buttonTextColor),
@@ -328,11 +374,11 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	p.playbackLabel = widget.NewLabel(
 		widget.LabelOpts.Text("Playback: ...", fontFace, labelColors),
 	)
-	mainContainer.AddChild(p.playbackLabel)
+	tableContainer.AddChild(p.playbackLabel)
 	p.playback = widget.NewProgressBar(
 		widget.ProgressBarOpts.Images(progressTrackImage, progressImage),
 	)
-	mainContainer.AddChild(p.playback)
+	tableContainer.AddChild(p.playback)
 
 	playContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
@@ -342,7 +388,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 			widget.GridLayoutOpts.Stretch([]bool{true, false, false}, []bool{false}),
 		)),
 	)
-	rootContainer.AddChild(playContainer)
+	mainContainer.AddChild(playContainer)
 
 	selectHymn := widget.NewButton(
 		widget.ButtonOpts.Text("Play Hymn...", fontFace, buttonTextColor),
@@ -374,7 +420,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
 		widget.ButtonOpts.ClickedHandler(p.promptClicked),
 	)
-	rootContainer.AddChild(p.prompt)
+	mainContainer.AddChild(p.prompt)
 
 	hymnsWindowContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Gray{Y: 224})),
@@ -391,17 +437,8 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	)
 	hymnsWindowContainer.AddChild(chooseHymnLabel)
 
-	hymns, err := listHymns(fsys)
-	if err != nil {
-		return err
-	}
-	hymnsAny := make([]any, 0, len(hymns))
-	for _, h := range hymns {
-		hymnsAny = append(hymnsAny, h)
-	}
-
 	p.hymnList = widget.NewList(
-		widget.ListOpts.Entries(hymnsAny),
+		widget.ListOpts.Entries(p.hymnsAny),
 		widget.ListOpts.ScrollContainerOpts(
 			widget.ScrollContainerOpts.Image(scrollContainerImage),
 		),
@@ -455,7 +492,9 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 		widget.WindowOpts.CloseMode(widget.NONE),
 	)
 
-	return nil
+	if p.hymnsWindowOpen {
+		p.selectHymnClicked(nil)
+	}
 }
 
 func (p *playerUI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
@@ -466,6 +505,7 @@ func (p *playerUI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
 	r := go_image.Rect(x, y, x+w, y+h)
 	p.hymnsWindow.SetLocation(r)
 	p.ui.AddWindow(p.hymnsWindow)
+	p.hymnsWindowOpen = true
 }
 
 func (p *playerUI) playPreludeClicked(args *widget.ButtonClickedEventArgs) {
@@ -518,10 +558,21 @@ func (p *playerUI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
 
 func (p *playerUI) hymnsCloseClicked(args *widget.ButtonClickedEventArgs) {
 	p.hymnsWindow.Close()
+	p.hymnsWindowOpen = false
 }
 
 // updateUI updates all widgets to current playback state.
 func (p *playerUI) updateWidgets() {
+	scale := p.width / 80
+	scaleY := p.height / 80
+	if scale > scaleY {
+		scale = scaleY
+	}
+	if scale != p.scale {
+		p.scale = scale
+		p.recreateUI()
+	}
+
 	var np string
 	if p.uiState.PlayOne != "" && p.uiState.Playing {
 		np = fmt.Sprintf("%v (%v)", p.uiState.CurrentFile, p.uiState.CurrentPart)
