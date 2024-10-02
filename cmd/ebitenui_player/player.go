@@ -153,7 +153,14 @@ func (p *playerUI) initBackend(fsys fs.FS) error {
 		log.Printf("failed to load config override: %v", err)
 	}
 	if config != nil {
-		p.config = config
+		// Only load the settings the UI actually controls.
+		p.config.Channel = config.Channel
+		p.config.MelodyChannel = config.MelodyChannel
+		p.config.BassChannel = config.BassChannel
+		p.config.HoldRedundantNotes = config.HoldRedundantNotes
+		p.config.BPMFactor = config.BPMFactor
+		p.config.PreludePlayerRepeat = config.PreludePlayerRepeat
+		p.config.PreludePlayerSleepSec = config.PreludePlayerSleepSec
 	}
 
 	p.backend = player.NewBackend(&player.Options{
