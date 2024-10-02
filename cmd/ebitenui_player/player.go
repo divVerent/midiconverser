@@ -623,6 +623,8 @@ updateLoop:
 		}
 	}
 
+	wakelockSet(p.uiState.PlayOne != "" || p.uiState.PlayPrelude)
+
 	p.updateWidgets()
 	p.ui.Update()
 	return nil

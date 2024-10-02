@@ -222,7 +222,6 @@ func (k OutputKey) String() string {
 // Process processes the given MIDI file and writes the result to out.
 func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf.SMF, error) {
 	bars := findBars(mid)
-	log.Printf("bars: %+v", bars)
 	dumpTimeSig("Before", mid, bars)
 
 	// Fix bad events.
