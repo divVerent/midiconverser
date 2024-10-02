@@ -24,6 +24,7 @@ import (
 
 	"github.com/divVerent/midiconverser/internal/file"
 	"github.com/divVerent/midiconverser/internal/player"
+	"github.com/divVerent/midiconverser/internal/processor"
 )
 
 // TODO:
@@ -39,35 +40,46 @@ var (
 type playerUI struct {
 	ui *ebitenui.UI
 
+	config  *processor.Config
 	backend *player.Backend
 	outPort drivers.Out
 	uiState player.UIState
 
-	hymnsAny []any
-	font     *text.GoTextFaceSource
+	hymnsAny    []any
+	channelsAny []any
+	font        *text.GoTextFaceSource
 
 	width, height int
 	scale         float64
 
-	rootContainer    *widget.Container
-	currentlyPlaying *widget.Label
-	statusLabel      *widget.Label
-	status           *widget.Label
-	tempoLabel       *widget.Label
-	tempo            *widget.Slider
-	playbackLabel    *widget.Label
-	playback         *widget.ProgressBar
-	verseLabel       *widget.Label
-	moreVerses       *widget.Button
-	fewerVerses      *widget.Button
-	stop             *widget.Button
-	prompt           *widget.Button
-	hymnsWindow      *widget.Window
-	hymnList         *widget.List
+	rootContainer               *widget.Container
+	currentlyPlaying            *widget.Label
+	statusLabel                 *widget.Label
+	status                      *widget.Label
+	tempoLabel                  *widget.Label
+	tempo                       *widget.Slider
+	playbackLabel               *widget.Label
+	playback                    *widget.ProgressBar
+	verseLabel                  *widget.Label
+	moreVerses                  *widget.Button
+	fewerVerses                 *widget.Button
+	stop                        *widget.Button
+	prompt                      *widget.Button
+	hymnsWindow                 *widget.Window
+	hymnList                    *widget.List
+	settingsWindow              *widget.Window
+	settingsChannel             *widget.ListComboButton
+	settingsMelodyChannel       *widget.ListComboButton
+	settingsBassChannel         *widget.ListComboButton
+	settingsHoldRedundantNotes  *widget.Checkbox
+	settingsTempo               *widget.Slider
+	settingsPreludePlayerRepeat *widget.Slider
+	settingsPreludePlayerSleep  *widget.Slider
 
-	prevTempo       float64
-	loopErr         error
-	hymnsWindowOpen bool
+	prevTempo          float64
+	loopErr            error
+	hymnsWindowOpen    bool
+	settingsWindowOpen bool
 }
 
 func Main() error {
@@ -93,6 +105,8 @@ func Main() error {
 	if err != nil {
 		return err
 	}
+
+	p.initChannelsList()
 
 	err = p.initBackend(fsys)
 	if err != nil {
@@ -130,14 +144,14 @@ func (p *playerUI) initBackend(fsys fs.FS) error {
 		return fmt.Errorf("could not open MIDI port %v: %w", p.outPort, err)
 	}
 
-	config, err := file.ReadConfig(fsys, *c)
+	p.config, err = file.ReadConfig(fsys, *c)
 	if err != nil {
 		return fmt.Errorf("failed to read config: %w", err)
 	}
 
 	p.backend = player.NewBackend(&player.Options{
 		FSys:     fsys,
-		Config:   config,
+		Config:   p.config,
 		OutPort:  p.outPort,
 		PlayOnly: *i,
 	})
@@ -200,6 +214,36 @@ func (p *playerUI) initHymnsList(fsys fs.FS) error {
 	return nil
 }
 
+func (p *playerUI) initChannelsList() {
+	p.channelsAny = []any{
+		0,
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+		7,
+		8,
+		9,
+		// 10 skipped (percussion channel)
+		11,
+		12,
+		13,
+		14,
+		15,
+		16,
+	}
+}
+
+func channelNameFunc(e any) string {
+	ch := e.(int)
+	if ch == 0 {
+		return "unset"
+	}
+	return fmt.Sprintf("#%d", ch)
+}
+
 func (p *playerUI) initUI() error {
 	var err error
 	p.font, err = text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
@@ -216,11 +260,18 @@ func (p *playerUI) initUI() error {
 	return nil
 }
 
+func newImageColor(size int, c color.Color) *ebiten.Image {
+	img := ebiten.NewImage(size, size)
+	img.Fill(c)
+	return img
+}
+
 func (p *playerUI) recreateUI() {
 	fontSize := 4.0 * p.scale
 	spacing := int(math.Round(3 * p.scale))
 	listSliderSize := int(math.Round(8 * p.scale))
 	buttonInsets := int(math.Round(p.scale))
+	checkSize := int(math.Round(3 * p.scale))
 
 	titleBarHeight := int(fontSize + 2*float64(buttonInsets))
 
@@ -228,34 +279,6 @@ func (p *playerUI) recreateUI() {
 		Source: p.font,
 		Size:   fontSize,
 	}
-
-	p.rootContainer.RemoveChildren()
-
-	mainContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
-		widget.ContainerOpts.Layout(widget.NewGridLayout(
-			widget.GridLayoutOpts.Columns(1),
-			widget.GridLayoutOpts.Spacing(spacing, spacing),
-			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
-			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, false, true}),
-		)),
-		widget.ContainerOpts.WidgetOpts(
-			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
-				StretchHorizontal: true,
-				StretchVertical:   true,
-			})),
-	)
-	p.rootContainer.AddChild(mainContainer)
-
-	tableContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
-		widget.ContainerOpts.Layout(widget.NewGridLayout(
-			widget.GridLayoutOpts.Columns(2),
-			widget.GridLayoutOpts.Spacing(spacing, spacing),
-			widget.GridLayoutOpts.Stretch([]bool{false, true}, []bool{false, false}),
-		)),
-	)
-	mainContainer.AddChild(tableContainer)
 
 	labelColors := &widget.LabelColor{
 		Idle:     color.Black,
@@ -305,6 +328,42 @@ func (p *playerUI) recreateUI() {
 		DisabledSelected:           color.White,
 		DisabledSelectedBackground: color.Black,
 	}
+
+	checkboxGraphicImage := &widget.CheckboxGraphicImage{
+		Unchecked: &widget.ButtonImageImage{Idle: newImageColor(checkSize, color.NRGBA{R: 128, G: 128, B: 128, A: 32})},
+		Checked:   &widget.ButtonImageImage{Idle: newImageColor(checkSize, color.NRGBA{R: 128, G: 128, B: 128, A: 255})},
+		Greyed:    &widget.ButtonImageImage{Idle: newImageColor(checkSize, color.Alpha{A: 0})},
+	}
+
+	// Rebuild the rootContainer.
+
+	p.rootContainer.RemoveChildren()
+
+	mainContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, false, false, true}),
+		)),
+		widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				StretchHorizontal: true,
+				StretchVertical:   true,
+			})),
+	)
+	p.rootContainer.AddChild(mainContainer)
+
+	tableContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(2),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Stretch([]bool{false, true}, []bool{false}),
+		)),
+	)
+	mainContainer.AddChild(tableContainer)
 
 	currentlyPlayingLabel := widget.NewLabel(
 		widget.LabelOpts.Text("Currently Playing: ", fontFace, labelColors),
@@ -414,6 +473,14 @@ func (p *playerUI) recreateUI() {
 	)
 	playContainer.AddChild(p.stop)
 
+	settings := widget.NewButton(
+		widget.ButtonOpts.Text("Settings...", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
+		widget.ButtonOpts.ClickedHandler(p.settingsClicked),
+	)
+	mainContainer.AddChild(settings)
+
 	p.prompt = widget.NewButton(
 		widget.ButtonOpts.Text("b", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
@@ -421,6 +488,8 @@ func (p *playerUI) recreateUI() {
 		widget.ButtonOpts.ClickedHandler(p.promptClicked),
 	)
 	mainContainer.AddChild(p.prompt)
+
+	// Rebuild the hymns window.
 
 	hymnsWindowContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Gray{Y: 224})),
@@ -472,7 +541,7 @@ func (p *playerUI) recreateUI() {
 		)),
 	)
 	hymnsTitle := widget.NewText(
-		widget.TextOpts.Text("Play Hymn...", fontFace, color.White),
+		widget.TextOpts.Text("Play Hymn", fontFace, color.White),
 		widget.TextOpts.Insets(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
 		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
 	)
@@ -499,17 +568,226 @@ func (p *playerUI) recreateUI() {
 	if p.hymnsWindowOpen {
 		p.selectHymnClicked(nil)
 	}
-}
 
-func (p *playerUI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
-	w := p.width - 32
-	h := p.height - 32
-	x := (p.width - w) / 2
-	y := (p.height - h) / 2
-	r := go_image.Rect(x, y, x+w, y+h)
-	p.hymnsWindow.SetLocation(r)
-	p.ui.AddWindow(p.hymnsWindow)
-	p.hymnsWindowOpen = true
+	// Rebuild the settings window.
+
+	settingsWindowContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Gray{Y: 224})),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true}),
+		)),
+	)
+	settingsTableContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Gray{Y: 224})),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(2),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
+			widget.GridLayoutOpts.Stretch([]bool{false, true}, []bool{false}),
+		)),
+	)
+	settingsWindowContainer.AddChild(settingsTableContainer)
+
+	channelLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Main Channel: ", fontFace, labelColors),
+	)
+	settingsTableContainer.AddChild(channelLabel)
+	p.settingsChannel = widget.NewListComboButton(
+		widget.ListComboButtonOpts.SelectComboButtonOpts(
+			widget.SelectComboButtonOpts.ComboButtonOpts(
+				widget.ComboButtonOpts.ButtonOpts(
+					widget.ButtonOpts.Image(buttonImage),
+					widget.ButtonOpts.TextPadding(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
+					widget.ButtonOpts.Text("", fontFace, buttonTextColor),
+				),
+			),
+		),
+		widget.ListComboButtonOpts.ListOpts(
+			widget.ListOpts.Entries(p.channelsAny),
+			widget.ListOpts.ScrollContainerOpts(
+				widget.ScrollContainerOpts.Image(scrollContainerImage),
+			),
+			widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+				widget.SliderOpts.MinHandleSize(listSliderSize),
+			),
+			widget.ListOpts.HideHorizontalSlider(),
+			widget.ListOpts.EntryFontFace(fontFace),
+			widget.ListOpts.EntryColor(listEntryColor),
+			widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(buttonInsets))),
+		widget.ListComboButtonOpts.EntryLabelFunc(channelNameFunc, channelNameFunc),
+	)
+	settingsTableContainer.AddChild(p.settingsChannel)
+
+	melodyChannelLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Melody Coupler: ", fontFace, labelColors),
+	)
+	settingsTableContainer.AddChild(melodyChannelLabel)
+	p.settingsMelodyChannel = widget.NewListComboButton(
+		widget.ListComboButtonOpts.SelectComboButtonOpts(
+			widget.SelectComboButtonOpts.ComboButtonOpts(
+				widget.ComboButtonOpts.ButtonOpts(
+					widget.ButtonOpts.Image(buttonImage),
+					widget.ButtonOpts.TextPadding(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
+					widget.ButtonOpts.Text("", fontFace, buttonTextColor),
+				),
+			),
+		),
+		widget.ListComboButtonOpts.ListOpts(
+			widget.ListOpts.Entries(p.channelsAny),
+			widget.ListOpts.ScrollContainerOpts(
+				widget.ScrollContainerOpts.Image(scrollContainerImage),
+			),
+			widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+				widget.SliderOpts.MinHandleSize(listSliderSize),
+			),
+			widget.ListOpts.HideHorizontalSlider(),
+			widget.ListOpts.EntryFontFace(fontFace),
+			widget.ListOpts.EntryColor(listEntryColor),
+			widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(buttonInsets))),
+		widget.ListComboButtonOpts.EntryLabelFunc(channelNameFunc, channelNameFunc),
+	)
+	settingsTableContainer.AddChild(p.settingsMelodyChannel)
+
+	bassChannelLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Bass Coupler: ", fontFace, labelColors),
+	)
+	settingsTableContainer.AddChild(bassChannelLabel)
+	p.settingsBassChannel = widget.NewListComboButton(
+		widget.ListComboButtonOpts.SelectComboButtonOpts(
+			widget.SelectComboButtonOpts.ComboButtonOpts(
+				widget.ComboButtonOpts.ButtonOpts(
+					widget.ButtonOpts.Image(buttonImage),
+					widget.ButtonOpts.TextPadding(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
+					widget.ButtonOpts.Text("", fontFace, buttonTextColor),
+				),
+			),
+		),
+		widget.ListComboButtonOpts.ListOpts(
+			widget.ListOpts.Entries(p.channelsAny),
+			widget.ListOpts.ScrollContainerOpts(
+				widget.ScrollContainerOpts.Image(scrollContainerImage),
+			),
+			widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+				widget.SliderOpts.MinHandleSize(listSliderSize),
+			),
+			widget.ListOpts.HideHorizontalSlider(),
+			widget.ListOpts.EntryFontFace(fontFace),
+			widget.ListOpts.EntryColor(listEntryColor),
+			widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(buttonInsets))),
+		widget.ListComboButtonOpts.EntryLabelFunc(channelNameFunc, channelNameFunc),
+	)
+	settingsTableContainer.AddChild(p.settingsBassChannel)
+
+	holdRedundantNotesLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Hold Redundant Notes: ", fontFace, labelColors),
+	)
+	settingsTableContainer.AddChild(holdRedundantNotesLabel)
+	p.settingsHoldRedundantNotes = widget.NewCheckbox(
+		widget.CheckboxOpts.ButtonOpts(
+			widget.ButtonOpts.Image(buttonImage),
+		),
+		widget.CheckboxOpts.Image(checkboxGraphicImage),
+	)
+	settingsTableContainer.AddChild(p.settingsHoldRedundantNotes)
+
+	settingsTempoLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Global Tempo: 100%", fontFace, labelColors),
+	)
+	settingsTableContainer.AddChild(settingsTempoLabel)
+	p.settingsTempo = widget.NewSlider(
+		widget.SliderOpts.MinMax(50, 200),
+		widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+		widget.SliderOpts.ChangedHandler(func(args *widget.SliderChangedEventArgs) {
+			settingsTempoLabel.Label = fmt.Sprintf("Global Tempo: %d%%", args.Current)
+		}),
+		widget.SliderOpts.PageSizeFunc(func() int {
+			return 1
+		}),
+	)
+	p.settingsTempo.Current = 100
+	settingsTableContainer.AddChild(p.settingsTempo)
+
+	settingsPreludePlayerRepeatLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Prelude Repeats: 2", fontFace, labelColors),
+	)
+	settingsTableContainer.AddChild(settingsPreludePlayerRepeatLabel)
+	p.settingsPreludePlayerRepeat = widget.NewSlider(
+		widget.SliderOpts.MinMax(1, 5),
+		widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+		widget.SliderOpts.ChangedHandler(func(args *widget.SliderChangedEventArgs) {
+			settingsPreludePlayerRepeatLabel.Label = fmt.Sprintf("Prelude Repeats: %d", p.settingsPreludePlayerRepeat.Current)
+		}),
+		widget.SliderOpts.PageSizeFunc(func() int {
+			return 1
+		}),
+	)
+	p.settingsPreludePlayerRepeat.Current = 2
+	settingsTableContainer.AddChild(p.settingsPreludePlayerRepeat)
+
+	settingsPreludePlayerSleepLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Prelude Sleep: 2.0s", fontFace, labelColors),
+	)
+	settingsTableContainer.AddChild(settingsPreludePlayerSleepLabel)
+	p.settingsPreludePlayerSleep = widget.NewSlider(
+		widget.SliderOpts.MinMax(5, 50),
+		widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+		widget.SliderOpts.ChangedHandler(func(args *widget.SliderChangedEventArgs) {
+			settingsPreludePlayerSleepLabel.Label = fmt.Sprintf("Prelude Sleep: %.1fs", float64(args.Current)*0.1)
+		}),
+		widget.SliderOpts.PageSizeFunc(func() int {
+			return 5
+		}),
+	)
+	p.settingsPreludePlayerSleep.Current = 20
+	settingsTableContainer.AddChild(p.settingsPreludePlayerSleep)
+
+	applySettings := widget.NewButton(
+		widget.ButtonOpts.Text("Apply", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
+		widget.ButtonOpts.ClickedHandler(p.applySettingsClicked),
+	)
+	settingsWindowContainer.AddChild(applySettings)
+
+	settingsTitleContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Black)),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(2),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Stretch([]bool{true, false}, []bool{true}),
+		)),
+	)
+	settingsTitle := widget.NewText(
+		widget.TextOpts.Text("Settings", fontFace, color.White),
+		widget.TextOpts.Insets(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+	)
+	settingsTitleContainer.AddChild(settingsTitle)
+	settingsCloseButton := widget.NewButton(
+		widget.ButtonOpts.Text("X", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
+		widget.ButtonOpts.ClickedHandler(p.settingsCloseClicked),
+	)
+	settingsTitleContainer.AddChild(settingsCloseButton)
+
+	if p.settingsWindowOpen {
+		p.settingsWindow.Close()
+	}
+
+	p.settingsWindow = widget.NewWindow(
+		widget.WindowOpts.Contents(settingsWindowContainer),
+		widget.WindowOpts.TitleBar(settingsTitleContainer, titleBarHeight),
+		widget.WindowOpts.Modal(),
+		widget.WindowOpts.CloseMode(widget.NONE),
+	)
+
+	if p.settingsWindowOpen {
+		p.settingsClicked(nil)
+	}
 }
 
 func (p *playerUI) playPreludeClicked(args *widget.ButtonClickedEventArgs) {
@@ -548,8 +826,20 @@ func (p *playerUI) moreVersesClicked(args *widget.ButtonClickedEventArgs) {
 	}
 }
 
+func (p *playerUI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
+	w := p.width - 32
+	h := p.height - 32
+	x := (p.width - w) / 2
+	y := (p.height - h) / 2
+	r := go_image.Rect(x, y, x+w, y+h)
+	p.hymnsWindow.SetLocation(r)
+	p.ui.AddWindow(p.hymnsWindow)
+	p.hymnsWindowOpen = true
+}
+
 func (p *playerUI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
 	p.hymnsWindow.Close()
+	p.hymnsWindowOpen = false
 	e, ok := p.hymnList.SelectedEntry().(string)
 	if !ok {
 		log.Printf("no hymn selected")
@@ -563,6 +853,54 @@ func (p *playerUI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
 func (p *playerUI) hymnsCloseClicked(args *widget.ButtonClickedEventArgs) {
 	p.hymnsWindow.Close()
 	p.hymnsWindowOpen = false
+}
+
+func (p *playerUI) settingsClicked(args *widget.ButtonClickedEventArgs) {
+	p.settingsChannel.SetSelectedEntry(p.config.Channel)
+	p.settingsMelodyChannel.SetSelectedEntry(p.config.MelodyChannel)
+	p.settingsBassChannel.SetSelectedEntry(p.config.BassChannel)
+	if p.config.HoldRedundantNotes {
+		p.settingsHoldRedundantNotes.SetState(widget.WidgetChecked)
+	} else {
+		p.settingsHoldRedundantNotes.SetState(widget.WidgetUnchecked)
+	}
+	p.settingsTempo.Current = int(math.Round(processor.WithDefault(p.config.BPMFactor, 1.0) * 100))
+	p.settingsPreludePlayerRepeat.Current = processor.WithDefault(p.config.PreludePlayerRepeat, 2)
+	p.settingsPreludePlayerSleep.Current = int(math.Round(processor.WithDefault(p.config.PreludePlayerSleepSec, 2.0) * 10))
+
+	w := p.width - 32
+	_, tH := p.settingsWindow.TitleBar.PreferredSize()
+	_, cH := p.settingsWindow.Contents.PreferredSize()
+	h := p.height - 32
+	if h > tH+cH {
+		h = tH + cH
+	}
+	x := (p.width - w) / 2
+	y := (p.height - h) / 2
+	r := go_image.Rect(x, y, x+w, y+h)
+	p.settingsWindow.SetLocation(r)
+	p.ui.AddWindow(p.settingsWindow)
+	p.settingsWindowOpen = true
+}
+
+func (p *playerUI) applySettingsClicked(args *widget.ButtonClickedEventArgs) {
+	p.settingsWindow.Close()
+	p.settingsWindowOpen = false
+	p.config.Channel = p.settingsChannel.SelectedEntry().(int)
+	p.config.MelodyChannel = p.settingsMelodyChannel.SelectedEntry().(int)
+	p.config.BassChannel = p.settingsBassChannel.SelectedEntry().(int)
+	p.config.HoldRedundantNotes = p.settingsHoldRedundantNotes.State() == widget.WidgetChecked
+	p.config.BPMFactor = float64(p.settingsTempo.Current) * 0.01
+	p.config.PreludePlayerRepeat = p.settingsPreludePlayerRepeat.Current
+	p.config.PreludePlayerSleepSec = float64(p.settingsPreludePlayerSleep.Current) * 0.1
+	p.backend.Commands <- player.Command{
+		Config: p.config,
+	}
+}
+
+func (p *playerUI) settingsCloseClicked(args *widget.ButtonClickedEventArgs) {
+	p.settingsWindow.Close()
+	p.settingsWindowOpen = false
 }
 
 // updateUI updates all widgets to current playback state.
@@ -585,12 +923,12 @@ func (p *playerUI) updateWidgets() {
 	p.currentlyPlaying.Label = np
 
 	if p.uiState.Err != nil {
-		p.statusLabel.Label = "Error:"
+		p.statusLabel.Label = "Error: "
 		p.status.Label = fmt.Sprint(p.uiState.Err)
 		p.statusLabel.GetWidget().Visibility = widget.Visibility_Show
 		p.status.GetWidget().Visibility = widget.Visibility_Show
 	} else if p.uiState.CurrentMessage != "" {
-		p.statusLabel.Label = "Status:"
+		p.statusLabel.Label = "Status: "
 		p.status.Label = p.uiState.CurrentMessage
 		p.statusLabel.GetWidget().Visibility = widget.Visibility_Show
 		p.status.GetWidget().Visibility = widget.Visibility_Show
@@ -621,7 +959,7 @@ func (p *playerUI) updateWidgets() {
 	}
 
 	if p.uiState.Playing {
-		p.playbackLabel.Label = "Playing:"
+		p.playbackLabel.Label = "Playing: "
 		p.playbackLabel.GetWidget().Disabled = false
 		p.playback.Min = 0
 		p.playback.Max = 1000000
@@ -629,7 +967,7 @@ func (p *playerUI) updateWidgets() {
 		p.playback.GetWidget().Disabled = false
 		p.stop.GetWidget().Disabled = false
 	} else if p.uiState.CurrentFile != "" {
-		p.playbackLabel.Label = "Waiting:"
+		p.playbackLabel.Label = "Waiting: "
 		p.playbackLabel.GetWidget().Disabled = false
 		p.playback.GetWidget().Disabled = true
 		p.stop.GetWidget().Disabled = false
