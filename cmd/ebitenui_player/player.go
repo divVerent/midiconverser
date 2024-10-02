@@ -171,21 +171,28 @@ func listHymns(fsys fs.FS) ([]string, error) {
 }
 
 func (p *playerUI) initUI(fsys fs.FS) error {
+	fontSize := 16.0
+	spacing := 12
+	listSliderSize := 32
+	buttonInsets := 4
+
+	titleBarHeight := int(fontSize + 2*float64(buttonInsets))
+
 	font, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	if err != nil {
 		log.Fatal(err)
 	}
 	fontFace := &text.GoTextFace{
 		Source: font,
-		Size:   16,
+		Size:   fontSize,
 	}
 
 	rootContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(1),
-			widget.GridLayoutOpts.Spacing(16, 16),
-			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(16)),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
 			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, false, true}),
 		)),
 	)
@@ -198,7 +205,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(2),
-			widget.GridLayoutOpts.Spacing(16, 16),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
 			widget.GridLayoutOpts.Stretch([]bool{false, true}, []bool{false, false}),
 		)),
 	)
@@ -296,7 +303,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(3),
-			widget.GridLayoutOpts.Spacing(16, 16),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
 			widget.GridLayoutOpts.Stretch([]bool{false, false, true}, []bool{false}),
 		)),
 	)
@@ -305,7 +312,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	p.fewerVerses = widget.NewButton(
 		widget.ButtonOpts.Text("-", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.Insets{Left: 4, Right: 4}),
+		widget.ButtonOpts.TextPadding(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
 		widget.ButtonOpts.ClickedHandler(p.fewerVersesClicked),
 	)
 	versesContainer.AddChild(p.fewerVerses)
@@ -313,7 +320,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	p.moreVerses = widget.NewButton(
 		widget.ButtonOpts.Text("+", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.Insets{Left: 4, Right: 4}),
+		widget.ButtonOpts.TextPadding(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
 		widget.ButtonOpts.ClickedHandler(p.moreVersesClicked),
 	)
 	versesContainer.AddChild(p.moreVerses)
@@ -331,7 +338,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(3),
-			widget.GridLayoutOpts.Spacing(16, 16),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
 			widget.GridLayoutOpts.Stretch([]bool{true, false, false}, []bool{false}),
 		)),
 	)
@@ -340,7 +347,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	selectHymn := widget.NewButton(
 		widget.ButtonOpts.Text("Play Hymn...", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
 		widget.ButtonOpts.ClickedHandler(p.selectHymnClicked),
 	)
 	playContainer.AddChild(selectHymn)
@@ -348,7 +355,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	playPrelude := widget.NewButton(
 		widget.ButtonOpts.Text("Play Prelude", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
 		widget.ButtonOpts.ClickedHandler(p.playPreludeClicked),
 	)
 	playContainer.AddChild(playPrelude)
@@ -356,7 +363,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	p.stop = widget.NewButton(
 		widget.ButtonOpts.Text("Stop", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
 		widget.ButtonOpts.ClickedHandler(p.stopClicked),
 	)
 	playContainer.AddChild(p.stop)
@@ -364,7 +371,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	p.prompt = widget.NewButton(
 		widget.ButtonOpts.Text("b", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
 		widget.ButtonOpts.ClickedHandler(p.promptClicked),
 	)
 	rootContainer.AddChild(p.prompt)
@@ -373,8 +380,8 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Gray{Y: 224})),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(1),
-			widget.GridLayoutOpts.Spacing(16, 16),
-			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(16)),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
 			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true, false}),
 		)),
 	)
@@ -399,7 +406,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 			widget.ScrollContainerOpts.Image(scrollContainerImage),
 		),
 		widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
-			widget.SliderOpts.MinHandleSize(16),
+			widget.SliderOpts.MinHandleSize(listSliderSize),
 		),
 		widget.ListOpts.HideHorizontalSlider(),
 		widget.ListOpts.EntryFontFace(fontFace),
@@ -407,14 +414,14 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 		widget.ListOpts.EntryLabelFunc(func(e interface{}) string {
 			return e.(string)
 		}),
-		widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(4)),
+		widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(buttonInsets)),
 	)
 	hymnsWindowContainer.AddChild(p.hymnList)
 
 	playHymn := widget.NewButton(
 		widget.ButtonOpts.Text("Play Hymn", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
 		widget.ButtonOpts.ClickedHandler(p.playHymnClicked),
 	)
 	hymnsWindowContainer.AddChild(playHymn)
@@ -423,27 +430,27 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Black)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(2),
-			widget.GridLayoutOpts.Spacing(16, 16),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
 			widget.GridLayoutOpts.Stretch([]bool{true, false}, []bool{true}),
 		)),
 	)
 	hymnsTitle := widget.NewText(
 		widget.TextOpts.Text("Play Hymn...", fontFace, color.White),
-		widget.TextOpts.Insets(widget.Insets{Left: 4, Right: 4}),
+		widget.TextOpts.Insets(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
 		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
 	)
 	hymnsTitleContainer.AddChild(hymnsTitle)
 	hymnsCloseButton := widget.NewButton(
 		widget.ButtonOpts.Text("X", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.Insets{Left: 4, Right: 4}),
+		widget.ButtonOpts.TextPadding(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
 		widget.ButtonOpts.ClickedHandler(p.hymnsCloseClicked),
 	)
 	hymnsTitleContainer.AddChild(hymnsCloseButton)
 
 	p.hymnsWindow = widget.NewWindow(
 		widget.WindowOpts.Contents(hymnsWindowContainer),
-		widget.WindowOpts.TitleBar(hymnsTitleContainer, 24),
+		widget.WindowOpts.TitleBar(hymnsTitleContainer, titleBarHeight),
 		widget.WindowOpts.Modal(),
 		widget.WindowOpts.CloseMode(widget.NONE),
 	)
