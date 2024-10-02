@@ -16,6 +16,6 @@ if [ -d ../midi ]; then
 		cd cmd/ebitenui_player/vfs
 		tar xvf -
 	}
-	GOOS=js GOARCH=wasm go build -ldflags=-s -ldflags=-w -a -trimpath -o ebitenui_player.wasm ./cmd/ebitenui_player
+	GOOS=js GOARCH=wasm go build -ldflags=all=-s -ldflags=all=-w -a -trimpath -o ebitenui_player.wasm ./cmd/ebitenui_player
 	cp "$(cd / && GOOS=js GOARCH=wasm go env GOROOT)"/misc/wasm/wasm_exec.js .
 fi
