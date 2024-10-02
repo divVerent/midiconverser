@@ -139,13 +139,21 @@ func (p *playerUI) initBackend(fsys fs.FS) error {
 	var err error
 	p.outPort, err = player.FindBestPort(*port)
 	if err != nil {
-		log.Printf("could not find MIDI port: %w - continuning without; playing will fail", err)
+		log.Printf("could not find MIDI port: %v - continuning without; playing will fail", err)
 	}
 	log.Printf("Picked output port: %v", p.outPort)
 
 	p.config, err = file.ReadConfig(fsys, *c)
 	if err != nil {
 		return fmt.Errorf("failed to read config: %w", err)
+	}
+
+	config, err := loadConfigOverride(*c)
+	if err != nil {
+		log.Printf("failed to load config override: %v", err)
+	}
+	if config != nil {
+		p.config = config
 	}
 
 	p.backend = player.NewBackend(&player.Options{
@@ -244,6 +252,10 @@ func channelNameFunc(e any) string {
 }
 
 func (p *playerUI) initOutPortsList() {
+	if p.outPorts != nil && len(p.outPorts) == 0 {
+		// This is a rescan after it already was empty once.
+		rescanMIDI()
+	}
 	p.outPortsAny = nil
 	p.outPorts = map[int]drivers.Out{}
 	for _, port := range midi.GetOutPorts() {
@@ -958,6 +970,7 @@ func (p *playerUI) applySettingsClicked(args *widget.ButtonClickedEventArgs) {
 	p.config.BPMFactor = float64(p.settingsTempo.Current) * 0.01
 	p.config.PreludePlayerRepeat = p.settingsPreludePlayerRepeat.Current
 	p.config.PreludePlayerSleepSec = float64(p.settingsPreludePlayerSleep.Current) * 0.1
+	saveConfigOverride(*c, p.config)
 	p.backend.Commands <- player.Command{
 		Config: p.config,
 	}
