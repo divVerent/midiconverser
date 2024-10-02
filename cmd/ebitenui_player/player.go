@@ -135,6 +135,18 @@ func main() {
 	}
 }
 
+func copyConfigOverrideFields(from, to *processor.Config) {
+	// Copy just the fields the GUI can change.
+	// Prevents accidents.
+	to.Channel = from.Channel
+	to.MelodyChannel = from.MelodyChannel
+	to.BassChannel = from.BassChannel
+	to.HoldRedundantNotes = from.HoldRedundantNotes
+	to.BPMFactor = from.BPMFactor
+	to.PreludePlayerRepeat = from.PreludePlayerRepeat
+	to.PreludePlayerSleepSec = from.PreludePlayerSleepSec
+}
+
 func (p *playerUI) initBackend(fsys fs.FS) error {
 	var err error
 	p.outPort, err = player.FindBestPort(*port)
@@ -148,19 +160,9 @@ func (p *playerUI) initBackend(fsys fs.FS) error {
 		return fmt.Errorf("failed to read config: %w", err)
 	}
 
-	config, err := loadConfigOverride(*c)
+	err = loadConfigOverride(*c, p.config)
 	if err != nil {
 		log.Printf("failed to load config override: %v", err)
-	}
-	if config != nil {
-		// Only load the settings the UI actually controls.
-		p.config.Channel = config.Channel
-		p.config.MelodyChannel = config.MelodyChannel
-		p.config.BassChannel = config.BassChannel
-		p.config.HoldRedundantNotes = config.HoldRedundantNotes
-		p.config.BPMFactor = config.BPMFactor
-		p.config.PreludePlayerRepeat = config.PreludePlayerRepeat
-		p.config.PreludePlayerSleepSec = config.PreludePlayerSleepSec
 	}
 
 	p.backend = player.NewBackend(&player.Options{
