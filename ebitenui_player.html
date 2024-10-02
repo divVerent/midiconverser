@@ -76,6 +76,18 @@
   WebAssembly.instantiateStreaming(fetch("ebitenui_player.wasm"), go.importObject).then(result => {
     go.run(result.instance);
   });
+
+  function help() {
+    console.info('Functions by MIDI Converser:');
+    console.info('  resetConfig();  // clears the configuration');
+  }
+
+  console.info('Welcome to MIDI Converser console. Type help(); for more info.');
+
+  function resetConfig() {
+    window.localStorage.removeItem('midiconverser.yml');
+    location.reload();
+  }
   </script>
   <title>MIDI Converser - web player</title>
 </head>
