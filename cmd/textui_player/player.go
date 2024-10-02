@@ -346,6 +346,7 @@ func Main() error {
 	var loopErr error
 	go func() {
 		loopErr = b.Loop()
+		close(b.UIStates)
 	}()
 
 	err = textModeUI(b, fsys)
