@@ -908,7 +908,9 @@ func (p *playerUI) hymnsCloseClicked(args *widget.ButtonClickedEventArgs) {
 func (p *playerUI) settingsClicked(args *widget.ButtonClickedEventArgs) {
 	p.initOutPortsList()
 	p.settingsOutPort.SetEntries(p.outPortsAny)
-	p.settingsOutPort.SetSelectedEntry(p.outPort.Number())
+	if p.outPort != nil {
+		p.settingsOutPort.SetSelectedEntry(p.outPort.Number())
+	}
 	p.settingsChannel.SetSelectedEntry(p.config.Channel)
 	p.settingsMelodyChannel.SetSelectedEntry(p.config.MelodyChannel)
 	p.settingsBassChannel.SetSelectedEntry(p.config.BassChannel)
@@ -942,7 +944,8 @@ func (p *playerUI) applySettingsClicked(args *widget.ButtonClickedEventArgs) {
 	nextPort := p.settingsOutPort.SelectedEntry()
 	if nextPort != nil {
 		port := p.outPorts[nextPort.(int)]
-		if port.Number() != p.outPort.Number() {
+		if p.outPort == nil || port.Number() != p.outPort.Number() {
+			p.outPort = port
 			p.backend.Commands <- player.Command{
 				OutPort: port,
 			}
@@ -1051,7 +1054,12 @@ func (p *playerUI) updateWidgets() {
 }
 
 func (p *playerUI) Update() error {
-	// Refresh UI state.
+	if ebiten.IsWindowBeingClosed() {
+		p.backend.Commands <- player.Command{
+			Quit: true,
+		}
+	}
+
 updateLoop:
 	for {
 		select {
@@ -1071,15 +1079,14 @@ updateLoop:
 		}
 	}
 
-	if ebiten.IsWindowBeingClosed() {
-		p.backend.Commands <- player.Command{
-			Quit: true,
-		}
+	p.updateWidgets()
+
+	if p.outPort == nil && !p.settingsWindowOpen {
+		p.settingsClicked(nil)
 	}
 
 	wakelockSet(p.uiState.PlayOne != "" || p.uiState.PlayPrelude)
 
-	p.updateWidgets()
 	p.ui.Update()
 	return nil
 }
