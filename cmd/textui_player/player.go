@@ -325,11 +325,6 @@ func Main() error {
 	}
 	log.Printf("Picked output port: %v", outPort)
 
-	err = outPort.Open()
-	if err != nil {
-		return fmt.Errorf("could not open MIDI port %v: %w", outPort, err)
-	}
-
 	config, err := file.ReadConfig(fsys, *c)
 	if err != nil {
 		return fmt.Errorf("failed to read config: %w", err)

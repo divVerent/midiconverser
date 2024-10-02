@@ -20,6 +20,7 @@ import (
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"gitlab.com/gomidi/midi/v2"
 	"gitlab.com/gomidi/midi/v2/drivers"
 
 	"github.com/divVerent/midiconverser/internal/file"
@@ -47,6 +48,8 @@ type playerUI struct {
 
 	hymnsAny    []any
 	channelsAny []any
+	outPorts    map[int]drivers.Out
+	outPortsAny []any
 	font        *text.GoTextFaceSource
 
 	width, height int
@@ -68,6 +71,7 @@ type playerUI struct {
 	hymnsWindow                 *widget.Window
 	hymnList                    *widget.List
 	settingsWindow              *widget.Window
+	settingsOutPort             *widget.List
 	settingsChannel             *widget.ListComboButton
 	settingsMelodyChannel       *widget.ListComboButton
 	settingsBassChannel         *widget.ListComboButton
@@ -135,14 +139,9 @@ func (p *playerUI) initBackend(fsys fs.FS) error {
 	var err error
 	p.outPort, err = player.FindBestPort(*port)
 	if err != nil {
-		return fmt.Errorf("could not find MIDI port: %w", err)
+		log.Printf("could not find MIDI port: %w - continuning without; playing will fail", err)
 	}
 	log.Printf("Picked output port: %v", p.outPort)
-
-	err = p.outPort.Open()
-	if err != nil {
-		return fmt.Errorf("could not open MIDI port %v: %w", p.outPort, err)
-	}
 
 	p.config, err = file.ReadConfig(fsys, *c)
 	if err != nil {
@@ -244,6 +243,26 @@ func channelNameFunc(e any) string {
 	return fmt.Sprintf("#%d", ch)
 }
 
+func (p *playerUI) initOutPortsList() {
+	p.outPortsAny = nil
+	p.outPorts = map[int]drivers.Out{}
+	for _, port := range midi.GetOutPorts() {
+		p.outPortsAny = append(p.outPortsAny, port.Number())
+		p.outPorts[port.Number()] = port
+	}
+	if len(p.outPortsAny) == 0 {
+		p.outPortsAny = append(p.outPortsAny, nil)
+	}
+	return
+}
+
+func (p *playerUI) outPortNameFunc(e any) string {
+	if e == nil {
+		return "none"
+	}
+	return p.outPorts[e.(int)].String()
+}
+
 func (p *playerUI) initUI() error {
 	var err error
 	p.font, err = text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
@@ -268,16 +287,22 @@ func newImageColor(size int, c color.Color) *ebiten.Image {
 
 func (p *playerUI) recreateUI() {
 	fontSize := 4.0 * p.scale
+	smallFontSize := 2.0 * p.scale
 	spacing := int(math.Round(3 * p.scale))
 	listSliderSize := int(math.Round(8 * p.scale))
 	buttonInsets := int(math.Round(p.scale))
 	checkSize := int(math.Round(3 * p.scale))
 
 	titleBarHeight := int(fontSize + 2*float64(buttonInsets))
+	portListHeight := int(titleBarHeight * 3)
 
 	fontFace := &text.GoTextFace{
 		Source: p.font,
 		Size:   fontSize,
+	}
+	smallFontFace := &text.GoTextFace{
+		Source: p.font,
+		Size:   smallFontSize,
 	}
 
 	labelColors := &widget.LabelColor{
@@ -577,9 +602,34 @@ func (p *playerUI) recreateUI() {
 			widget.GridLayoutOpts.Columns(1),
 			widget.GridLayoutOpts.Spacing(spacing, spacing),
 			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
-			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true}),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true, false, false}),
 		)),
 	)
+
+	outPortLabel := widget.NewLabel(
+		widget.LabelOpts.Text("MIDI Port: ", fontFace, labelColors),
+	)
+	settingsWindowContainer.AddChild(outPortLabel)
+	p.settingsOutPort = widget.NewList(
+		widget.ListOpts.ContainerOpts(widget.ContainerOpts.WidgetOpts(
+			widget.WidgetOpts.MinSize(0, portListHeight),
+		)),
+		widget.ListOpts.Entries(p.outPortsAny),
+		widget.ListOpts.ScrollContainerOpts(
+			widget.ScrollContainerOpts.Image(scrollContainerImage),
+		),
+		widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+			widget.SliderOpts.MinHandleSize(listSliderSize),
+		),
+		widget.ListOpts.HideHorizontalSlider(),
+		widget.ListOpts.EntryFontFace(smallFontFace),
+		widget.ListOpts.EntryColor(listEntryColor),
+		widget.ListOpts.EntryLabelFunc(p.outPortNameFunc),
+		widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(buttonInsets)),
+		widget.ListOpts.EntryTextPosition(widget.TextPositionStart, widget.TextPositionCenter),
+	)
+	settingsWindowContainer.AddChild(p.settingsOutPort)
+
 	settingsTableContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Gray{Y: 224})),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
@@ -856,6 +906,9 @@ func (p *playerUI) hymnsCloseClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) settingsClicked(args *widget.ButtonClickedEventArgs) {
+	p.initOutPortsList()
+	p.settingsOutPort.SetEntries(p.outPortsAny)
+	p.settingsOutPort.SetSelectedEntry(p.outPort.Number())
 	p.settingsChannel.SetSelectedEntry(p.config.Channel)
 	p.settingsMelodyChannel.SetSelectedEntry(p.config.MelodyChannel)
 	p.settingsBassChannel.SetSelectedEntry(p.config.BassChannel)
@@ -886,6 +939,15 @@ func (p *playerUI) settingsClicked(args *widget.ButtonClickedEventArgs) {
 func (p *playerUI) applySettingsClicked(args *widget.ButtonClickedEventArgs) {
 	p.settingsWindow.Close()
 	p.settingsWindowOpen = false
+	nextPort := p.settingsOutPort.SelectedEntry()
+	if nextPort != nil {
+		port := p.outPorts[nextPort.(int)]
+		if port.Number() != p.outPort.Number() {
+			p.backend.Commands <- player.Command{
+				OutPort: port,
+			}
+		}
+	}
 	p.config.Channel = p.settingsChannel.SelectedEntry().(int)
 	p.config.MelodyChannel = p.settingsMelodyChannel.SelectedEntry().(int)
 	p.config.BassChannel = p.settingsBassChannel.SelectedEntry().(int)
@@ -907,7 +969,7 @@ func (p *playerUI) settingsCloseClicked(args *widget.ButtonClickedEventArgs) {
 func (p *playerUI) updateWidgets() {
 	scale := math.Min(
 		float64(p.width)/80,
-		float64(p.height)/80,
+		float64(p.height)/120,
 	)
 	if math.Abs(scale-p.scale) > 0.01 {
 		p.scale = scale
