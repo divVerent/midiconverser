@@ -27,8 +27,8 @@ import (
 )
 
 // TODO:
-// - Allow editing the config with a dialog (requires refactor to be able to send updates).
-// - Allow changing the MIDI port in the same dialog (same refactor needed).
+// - Allow editing the config with a dialog (send Config: command).
+// - Allow changing the MIDI port in the same dialog (send OutPort: command).
 
 var (
 	c    = flag.String("c", "config.yml", "config file name (YAML)")
@@ -126,7 +126,7 @@ func (p *playerUI) initBackend(fsys fs.FS) error {
 
 	go func() {
 		p.loopErr = p.backend.Loop()
-		close(p.backend.UIStates)
+		p.backend.Close()
 	}()
 
 	return nil

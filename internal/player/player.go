@@ -65,6 +65,12 @@ type Command struct {
 
 	// Answer continues the current playback (exits a Prompt state).
 	Answer bool
+
+	// Config contains a new configuration. Will be applied on next hymn.
+	Config *processor.Config
+
+	// OutPort contains a new, already opened, MIDI port. Will be applied on next hymn. Ownership is taken by this module.
+	OutPort drivers.Out
 }
 
 // IsZero returns if the command is an empty message. If so, this likely indicates a closed channel.
@@ -175,7 +181,7 @@ type Options struct {
 	// Config is the global configuration to use.
 	Config *processor.Config
 
-	// OutPort is the MIDI output port to use.
+	// OutPort is the MIDI output port to use. OK to change later.
 	OutPort drivers.Out
 
 	// PlayOnly is the single file to play.
@@ -265,6 +271,15 @@ func (b *Backend) handleCommandDuringSleep(cmd Command) error {
 			return nil
 		}
 		return promptAnsweredError // Caught when waiting for prompt.
+	case cmd.Config != nil:
+		b.config = *cmd.Config
+		return nil
+	case cmd.OutPort != nil:
+		if b.outPort != nil {
+			b.outPort.Close()
+		}
+		b.outPort = cmd.OutPort
+		return nil
 	default:
 		return fmt.Errorf("unrecognized command: %+v", cmd)
 	}
@@ -337,6 +352,9 @@ func (b *Backend) playMIDI(mid *smf.SMF, key processor.OutputKey) error {
 		b.sendUIState()
 
 		// Write to output.
+		if b.outPort == nil {
+			return fmt.Errorf("no output port")
+		}
 		return b.outPort.Send(midiMsg)
 	})
 
@@ -662,4 +680,12 @@ func (b *Backend) Loop() error {
 		}
 	}
 	return nil
+}
+
+func (b *Backend) Close() {
+	if b.outPort != nil {
+		b.outPort.Close()
+		b.outPort = nil
+	}
+	close(b.UIStates)
 }

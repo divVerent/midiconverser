@@ -329,7 +329,6 @@ func Main() error {
 	if err != nil {
 		return fmt.Errorf("could not open MIDI port %v: %w", outPort, err)
 	}
-	defer outPort.Close()
 
 	config, err := file.ReadConfig(fsys, *c)
 	if err != nil {
@@ -346,7 +345,7 @@ func Main() error {
 	var loopErr error
 	go func() {
 		loopErr = b.Loop()
-		close(b.UIStates)
+		b.Close()
 	}()
 
 	err = textModeUI(b, fsys)
