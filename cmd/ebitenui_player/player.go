@@ -26,6 +26,10 @@ import (
 	"github.com/divVerent/midiconverser/internal/player"
 )
 
+// TODO:
+// - Allow editing the config with a dialog (requires refactor to be able to send updates).
+// - Allow changing the MIDI port in the same dialog (same refactor needed).
+
 var (
 	c    = flag.String("c", "config.yml", "config file name (YAML)")
 	port = flag.String("port", "", "regular expression to match the preferred output port")
