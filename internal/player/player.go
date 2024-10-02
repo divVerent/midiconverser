@@ -69,7 +69,7 @@ type Command struct {
 	// Config contains a new configuration. Will be applied on next hymn.
 	Config *processor.Config
 
-	// OutPort contains a new, already opened, MIDI port. Will be applied on next hymn. Ownership is taken by this module.
+	// OutPort contains a new, not yet opened, MIDI port. Will be applied once silent.
 	OutPort drivers.Out
 }
 
@@ -159,8 +159,12 @@ type Backend struct {
 	// The configuration data.
 	config processor.Config
 
-	// port is the MIDI port to play to.
+	// outPort is the MIDI port to play to.
 	outPort drivers.Out
+
+	// nextOutPort is the outPort to change to. Will be applied on next
+	// playback or when no note is playing.
+	nextOutPort drivers.Out
 
 	// The current UI state. Sent to the client on every update, nonblockingly.
 	uiState UIState
@@ -190,11 +194,11 @@ type Options struct {
 
 func NewBackend(options *Options) *Backend {
 	return &Backend{
-		Commands: make(chan Command, 10),
-		UIStates: make(chan UIState, 100),
-		fsys:     options.FSys,
-		config:   *options.Config,
-		outPort:  options.OutPort,
+		Commands:    make(chan Command, 10),
+		UIStates:    make(chan UIState, 100),
+		fsys:        options.FSys,
+		config:      *options.Config,
+		nextOutPort: options.OutPort,
 		uiState: UIState{
 			PreludeTags:    tagsDefault(),
 			Tempo:          1.0,
@@ -275,20 +279,38 @@ func (b *Backend) handleCommandDuringSleep(cmd Command) error {
 		b.config = *cmd.Config
 		return nil
 	case cmd.OutPort != nil:
-		if b.outPort != nil {
-			b.outPort.Close()
-		}
-		b.outPort = cmd.OutPort
+		b.nextOutPort = cmd.OutPort
 		return nil
 	default:
 		return fmt.Errorf("unrecognized command: %+v", cmd)
 	}
 }
 
+func (b *Backend) updateOutPort() error {
+	if b.nextOutPort == nil {
+		return nil
+	}
+	err := b.nextOutPort.Open()
+	b.nextOutPort = nil
+	if err != nil {
+		return err
+	}
+	if b.outPort != nil {
+		b.outPort.Close()
+	}
+	b.outPort = b.nextOutPort
+	return nil
+}
+
 // playMIDI plays a MIDI file on the current thread.
 func (b *Backend) playMIDI(mid *smf.SMF, key processor.OutputKey) error {
+	err := b.updateOutPort()
+	if err != nil {
+		return err
+	}
+
 	var maxTick int64
-	err := processor.ForEachEventWithTime(mid, func(t int64, track int, msg smf.Message) error {
+	err = processor.ForEachEventWithTime(mid, func(t int64, track int, msg smf.Message) error {
 		maxTick = t
 		return nil
 	})
@@ -315,10 +337,21 @@ func (b *Backend) playMIDI(mid *smf.SMF, key processor.OutputKey) error {
 
 	var fixOffsetT time.Duration
 
+	tracker := processor.NewNoteTracker(false)
 	err = processor.ForEachEventWithTime(mid, func(t int64, track int, msg smf.Message) error {
 		if msg.IsMeta() {
 			return nil
 		}
+
+		// Allow port changes if no note is playing right now.
+		if !tracker.Playing() {
+			err := b.updateOutPort()
+			if err != nil {
+				return err
+			}
+		}
+
+		tracker.Handle(t, track, msg)
 
 		// Parse MIDI.
 		midiT := time.Microsecond*time.Duration(mid.TimeAt(t)) + fixOffsetT
@@ -683,6 +716,9 @@ func (b *Backend) Loop() error {
 }
 
 func (b *Backend) Close() {
+	if b.nextOutPort != nil {
+		b.nextOutPort = nil
+	}
 	if b.outPort != nil {
 		b.outPort.Close()
 		b.outPort = nil

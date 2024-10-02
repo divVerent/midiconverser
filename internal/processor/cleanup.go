@@ -66,7 +66,7 @@ func removeRedundantTempoEvents(mid *smf.SMF) (float64, error) {
 
 // removeRedundantNoteEvents removes overlapping note start events in the song.
 func removeRedundantNoteEvents(mid *smf.SMF, refcounting, holding bool) error {
-	tracker := newNoteTracker(refcounting)
+	tracker := NewNoteTracker(refcounting)
 	tracks := make([]smf.Track, len(mid.Tracks))
 	trackTime := make([]int64, len(mid.Tracks))
 	err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {

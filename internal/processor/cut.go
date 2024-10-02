@@ -42,9 +42,9 @@ func cutMIDI(mid *smf.SMF, cuts []cut) (*smf.SMF, error) {
 		tracks[t].Close(uint32(tick - trackTimes[t]))
 		trackTimes[t] = tick
 	}
-	tracker := newNoteTracker(false)
+	tracker := NewNoteTracker(false)
 	forEachInSection := func(from, to int64, dirtyFrom, dirtyTo bool, yield func(time int64, track int, msg smf.Message) error) error {
-		tracker = newNoteTracker(false) // TODO: make it fully local.
+		tracker = NewNoteTracker(false) // TODO: make it fully local.
 		first := true
 		wasPlayingAtEnd := false
 		err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
