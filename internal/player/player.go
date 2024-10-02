@@ -492,8 +492,10 @@ func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 	}
 
 	log.Printf("Playing full verses for prelude: %v", optionsFile)
+
+	b.uiState.NumVerses = processor.WithDefault(b.config.PreludePlayerRepeat, 2) // Cleared by preludePlayer().
 	for i := 0; i < b.uiState.NumVerses; i++ {
-		b.uiState.Verse = i
+		b.uiState.Verse = i // Cleared by preludePlayer().
 		err := b.playMIDI(verse, key)
 		if err != nil {
 			return false, fmt.Errorf("could not play %v: %w", optionsFile, err)
@@ -508,17 +510,14 @@ func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 
 // preludePlayer plays random hymns.
 func (b *Backend) preludePlayer() error {
-	n := processor.WithDefault(b.config.PreludePlayerRepeat, 2)
 	b.uiState.PlayPrelude = true
-	b.uiState.NumVerses = n
-	b.uiState.Verse = 0
 	b.uiState.CurrentMessage = "prelude player running"
 	// b.sendUIState() // Redundant with playMIDI.
 	defer func() {
 		b.uiState.PlayPrelude = false
-		b.uiState.NumVerses = 0
-		b.uiState.Verse = 0
 		b.uiState.CurrentMessage = ""
+		b.uiState.Verse = 0
+		b.uiState.NumVerses = 0
 		b.sendUIState()
 	}()
 
