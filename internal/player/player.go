@@ -290,15 +290,16 @@ func (b *Backend) updateOutPort() error {
 	if b.nextOutPort == nil {
 		return nil
 	}
-	err := b.nextOutPort.Open()
+	port := b.nextOutPort
 	b.nextOutPort = nil
+	err := port.Open()
 	if err != nil {
 		return err
 	}
 	if b.outPort != nil {
 		b.outPort.Close()
 	}
-	b.outPort = b.nextOutPort
+	b.outPort = port
 	return nil
 }
 
