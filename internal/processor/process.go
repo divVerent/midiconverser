@@ -103,26 +103,33 @@ func beatsOrNotesToTicks(b bar, n int) int64 {
 
 // Config define global settings.
 type Config struct {
-	// Organ specific configuration or override.
-	BPMFactor              float64 `yaml:"bpm_factor,omitempty"`
-	Channel                int     `yaml:"channel,omitempty"`
-	MelodyTrackNameRE      string  `yaml:"melody_track_name_re",omitempty`
-	MelodyChannel          int     `yaml:"melody_channel",omitempty`
-	BassTrackNameRE        string  `yaml:"bass_track_name_re",omitempty`
-	BassChannel            int     `yaml:"bass_channel",omitempty`
-	HoldRedundantNotes     bool    `yaml:"hold_redundant_notes,omitempty"`
-	FermataExtendBeats     int     `yaml:"fermata_extend_beats,omitempty"`
-	FermataRestBeats       int     `yaml:"fermata_rest_beats,omitempty"`
-	RestBetweenVersesBeats int     `yaml:"rest_between_verses_beats,omitempty"`
-	FermatasInPrelude      bool    `yaml:"fermatas_in_prelude,omitempty"`
-	FermatasInPostlude     bool    `yaml:"fermatas_in_postlude,omitempty"`
+	// Hymnbook specific configuration. Not needed in UI.
+	MelodyTrackNameRE string `yaml:"melody_track_name_re,omitempty"`
+	BassTrackNameRE   string `yaml:"bass_track_name_re,omitempty"`
+
+	// Organ specific configuration or override. Should be offered as UI element.
+	Channel            int  `yaml:"channel,omitempty"`
+	MelodyChannel      int  `yaml:"melody_channel,omitempty"`
+	BassChannel        int  `yaml:"bass_channel,omitempty"`
+	HoldRedundantNotes bool `yaml:"hold_redundant_notes,omitempty"`
+
+	// Organist preferences. Should be offered as UI element.
+	BPMFactor             float64 `yaml:"bpm_factor,omitempty"`
+	PreludePlayerRepeat   int     `yaml:"prelude_player_repeat,omitempty"`
+	PreludePlayerSleepSec float64 `yaml:"prelude_player_sleep_sec,omitempty"`
+
+	// Interpreted fermatas. Only used for prelude and postlude. Not needed in UI.
+	FermatasInPrelude  bool `yaml:"fermatas_in_prelude,omitempty"`
+	FermatasInPostlude bool `yaml:"fermatas_in_postlude,omitempty"`
+	FermataExtendBeats int  `yaml:"fermata_extend_beats,omitempty"`
+	FermataRestBeats   int  `yaml:"fermata_rest_beats,omitempty"`
 
 	// Also future options:
 	// - Transpose
 
-	PreludePlayerRepeat   int     `yaml:"prelude_player_repeat,omitempty"`
-	PreludePlayerSleepSec float64 `yaml:"prelude_player_sleep_sec,omitempty"`
-	WholeExportSleepSec   float64 `yaml:"whole_export_sleep_sec,omitempty"`
+	// Misc for exporting. Not needed in UI.
+	RestBetweenVersesBeats int     `yaml:"rest_between_verses_beats,omitempty"`
+	WholeExportSleepSec    float64 `yaml:"whole_export_sleep_sec,omitempty"`
 }
 
 // Options define file specific options.
