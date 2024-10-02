@@ -47,7 +47,7 @@ type playerUI struct {
 	font     *text.GoTextFaceSource
 
 	width, height int
-	scale         int
+	scale         float64
 
 	rootContainer    *widget.Container
 	currentlyPlaying *widget.Label
@@ -217,10 +217,10 @@ func (p *playerUI) initUI() error {
 }
 
 func (p *playerUI) recreateUI() {
-	fontSize := 4.0 * float64(p.scale)
-	spacing := 3 * p.scale
-	listSliderSize := 8 * p.scale
-	buttonInsets := p.scale
+	fontSize := 4.0 * p.scale
+	spacing := int(math.Round(3 * p.scale))
+	listSliderSize := int(math.Round(8 * p.scale))
+	buttonInsets := int(math.Round(p.scale))
 
 	titleBarHeight := int(fontSize + 2*float64(buttonInsets))
 
@@ -485,6 +485,10 @@ func (p *playerUI) recreateUI() {
 	)
 	hymnsTitleContainer.AddChild(hymnsCloseButton)
 
+	if p.hymnsWindowOpen {
+		p.hymnsWindow.Close()
+	}
+
 	p.hymnsWindow = widget.NewWindow(
 		widget.WindowOpts.Contents(hymnsWindowContainer),
 		widget.WindowOpts.TitleBar(hymnsTitleContainer, titleBarHeight),
@@ -563,12 +567,11 @@ func (p *playerUI) hymnsCloseClicked(args *widget.ButtonClickedEventArgs) {
 
 // updateUI updates all widgets to current playback state.
 func (p *playerUI) updateWidgets() {
-	scale := p.width / 80
-	scaleY := p.height / 80
-	if scale > scaleY {
-		scale = scaleY
-	}
-	if scale != p.scale {
+	scale := math.Min(
+		float64(p.width)/80,
+		float64(p.height)/80,
+	)
+	if math.Abs(scale-p.scale) > 0.01 {
 		p.scale = scale
 		p.recreateUI()
 	}
