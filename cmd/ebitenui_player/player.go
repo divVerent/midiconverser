@@ -63,7 +63,7 @@ type playerUI struct {
 func Main() error {
 	flag.Parse()
 
-	ebiten.SetWindowSize(720, 1280)
+	ebiten.SetWindowSize(360, 800)
 	ebiten.SetWindowTitle("MIDI Converser - graphical player")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowClosingHandled(true)
@@ -173,7 +173,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	}
 	fontFace := &text.GoTextFace{
 		Source: font,
-		Size:   32,
+		Size:   16,
 	}
 
 	rootContainer := widget.NewContainer(
@@ -301,7 +301,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	p.fewerVerses = widget.NewButton(
 		widget.ButtonOpts.Text("-", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.Insets{Left: 8, Right: 8}),
+		widget.ButtonOpts.TextPadding(widget.Insets{Left: 4, Right: 4}),
 		widget.ButtonOpts.ClickedHandler(p.fewerVersesClicked),
 	)
 	versesContainer.AddChild(p.fewerVerses)
@@ -309,7 +309,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	p.moreVerses = widget.NewButton(
 		widget.ButtonOpts.Text("+", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.Insets{Left: 8, Right: 8}),
+		widget.ButtonOpts.TextPadding(widget.Insets{Left: 4, Right: 4}),
 		widget.ButtonOpts.ClickedHandler(p.moreVersesClicked),
 	)
 	versesContainer.AddChild(p.moreVerses)
@@ -336,7 +336,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	selectHymn := widget.NewButton(
 		widget.ButtonOpts.Text("Play Hymn...", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(8)),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
 		widget.ButtonOpts.ClickedHandler(p.selectHymnClicked),
 	)
 	playContainer.AddChild(selectHymn)
@@ -344,7 +344,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	playPrelude := widget.NewButton(
 		widget.ButtonOpts.Text("Play Prelude", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(8)),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
 		widget.ButtonOpts.ClickedHandler(p.playPreludeClicked),
 	)
 	playContainer.AddChild(playPrelude)
@@ -352,7 +352,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	p.stop = widget.NewButton(
 		widget.ButtonOpts.Text("Stop", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(8)),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
 		widget.ButtonOpts.ClickedHandler(p.stopClicked),
 	)
 	playContainer.AddChild(p.stop)
@@ -360,7 +360,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	p.prompt = widget.NewButton(
 		widget.ButtonOpts.Text("b", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(8)),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
 		widget.ButtonOpts.ClickedHandler(p.promptClicked),
 	)
 	rootContainer.AddChild(p.prompt)
@@ -395,7 +395,7 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 			widget.ScrollContainerOpts.Image(scrollContainerImage),
 		),
 		widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
-			widget.SliderOpts.MinHandleSize(32),
+			widget.SliderOpts.MinHandleSize(16),
 		),
 		widget.ListOpts.HideHorizontalSlider(),
 		widget.ListOpts.EntryFontFace(fontFace),
@@ -403,14 +403,14 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 		widget.ListOpts.EntryLabelFunc(func(e interface{}) string {
 			return e.(string)
 		}),
-		widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(8)),
+		widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(4)),
 	)
 	hymnsWindowContainer.AddChild(p.hymnList)
 
 	playHymn := widget.NewButton(
 		widget.ButtonOpts.Text("Play Hymn", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(8)),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(4)),
 		widget.ButtonOpts.ClickedHandler(p.playHymnClicked),
 	)
 	hymnsWindowContainer.AddChild(playHymn)
@@ -425,21 +425,21 @@ func (p *playerUI) initUI(fsys fs.FS) error {
 	)
 	hymnsTitle := widget.NewText(
 		widget.TextOpts.Text("Play Hymn...", fontFace, color.White),
-		widget.TextOpts.Insets(widget.Insets{Left: 8, Right: 8}),
+		widget.TextOpts.Insets(widget.Insets{Left: 4, Right: 4}),
 		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
 	)
 	hymnsTitleContainer.AddChild(hymnsTitle)
 	hymnsCloseButton := widget.NewButton(
 		widget.ButtonOpts.Text("X", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.Insets{Left: 8, Right: 8}),
+		widget.ButtonOpts.TextPadding(widget.Insets{Left: 4, Right: 4}),
 		widget.ButtonOpts.ClickedHandler(p.hymnsCloseClicked),
 	)
 	hymnsTitleContainer.AddChild(hymnsCloseButton)
 
 	p.hymnsWindow = widget.NewWindow(
 		widget.WindowOpts.Contents(hymnsWindowContainer),
-		widget.WindowOpts.TitleBar(hymnsTitleContainer, 48),
+		widget.WindowOpts.TitleBar(hymnsTitleContainer, 24),
 		widget.WindowOpts.Modal(),
 		widget.WindowOpts.CloseMode(widget.NONE),
 	)
