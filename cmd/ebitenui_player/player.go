@@ -189,8 +189,6 @@ func (p *playerUI) shutdownBackend() {
 		}
 	}
 	p.backend = nil
-
-	p.outPort.Close()
 }
 
 func listHymns(fsys fs.FS) ([]string, error) {
