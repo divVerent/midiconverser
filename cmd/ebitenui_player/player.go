@@ -875,7 +875,6 @@ func (p *playerUI) stopClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) promptClicked(args *widget.ButtonClickedEventArgs) {
-	p.ui.ClearFocus()
 	p.backend.Commands <- player.Command{
 		Answer: true,
 	}
