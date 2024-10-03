@@ -862,18 +862,21 @@ func (p *playerUI) recreateUI() {
 }
 
 func (p *playerUI) playPreludeClicked(args *widget.ButtonClickedEventArgs) {
+	p.stop.Focus(true)
 	p.backend.Commands <- player.Command{
 		PlayPrelude: true,
 	}
 }
 
 func (p *playerUI) stopClicked(args *widget.ButtonClickedEventArgs) {
+	p.ui.ClearFocus()
 	p.backend.Commands <- player.Command{
 		Exit: true,
 	}
 }
 
 func (p *playerUI) promptClicked(args *widget.ButtonClickedEventArgs) {
+	p.ui.ClearFocus()
 	p.backend.Commands <- player.Command{
 		Answer: true,
 	}
@@ -898,6 +901,7 @@ func (p *playerUI) moreVersesClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
+	p.ui.ClearFocus()
 	w := p.width - 32
 	h := p.height - 32
 	x := (p.width - w) / 2
@@ -909,6 +913,7 @@ func (p *playerUI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
+	p.ui.ClearFocus()
 	p.hymnsWindow.Close()
 	p.hymnsWindowOpen = false
 	e, ok := p.hymnList.SelectedEntry().(string)
@@ -922,11 +927,13 @@ func (p *playerUI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) hymnsCloseClicked(args *widget.ButtonClickedEventArgs) {
+	p.ui.ClearFocus()
 	p.hymnsWindow.Close()
 	p.hymnsWindowOpen = false
 }
 
 func (p *playerUI) settingsClicked(args *widget.ButtonClickedEventArgs) {
+	p.ui.ClearFocus()
 	p.initOutPortsList()
 	p.settingsOutPort.SetEntries(p.outPortsAny)
 	if p.outPort != nil {
@@ -960,6 +967,7 @@ func (p *playerUI) settingsClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) applySettingsClicked(args *widget.ButtonClickedEventArgs) {
+	p.ui.ClearFocus()
 	p.settingsWindow.Close()
 	p.settingsWindowOpen = false
 	nextPort := p.settingsOutPort.SelectedEntry()
@@ -986,6 +994,7 @@ func (p *playerUI) applySettingsClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) settingsCloseClicked(args *widget.ButtonClickedEventArgs) {
+	p.ui.ClearFocus()
 	p.settingsWindow.Close()
 	p.settingsWindowOpen = false
 }
@@ -1066,6 +1075,9 @@ func (p *playerUI) updateWidgets() {
 	}
 
 	if p.uiState.Prompt != "" {
+		if p.prompt.GetWidget().Disabled {
+			p.prompt.Focus(true)
+		}
 		p.prompt.Text().Label = p.uiState.Prompt
 		p.prompt.GetWidget().Visibility = widget.Visibility_Show
 		p.prompt.GetWidget().Disabled = false
