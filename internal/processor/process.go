@@ -46,7 +46,7 @@ func (p *Pos) UnmarshalYAML(value *yaml.Node) error {
 	}
 	result := posFlagValue.FindStringSubmatch(*item)
 	if result == nil {
-		return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n", *item)
+		return fmt.Errorf("pos %q not in format n.n+n/n", *item)
 	}
 	*p = Pos{
 		Beat:      1,
@@ -55,24 +55,24 @@ func (p *Pos) UnmarshalYAML(value *yaml.Node) error {
 	}
 	p.Bar, err = strconv.Atoi(result[1])
 	if err != nil {
-		return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", *item)
+		return fmt.Errorf("pos %q not in format n.n+n/n-n.n+n/n", *item)
 	}
 	if result[2] != "" {
 		p.Beat, err = strconv.Atoi(result[2])
 		if err != nil {
-			return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", *item)
+			return fmt.Errorf("pos %q not in format n.n+n/n-n.n+n/n", *item)
 		}
 	}
 	if result[3] != "" {
 		p.BeatNum, err = strconv.Atoi(result[3])
 		if err != nil {
-			return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", *item)
+			return fmt.Errorf("pos %q not in format n.n+n/n-n.n+n/n", *item)
 		}
 	}
 	if result[4] != "" {
 		p.BeatDenom, err = strconv.Atoi(result[4])
 		if err != nil {
-			return fmt.Errorf("failed to parse --fermatas: pos %q not in format n.n+n/n-n.n+n/n", *item)
+			return fmt.Errorf("pos %q not in format n.n+n/n-n.n+n/n", *item)
 		}
 	}
 	return nil
