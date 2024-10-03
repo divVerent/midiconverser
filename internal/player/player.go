@@ -511,7 +511,7 @@ func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 // preludePlayer plays random hymns.
 func (b *Backend) preludePlayer() error {
 	b.uiState.PlayPrelude = true
-	b.uiState.CurrentMessage = "prelude player running"
+	b.uiState.CurrentMessage = "prelude player"
 	// b.sendUIState() // Redundant with playMIDI.
 	defer func() {
 		b.uiState.PlayPrelude = false
@@ -602,7 +602,7 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 	key = processor.OutputKey{Special: processor.Prelude}
 	prelude := output[key]
 	if prelude != nil {
-		err := b.prompt("start prelude", "playing prelude")
+		err := b.prompt("Start Prelude", fmt.Sprintf("playing %v", key))
 		if err != nil {
 			return err
 		}
@@ -622,13 +622,13 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 			}
 			var msg string
 			if j == 0 {
-				msg = "start verse"
+				msg = "Start Verse"
 			} else if j%2 == 1 {
-				msg = "end fermata"
+				msg = "End Fermata"
 			} else {
-				msg = "continue"
+				msg = "Continue"
 			}
-			err := b.prompt(msg, "playing verse")
+			err := b.prompt(msg, fmt.Sprintf("playing %v", key))
 			if err != nil {
 				return err
 			}
@@ -642,7 +642,7 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 	key = processor.OutputKey{Special: processor.Postlude}
 	postlude := output[key]
 	if postlude != nil {
-		err := b.prompt("postlude", "playing postlude")
+		err := b.prompt("Start Postlude", fmt.Sprintf("playing %v", key))
 		if err != nil {
 			return err
 		}

@@ -1010,13 +1010,7 @@ func (p *playerUI) updateWidgets() {
 		p.recreateUI()
 	}
 
-	var np string
-	if p.uiState.PlayOne != "" && p.uiState.Playing {
-		np = fmt.Sprintf("%v (%v)", p.uiState.CurrentFile, p.uiState.CurrentPart)
-	} else {
-		np = p.uiState.CurrentFile
-	}
-	p.currentlyPlaying.Label = np
+	p.currentlyPlaying.Label = p.uiState.CurrentFile
 
 	if p.uiState.Err != nil {
 		p.statusLabel.Label = "Error: "
