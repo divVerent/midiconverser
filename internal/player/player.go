@@ -581,10 +581,9 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 
 	log.Printf("Playing all verses of %v.", optionsFile)
 
-	n := processor.WithDefault(options.NumVerses, 1)
 	b.uiState.PlayOne = optionsFile
 	b.uiState.CurrentFile = optionsFile
-	b.uiState.NumVerses = n
+	b.uiState.NumVerses = processor.WithDefault(options.NumVerses, 1)
 	b.uiState.Verse = 0
 	// b.sendUIState() // Redundant with prompt.
 	defer func() {
@@ -599,7 +598,7 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 	key = processor.OutputKey{Special: processor.Prelude}
 	prelude := output[key]
 	if prelude != nil {
-		err := b.prompt("Start Prelude", fmt.Sprintf("playing %v", key))
+		err := b.prompt("Start Prelude", "playing prelude")
 		if err != nil {
 			return err
 		}
@@ -611,7 +610,16 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 
 	for i := 0; i < b.uiState.NumVerses; i++ {
 		b.uiState.Verse = i
+		n := 0
 		for j := 0; ; j++ {
+			key := processor.OutputKey{Part: j}
+			part := output[key]
+			if part == nil {
+				break
+			}
+			n++
+		}
+		for j := 0; j < n; j++ {
 			key := processor.OutputKey{Part: j}
 			part := output[key]
 			if part == nil {
@@ -625,7 +633,7 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 			} else {
 				msg = "Continue"
 			}
-			err := b.prompt(msg, fmt.Sprintf("playing %v", key))
+			err := b.prompt(msg, fmt.Sprintf("playing part %d/%d", j+1, n))
 			if err != nil {
 				return err
 			}
@@ -639,7 +647,7 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 	key = processor.OutputKey{Special: processor.Postlude}
 	postlude := output[key]
 	if postlude != nil {
-		err := b.prompt("Start Postlude", fmt.Sprintf("playing %v", key))
+		err := b.prompt("Start Postlude", "playing postlude")
 		if err != nil {
 			return err
 		}
