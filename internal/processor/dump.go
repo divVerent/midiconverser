@@ -14,7 +14,7 @@ func dumpTimeSig(prefix string, mid *smf.SMF, b bars) {
 			return nil
 		}
 		bar, beat := b.FromTick(time)
-		log.Printf("%s: %d.(%v) @ %d: tempo is %f bpm", prefix, bar+1, beat+1, time, bpm)
+		log.Printf("%s: %d.(%v) @ %d: tempo is %f bpm.", prefix, bar+1, beat+1, time, bpm)
 		return nil
 	})
 	var start int
@@ -27,7 +27,7 @@ func dumpTimeSig(prefix string, mid *smf.SMF, b bars) {
 				if i-start == 1 {
 					plural = ""
 				}
-				log.Printf("%s: %d @ %d: %d bar%s of %d/%d (beat = %d/%d)", prefix, start+1, startTicks, i-start, plural, sigBar.Num, sigBar.Denom, sigBar.BeatNum, sigBar.Denom)
+				log.Printf("%s: %d @ %d: %d bar%s of %d/%d (beat = %d/%d).", prefix, start+1, startTicks, i-start, plural, sigBar.Num, sigBar.Denom, sigBar.BeatNum, sigBar.Denom)
 			}
 			start = i
 			if thisBar != nil {
@@ -40,5 +40,5 @@ func dumpTimeSig(prefix string, mid *smf.SMF, b bars) {
 		gotSig(i, &bar)
 	}
 	gotSig(len(b), nil)
-	log.Printf("%s: %d: end", prefix, len(b)+1)
+	log.Printf("%s: %d: end.", prefix, len(b)+1)
 }

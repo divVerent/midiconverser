@@ -40,7 +40,7 @@ func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, mel
 			}
 			break
 		}
-		log.Printf("track %d name: %s", i, name)
+		log.Printf("Track %d name: %s.", i, name)
 		if melodyTracks == nil && melodyRE != "" && melody.MatchString(name) {
 			isMelody[i] = true
 		}

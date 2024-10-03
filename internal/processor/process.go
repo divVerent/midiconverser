@@ -221,11 +221,14 @@ func (k OutputKey) String() string {
 
 // Process processes the given MIDI file and writes the result to out.
 func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf.SMF, error) {
-	bars := findBars(mid)
+	bars, err := findBars(mid)
+	if err != nil {
+		return nil, err
+	}
 	dumpTimeSig("Before", mid, bars)
 
 	// Fix bad events.
-	err := removeUnneededEvents(mid)
+	err = removeUnneededEvents(mid)
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +331,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 	ticksBetweenVerses := beatsOrNotesToTicks(bars[len(bars)-1], WithDefault(config.RestBetweenVersesBeats, 1))
 	totalTicks := bars[len(bars)-1].End()
 
-	log.Printf("fermata data: %+v", fermataTick)
+	log.Printf("Fermata data: %+v.", fermataTick)
 
 	// Make a whole-file MIDI.
 	var preludeCuts []cut
@@ -341,13 +344,13 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 			RestAfter:  0,
 		}, fermataTick, WithDefaultPtr(options.FermatasInPrelude, config.FermatasInPrelude))...)
 	}
-	log.Printf("prelude cuts: %+v", preludeCuts)
+	log.Printf("Prelude cuts: %+v.", preludeCuts)
 	verseCuts := fermatize(cut{
 		RestBefore: ticksBetweenVerses,
 		Begin:      0,
 		End:        totalTicks,
 	}, fermataTick)
-	log.Printf("verse cuts: %+v", verseCuts)
+	log.Printf("Verse cuts: %+v.", verseCuts)
 	var postludeCuts []cut
 	for _, p := range postludeTick {
 		// Prelude does not execute fermatas.
@@ -358,7 +361,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 			RestAfter:  0,
 		}, fermataTick, WithDefaultPtr(options.FermatasInPostlude, config.FermatasInPostlude))...)
 	}
-	log.Printf("postlude cuts: %+v", postludeCuts)
+	log.Printf("Postlude cuts: %+v.", postludeCuts)
 
 	output := map[OutputKey]*smf.SMF{}
 
@@ -377,7 +380,10 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 		return nil, err
 	}
 	output[OutputKey{Special: Whole}] = wholeMIDI
-	//newBars := findBars(wholeMIDI)
+	//newBars, err := findBars(wholeMIDI)
+	//if err != nil {
+	//	return nil, err
+	//}
 	//dumpTimeSig("Whole", wholeMIDI, newBars)
 
 	if len(preludeCuts) > 0 {
@@ -390,7 +396,10 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 			return nil, err
 		}
 		output[OutputKey{Special: Prelude}] = preludeMIDI
-		newBars := findBars(preludeMIDI)
+		newBars, err := findBars(preludeMIDI)
+		if err != nil {
+			return nil, err
+		}
 		dumpTimeSig("Prelude", preludeMIDI, newBars)
 	}
 	if len(verseCuts) > 0 {
@@ -403,7 +412,10 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 			return nil, err
 		}
 		output[OutputKey{Special: Verse}] = verseMIDI
-		//newBars := findBars(verseMIDI)
+		//newBars, err := findBars(verseMIDI)
+		//if err != nil {
+		//	return nil, err
+		//}
 		//dumpTimeSig("Verse", verseMIDI, newBars)
 	}
 	for i, c := range verseCuts {
@@ -416,7 +428,10 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 			return nil, err
 		}
 		output[OutputKey{Part: i}] = sectionMIDI
-		newBars := findBars(sectionMIDI)
+		newBars, err := findBars(sectionMIDI)
+		if err != nil {
+			return nil, err
+		}
 		dumpTimeSig(fmt.Sprintf("Section %d", i), sectionMIDI, newBars)
 	}
 	if len(postludeCuts) > 0 {
@@ -429,7 +444,10 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 			return nil, err
 		}
 		output[OutputKey{Special: Postlude}] = postludeMIDI
-		newBars := findBars(postludeMIDI)
+		newBars, err := findBars(postludeMIDI)
+		if err != nil {
+			return nil, err
+		}
 		dumpTimeSig("Postlude", postludeMIDI, newBars)
 	}
 	panicMIDI, err := panicMIDI(mid)

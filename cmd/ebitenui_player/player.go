@@ -28,10 +28,6 @@ import (
 	"github.com/divVerent/midiconverser/internal/processor"
 )
 
-// TODO:
-// - Allow editing the config with a dialog (send Config: command).
-// - Allow changing the MIDI port in the same dialog (send OutPort: command).
-
 var (
 	c    = flag.String("c", "config.yml", "config file name (YAML)")
 	port = flag.String("port", "", "regular expression to match the preferred output port")
@@ -130,7 +126,7 @@ func main() {
 	flag.Parse()
 	err := Main()
 	if err != nil {
-		log.Print(err)
+		log.Printf("Exiting due to: %v.", err)
 		os.Exit(1)
 	}
 }
@@ -151,9 +147,9 @@ func (p *playerUI) initBackend(fsys fs.FS) error {
 	var err error
 	p.outPort, err = player.FindBestPort(*port)
 	if err != nil {
-		log.Printf("could not find MIDI port: %v - continuning without; playing will fail", err)
+		log.Printf("Could not find MIDI port: %v - continuning without; playing will fail.", err)
 	}
-	log.Printf("Picked output port: %v", p.outPort)
+	log.Printf("Picked output port: %v.", p.outPort)
 
 	p.config, err = file.ReadConfig(fsys, *c)
 	if err != nil {
@@ -162,7 +158,7 @@ func (p *playerUI) initBackend(fsys fs.FS) error {
 
 	err = loadConfigOverride(*c, p.config)
 	if err != nil {
-		log.Printf("failed to load config override: %v", err)
+		log.Printf("Failed to load config override: %v.", err)
 	}
 
 	p.backend = player.NewBackend(&player.Options{
@@ -412,7 +408,7 @@ func (p *playerUI) recreateUI() {
 	mainContainer.AddChild(tableContainer)
 
 	currentlyPlayingLabel := widget.NewLabel(
-		widget.LabelOpts.Text("Currently Playing: ", fontFace, labelColors),
+		widget.LabelOpts.Text("Now Playing: ", fontFace, labelColors),
 	)
 	tableContainer.AddChild(currentlyPlayingLabel)
 	p.currentlyPlaying = widget.NewLabel(
@@ -918,7 +914,7 @@ func (p *playerUI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
 	p.hymnsWindowOpen = false
 	e, ok := p.hymnList.SelectedEntry().(string)
 	if !ok {
-		log.Printf("no hymn selected")
+		log.Printf("No hymn selected.")
 		return
 	}
 	p.backend.Commands <- player.Command{
@@ -1093,7 +1089,7 @@ updateLoop:
 		select {
 		case ui, ok := <-p.backend.UIStates:
 			if !ok {
-				log.Printf("UI closed")
+				log.Printf("UI closed.")
 				// UI channel was closed.
 				if p.loopErr != nil {
 					return p.loopErr

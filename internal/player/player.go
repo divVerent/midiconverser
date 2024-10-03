@@ -33,8 +33,8 @@ func tagsDefault() map[string]bool {
 	}
 	// Go back to 1st Advent.
 	beginTime = beginTime.Add(-3 * 7 * 24 * time.Hour)
-	log.Printf("First Advent: %v", beginTime)
-	log.Printf("Xmas ends: %v", endTime)
+	log.Printf("First Advent: %v.", beginTime)
+	log.Printf("Xmas ends: %v.", endTime)
 	if now.Before(beginTime) || !now.Before(endTime) {
 		tags["xmas"] = false
 	}
@@ -214,7 +214,7 @@ func (b *Backend) sendUIState() {
 	case b.UIStates <- b.uiState:
 		return
 	default:
-		log.Printf("tried to send an UI state, but nobody came")
+		log.Printf("Tried to send an UI state, but nobody came.")
 		return
 	}
 }
@@ -236,7 +236,7 @@ func (b *Backend) sigSleep(t time.Duration) error {
 			if err := b.handleCommandDuringSleep(cmd); err != nil {
 				if !errors.Is(err, promptAnsweredError) {
 					if b.nextCommand != nil {
-						log.Panicf("already have a nextCommand")
+						log.Panicf("Unreachable code: already have a next command!")
 					}
 					b.nextCommand = &cmd
 				}
@@ -271,7 +271,7 @@ func (b *Backend) handleCommandDuringSleep(cmd Command) error {
 		return nil
 	case cmd.Answer:
 		if b.uiState.Prompt == "" {
-			log.Printf("Spurious prompt answer: %+v", cmd)
+			log.Printf("Spurious prompt answer: %+v.", cmd)
 			return nil
 		}
 		return promptAnsweredError // Caught when waiting for prompt.
@@ -359,7 +359,7 @@ func (b *Backend) playMIDI(mid *smf.SMF, key processor.OutputKey) error {
 		midiMsg := midi.Message(msg)
 
 		if midiT < prevT {
-			log.Printf("playback time went backwards from %v to %v for timestamps %v to %v", prevT, midiT, prevTick, t)
+			log.Printf("Playback time went backwards from %v to %v for timestamps %v to %v.", prevT, midiT, prevTick, t)
 			fixOffsetT += prevT - midiT
 			midiT = prevT
 		}
@@ -408,9 +408,6 @@ func fixOutput(output map[processor.OutputKey]*smf.SMF) error {
 		if err != nil {
 			return fmt.Errorf("cannot reread MIDI %v: %w", k, err)
 		}
-		for _, c := range fixed.TempoChanges() {
-			log.Printf("post fix %v: %+v", k, *c)
-		}
 		output[k] = fixed
 	}
 	return nil
@@ -440,7 +437,7 @@ func (b *Backend) load(optionsFile string) (map[processor.OutputKey]*smf.SMF, *p
 func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 	output, options, err := b.load(optionsFile)
 	if err != nil {
-		log.Printf("skipping prelude file %v due to: %v", optionsFile, err)
+		log.Printf("Skipping prelude file %v due to: %v.", optionsFile, err)
 		return false, nil
 	}
 
@@ -491,7 +488,7 @@ func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 		return false, fmt.Errorf("no verse file for %v", optionsFile)
 	}
 
-	log.Printf("Playing full verses for prelude: %v", optionsFile)
+	log.Printf("Playing full verses for prelude: %v.", optionsFile)
 
 	b.uiState.NumVerses = processor.WithDefault(b.config.PreludePlayerRepeat, 2) // Cleared by preludePlayer().
 	for i := 0; i < b.uiState.NumVerses; i++ {
@@ -582,7 +579,7 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 	allOff := output[key]
 	defer b.playMIDI(allOff, key)
 
-	log.Printf("Playing all verses of %v", optionsFile)
+	log.Printf("Playing all verses of %v.", optionsFile)
 
 	n := processor.WithDefault(options.NumVerses, 1)
 	b.uiState.PlayOne = optionsFile

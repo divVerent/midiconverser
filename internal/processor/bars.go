@@ -1,12 +1,7 @@
 package processor
 
-// TODO: Rewrite all without sequencer, as sequencer seems VERY broken.
-// Thus, make our own absolute-time structure, then work in there.
-// Can retain track structure by remembering which event was on which track.
-// Hardest part is that we need bar/beat number <-> abstime mapping.
-
 import (
-	"log"
+	"fmt"
 	"slices"
 
 	"gitlab.com/gomidi/midi/v2/smf"
@@ -99,7 +94,7 @@ func (b bars) FromTick(tick int64) (int, float64) {
 	return 0, -1
 }
 
-func findBars(midi *smf.SMF) bars {
+func findBars(midi *smf.SMF) (bars, error) {
 	type timeSig struct {
 		start               int64
 		barLen              int64
@@ -119,7 +114,7 @@ func findBars(midi *smf.SMF) bars {
 		var time int64
 		for _, ev := range t {
 			time += int64(ev.Delta)
-			// log.Printf("track %d event @ %d: %v", i, time, ev.Message)
+			// log.Printf("Track %d event @ %d: %v.", i, time, ev.Message)
 			if ev.Message.IsPlayable() && time > lastTime {
 				lastTime = time
 			}
@@ -128,7 +123,7 @@ func findBars(midi *smf.SMF) bars {
 				whole := 4 * int64(midi.TimeFormat.(smf.MetricTicks))
 				beat := int64(midi.TimeFormat.(smf.MetricTicks)) * int64(cpt) / 24
 				if (beat*int64(denom))%whole != 0 {
-					log.Panicf("unusual beat duration: got %d ticks per beat and %d ticks per whole in a %d/%d time signature",
+					return nil, fmt.Errorf("Unusual beat duration: got %d ticks per beat and %d ticks per whole in a %d/%d time signature.",
 						beat, whole, num, denom)
 				}
 				beatNum := beat * int64(denom) / whole
@@ -143,7 +138,7 @@ func findBars(midi *smf.SMF) bars {
 		}
 	}
 	if lastTime == 0 {
-		return nil
+		return nil, nil
 	}
 	sigs = append(sigs, timeSig{
 		start: lastTime,
@@ -199,5 +194,5 @@ func findBars(midi *smf.SMF) bars {
 	beatLen := lastBar.BeatLength()
 	lastBeats := (lastBar.Length + beatLen - 1) / beatLen
 	lastBar.SetToLength(lastBeats * beatLen)
-	return b
+	return b, nil
 }

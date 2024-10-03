@@ -152,7 +152,7 @@ func textModeUI(b *player.Backend, fsys fs.FS) error {
 		for {
 			n, err := os.Stdin.Read(buf)
 			if err != nil {
-				log.Printf("error reading stdin: %v", err)
+				log.Printf("Error reading stdin: %v.", err)
 				close(stdin)
 				return
 			}
@@ -170,15 +170,6 @@ func textModeUI(b *player.Backend, fsys fs.FS) error {
 	var commandErr error
 
 	for {
-		var np string
-		if ui.PlayPrelude {
-			np = fmt.Sprintf("%v (prelude player)", ui.CurrentFile)
-		} else if ui.PlayOne != "" && ui.Playing {
-			np = fmt.Sprintf("%v (%v)", ui.CurrentFile, ui.CurrentPart)
-		} else if ui.PlayOne != "" {
-			np = ui.CurrentFile
-		}
-
 		var bar string
 		if ui.Playing {
 			bar = " >>  "
@@ -207,7 +198,7 @@ func textModeUI(b *player.Backend, fsys fs.FS) error {
 		lines := []string{
 			"\033[m\033[2J\033[H\033[1;34mMIDI Converser - text mode player\033[m",
 			"",
-			ifLine(np != "", fmt.Sprintf("\033[1mCurrently Playing:\033[m %v", np)),
+			ifLine(ui.CurrentFile != "", fmt.Sprintf("\033[1mNow Playing:\033[m %v", ui.CurrentFile)),
 			ifLine(ui.CurrentMessage != "", fmt.Sprintf("\033[1mStatus:\033[m %v", ui.CurrentMessage)),
 			"",
 			ifLine(len(ui.PreludeTags) != 0, fmt.Sprintf("\033[1mPrelude tags:\033[m %v", preludeTagsStr(ui.PreludeTags))),
@@ -323,7 +314,7 @@ func Main() error {
 	if err != nil {
 		return fmt.Errorf("could not find MIDI port: %w", err)
 	}
-	log.Printf("Picked output port: %v", outPort)
+	log.Printf("Picked output port: %v.", outPort)
 
 	config, err := file.ReadConfig(fsys, *c)
 	if err != nil {
@@ -357,7 +348,7 @@ func main() {
 		os.Exit(127)
 	}
 	if err != nil {
-		log.Println(err)
+		log.Printf("Exiting due to: %v.", err)
 		os.Exit(1)
 	}
 }

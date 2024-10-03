@@ -41,7 +41,7 @@ func removeRedundantTempoEvents(mid *smf.SMF) (float64, error) {
 	err := ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		if msg.GetMetaTempo(&qpm) {
 			if time == lastTempoTime && haveLastTempo {
-				log.Printf("removed redundant tempo event at %v", time)
+				log.Printf("Removed redundant tempo event at %v.", time)
 				tracks[lastTempoTrack][lastTempoIndex].Message = msg // Keep newest tempo.
 				return nil                                           // Discard second event.
 			}
@@ -78,7 +78,7 @@ func removeRedundantNoteEvents(mid *smf.SMF, refcounting, holding bool) error {
 				prevStart := tracker.NoteStart(key)
 				duration := time - prevStart
 				if duration > 0 {
-					//log.Printf("restarting note with already duration %d", duration)
+					//log.Printf("Restarting note with already duration %d.", duration)
 					// Restart the note by inserting a note-off and a note-on event.
 					noteOff := smf.Message(midi.NoteOff(ch, note))
 					tracks[track] = append(tracks[track], smf.Event{
@@ -88,7 +88,7 @@ func removeRedundantNoteEvents(mid *smf.SMF, refcounting, holding bool) error {
 					trackTime[track] = time
 					tracker.SetNoteStart(key, time)
 				} else {
-					//log.Printf("not restarting note with already duration %d", duration)
+					//log.Printf("Not restarting note with already duration %d.", duration)
 					return nil
 				}
 			} else {
