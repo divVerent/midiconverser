@@ -56,10 +56,10 @@ type playerUI struct {
 	currentlyPlaying            *widget.Label
 	statusLabel                 *widget.Label
 	status                      *widget.Label
-	tempoLabel                  *widget.Label
-	tempo                       *widget.Slider
 	playbackLabel               *widget.Label
 	playback                    *widget.ProgressBar
+	tempoLabel                  *widget.Label
+	tempo                       *widget.Slider
 	verseLabel                  *widget.Label
 	moreVerses                  *widget.Button
 	fewerVerses                 *widget.Button
@@ -429,6 +429,15 @@ func (p *playerUI) recreateUI() {
 	)
 	tableContainer.AddChild(p.status)
 
+	p.playbackLabel = widget.NewLabel(
+		widget.LabelOpts.Text("Playback: ...", fontFace, labelColors),
+	)
+	tableContainer.AddChild(p.playbackLabel)
+	p.playback = widget.NewProgressBar(
+		widget.ProgressBarOpts.Images(progressTrackImage, progressImage),
+	)
+	tableContainer.AddChild(p.playback)
+
 	// TODO add a control for prelude tags.
 
 	p.tempoLabel = widget.NewLabel(
@@ -475,15 +484,6 @@ func (p *playerUI) recreateUI() {
 		widget.ButtonOpts.ClickedHandler(p.moreVersesClicked),
 	)
 	versesContainer.AddChild(p.moreVerses)
-
-	p.playbackLabel = widget.NewLabel(
-		widget.LabelOpts.Text("Playback: ...", fontFace, labelColors),
-	)
-	tableContainer.AddChild(p.playbackLabel)
-	p.playback = widget.NewProgressBar(
-		widget.ProgressBarOpts.Images(progressTrackImage, progressImage),
-	)
-	tableContainer.AddChild(p.playback)
 
 	playContainer := widget.NewContainer(
 		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
@@ -533,6 +533,7 @@ func (p *playerUI) recreateUI() {
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
 		widget.ButtonOpts.ClickedHandler(p.promptClicked),
 	)
+	p.prompt.GetWidget().Disabled = true
 	mainContainer.AddChild(p.prompt)
 
 	// Rebuild the hymns window.
@@ -1027,6 +1028,26 @@ func (p *playerUI) updateWidgets() {
 		p.status.GetWidget().Visibility = widget.Visibility_Hide_Blocking
 	}
 
+	if p.uiState.Playing {
+		p.playbackLabel.Label = "Playing: "
+		p.playbackLabel.GetWidget().Disabled = false
+		p.playback.Min = 0
+		p.playback.Max = 1000000
+		p.playback.SetCurrent(int(math.Round(1000000 * p.uiState.ActualPlaybackFraction())))
+		p.playback.GetWidget().Disabled = false
+		p.stop.GetWidget().Disabled = false
+	} else if p.uiState.CurrentFile != "" {
+		p.playbackLabel.Label = "Waiting: "
+		p.playbackLabel.GetWidget().Disabled = false
+		p.playback.GetWidget().Disabled = true
+		p.stop.GetWidget().Disabled = false
+	} else {
+		p.playbackLabel.Label = "Stopped"
+		p.playbackLabel.GetWidget().Disabled = true
+		p.playback.GetWidget().Disabled = true
+		p.stop.GetWidget().Disabled = true
+	}
+
 	if p.uiState.Tempo != p.prevTempo {
 		p.tempo.Current = int(math.Round(100.0 * p.uiState.Tempo))
 		p.prevTempo = p.uiState.Tempo
@@ -1046,26 +1067,6 @@ func (p *playerUI) updateWidgets() {
 		p.moreVerses.GetWidget().Visibility = widget.Visibility_Hide_Blocking
 		p.fewerVerses.GetWidget().Disabled = true
 		p.moreVerses.GetWidget().Disabled = true
-	}
-
-	if p.uiState.Playing {
-		p.playbackLabel.Label = "Playing: "
-		p.playbackLabel.GetWidget().Disabled = false
-		p.playback.Min = 0
-		p.playback.Max = 1000000
-		p.playback.SetCurrent(int(math.Round(1000000 * p.uiState.ActualPlaybackFraction())))
-		p.playback.GetWidget().Disabled = false
-		p.stop.GetWidget().Disabled = false
-	} else if p.uiState.CurrentFile != "" {
-		p.playbackLabel.Label = "Waiting: "
-		p.playbackLabel.GetWidget().Disabled = false
-		p.playback.GetWidget().Disabled = true
-		p.stop.GetWidget().Disabled = false
-	} else {
-		p.playbackLabel.Label = "Stopped"
-		p.playbackLabel.GetWidget().Disabled = true
-		p.playback.GetWidget().Disabled = true
-		p.stop.GetWidget().Disabled = true
 	}
 
 	if p.uiState.Prompt != "" {
