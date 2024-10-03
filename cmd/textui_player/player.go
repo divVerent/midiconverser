@@ -344,10 +344,10 @@ func Main() error {
 func main() {
 	flag.Parse()
 	err := Main()
-	if errors.Is(err, player.SigIntError) || errors.Is(err, player.QuitError) {
+	if errors.Is(err, player.SigIntError) {
 		os.Exit(127)
 	}
-	if err != nil {
+	if err != nil && !errors.Is(err, player.QuitError) {
 		log.Printf("Exiting due to: %v.", err)
 		os.Exit(1)
 	}

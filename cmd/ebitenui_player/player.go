@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"cmp"
+	"errors"
 	"flag"
 	"fmt"
 	go_image "image"
@@ -125,7 +126,10 @@ func Main() error {
 func main() {
 	flag.Parse()
 	err := Main()
-	if err != nil {
+	if errors.Is(err, player.SigIntError) {
+		os.Exit(127)
+	}
+	if err != nil && !errors.Is(err, player.QuitError) {
 		log.Printf("Exiting due to: %v.", err)
 		os.Exit(1)
 	}

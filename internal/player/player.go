@@ -682,7 +682,7 @@ func (b *Backend) Loop() error {
 	if b.playOnly != "" {
 		b.sendUIState()
 		err := b.singlePlayer(b.playOnly)
-		if err != nil {
+		if err != nil && !errors.Is(err, exitPlaybackError) {
 			return err
 		}
 		return QuitError
