@@ -21,7 +21,11 @@ import (
 )
 
 func tagsDefault() map[string]bool {
-	tags := map[string]bool{"noprelude": false, "national": false}
+	tags := map[string]bool{
+		"men":      false,
+		"national": false,
+		"women":    false,
+	}
 	// Find out if we're in advent or Christmas.
 	now := time.Now()
 	endTime := time.Date(now.Year(), 12, 27, 0, 0, 0, 0, time.Local)
