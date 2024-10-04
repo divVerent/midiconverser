@@ -183,6 +183,9 @@ type Backend struct {
 
 	// If set, running the main loop will just play this.
 	playOnly string
+
+	// Own copy of prelude tags.
+	preludeTags map[string]bool
 }
 
 type Options struct {
@@ -200,6 +203,7 @@ type Options struct {
 }
 
 func NewBackend(options *Options) *Backend {
+	preludeTags := tagsDefault()
 	return &Backend{
 		Commands:    make(chan Command, 10),
 		UIStates:    make(chan UIState, 100),
@@ -207,12 +211,13 @@ func NewBackend(options *Options) *Backend {
 		config:      *options.Config,
 		nextOutPort: options.OutPort,
 		uiState: UIState{
-			PreludeTags:    tagsDefault(),
+			PreludeTags:    CopyPreludeTags(preludeTags),
 			Tempo:          1.0,
 			CurrentMessage: "initializing player",
 		},
 		nextCommand: nil,
 		playOnly:    options.PlayOnly,
+		preludeTags: preludeTags,
 	}
 }
 
@@ -259,13 +264,22 @@ func (b *Backend) sigSleep(t time.Duration) error {
 var promptAnsweredError = errors.New("prompt answered")
 var exitPlaybackError = errors.New("exiting playback")
 
+func CopyPreludeTags(from map[string]bool) map[string]bool {
+	to := make(map[string]bool, len(from))
+	for k, v := range from {
+		to[k] = v
+	}
+	return to
+}
+
 func (b *Backend) handleCommandDuringSleep(cmd Command) error {
 	if cmd.IsMainLoopCommand() {
 		return exitPlaybackError
 	}
 	switch {
 	case cmd.PreludeTags != nil:
-		b.uiState.PreludeTags = cmd.PreludeTags
+		b.preludeTags = CopyPreludeTags(cmd.PreludeTags)
+		b.uiState.PreludeTags = CopyPreludeTags(b.preludeTags)
 		b.sendUIState()
 		return nil
 	case cmd.Tempo != 0:
@@ -455,7 +469,7 @@ func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 
 	needWant := false
 	haveWant := false
-	for k, v := range b.uiState.PreludeTags {
+	for k, v := range b.preludeTags {
 		if v {
 			needWant = true
 			if tags[k] {
@@ -469,7 +483,7 @@ func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 		}
 	}
 	if needWant && !haveWant {
-		log.Printf("Skipping %s due to no matching tags (want one of %v).", optionsFile, b.uiState.PreludeTags)
+		log.Printf("Skipping %s due to no matching tags (want one of %v).", optionsFile, b.preludeTags)
 		return false, nil
 	}
 

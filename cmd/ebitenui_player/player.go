@@ -12,6 +12,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"reflect"
 	"slices"
 
 	"golang.org/x/image/font/gofont/goregular"
@@ -68,6 +69,8 @@ type playerUI struct {
 	prompt                      *widget.Button
 	hymnsWindow                 *widget.Window
 	hymnList                    *widget.List
+	preludeWindow               *widget.Window
+	preludeTagList              *widget.List
 	settingsWindow              *widget.Window
 	settingsOutPort             *widget.List
 	settingsChannel             *widget.ListComboButton
@@ -82,7 +85,9 @@ type playerUI struct {
 	prevTempo          float64
 	loopErr            error
 	hymnsWindowOpen    bool
+	preludeWindowOpen  bool
 	settingsWindowOpen bool
+	prevPreludeTags    map[string]bool
 }
 
 func Main() error {
@@ -303,14 +308,14 @@ func (p *playerUI) outPortNameFunc(e any) string {
 
 func (p *playerUI) tagNameFunc(e any) string {
 	tag := e.(string)
-	state, found := p.uiState.PreludeTags[tag]
+	state, found := p.prevPreludeTags[tag]
 	if !found {
 		return tag
 	}
 	if state {
-		return fmt.Sprintf("%v: preferred", tag)
+		return fmt.Sprintf("%v (requested)", tag)
 	}
-	return fmt.Sprintf("%v: avoided", tag)
+	return fmt.Sprintf("%v (avoided)", tag)
 }
 
 func (p *playerUI) initUI() error {
@@ -481,6 +486,7 @@ func (p *playerUI) recreateUI() {
 			return 1
 		}),
 	)
+	p.prevTempo = -1 // Force refresh.
 	tableContainer.AddChild(p.tempo)
 
 	p.verseLabel = widget.NewLabel(
@@ -525,20 +531,20 @@ func (p *playerUI) recreateUI() {
 	mainContainer.AddChild(playContainer)
 
 	selectHymn := widget.NewButton(
-		widget.ButtonOpts.Text("Play Hymn...", fontFace, buttonTextColor),
+		widget.ButtonOpts.Text("Hymn...", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
 		widget.ButtonOpts.ClickedHandler(p.selectHymnClicked),
 	)
 	playContainer.AddChild(selectHymn)
 
-	playPrelude := widget.NewButton(
-		widget.ButtonOpts.Text("Play Prelude", fontFace, buttonTextColor),
+	selectPrelude := widget.NewButton(
+		widget.ButtonOpts.Text("Prelude...", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
-		widget.ButtonOpts.ClickedHandler(p.playPreludeClicked),
+		widget.ButtonOpts.ClickedHandler(p.selectPreludeClicked),
 	)
-	playContainer.AddChild(playPrelude)
+	playContainer.AddChild(selectPrelude)
 
 	p.stop = widget.NewButton(
 		widget.ButtonOpts.Text("Stop", fontFace, buttonTextColor),
@@ -643,6 +649,117 @@ func (p *playerUI) recreateUI() {
 
 	if p.hymnsWindowOpen {
 		p.selectHymnClicked(nil)
+	}
+
+	// Rebuild the prelude window.
+	preludeWindowContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Gray{Y: 224})),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true, false, false}),
+		)),
+	)
+
+	chooseTagsLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Choose Tags: ", fontFace, labelColors),
+	)
+	preludeWindowContainer.AddChild(chooseTagsLabel)
+
+	p.preludeTagList = widget.NewList(
+		widget.ListOpts.Entries(p.tagsAny),
+		widget.ListOpts.ScrollContainerOpts(
+			widget.ScrollContainerOpts.Image(scrollContainerImage),
+		),
+		widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+			widget.SliderOpts.MinHandleSize(listSliderSize),
+		),
+		widget.ListOpts.HideHorizontalSlider(),
+		widget.ListOpts.EntryFontFace(fontFace),
+		widget.ListOpts.EntryColor(listEntryColor),
+		widget.ListOpts.EntryLabelFunc(p.tagNameFunc),
+		widget.ListOpts.EntryTextPadding(widget.NewInsetsSimple(buttonInsets)),
+	)
+	preludeWindowContainer.AddChild(p.preludeTagList)
+
+	tagActionContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(3),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Stretch([]bool{false, true, false}, []bool{false}),
+		)),
+	)
+	preludeWindowContainer.AddChild(tagActionContainer)
+
+	avoidTag := widget.NewButton(
+		widget.ButtonOpts.Text("Avoid", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
+		widget.ButtonOpts.ClickedHandler(p.avoidTagClicked),
+	)
+	tagActionContainer.AddChild(avoidTag)
+
+	ignoreTag := widget.NewButton(
+		widget.ButtonOpts.Text("Ignore", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
+		widget.ButtonOpts.ClickedHandler(p.ignoreTagClicked),
+	)
+	tagActionContainer.AddChild(ignoreTag)
+
+	requestTag := widget.NewButton(
+		widget.ButtonOpts.Text("Request", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
+		widget.ButtonOpts.ClickedHandler(p.requestTagClicked),
+	)
+	tagActionContainer.AddChild(requestTag)
+
+	playPrelude := widget.NewButton(
+		widget.ButtonOpts.Text("Play Prelude", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
+		widget.ButtonOpts.ClickedHandler(p.playPreludeClicked),
+	)
+	preludeWindowContainer.AddChild(playPrelude)
+
+	preludeTitleContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Black)),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(2),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Stretch([]bool{true, false}, []bool{true}),
+		)),
+	)
+	preludeTitle := widget.NewText(
+		widget.TextOpts.Text("Play Prelude", fontFace, color.White),
+		widget.TextOpts.Insets(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+	)
+	preludeTitleContainer.AddChild(preludeTitle)
+	preludeCloseButton := widget.NewButton(
+		widget.ButtonOpts.Text("X", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
+		widget.ButtonOpts.ClickedHandler(p.preludeCloseClicked),
+	)
+	preludeTitleContainer.AddChild(preludeCloseButton)
+
+	if p.preludeWindowOpen {
+		p.preludeWindow.Close()
+	}
+
+	p.preludeWindow = widget.NewWindow(
+		widget.WindowOpts.Contents(preludeWindowContainer),
+		widget.WindowOpts.TitleBar(preludeTitleContainer, titleBarHeight),
+		widget.WindowOpts.Modal(),
+		widget.WindowOpts.CloseMode(widget.NONE),
+	)
+
+	if p.preludeWindowOpen {
+		p.selectPreludeClicked(nil)
 	}
 
 	// Rebuild the settings window.
@@ -903,13 +1020,6 @@ func (p *playerUI) recreateUI() {
 	}
 }
 
-func (p *playerUI) playPreludeClicked(args *widget.ButtonClickedEventArgs) {
-	p.stop.Focus(true)
-	p.backend.Commands <- player.Command{
-		PlayPrelude: true,
-	}
-}
-
 func (p *playerUI) stopClicked(args *widget.ButtonClickedEventArgs) {
 	p.ui.ClearFocus()
 	p.backend.Commands <- player.Command{
@@ -942,7 +1052,6 @@ func (p *playerUI) moreVersesClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
-	p.ui.ClearFocus()
 	w := p.width - 32
 	h := p.height - 32
 	x := (p.width - w) / 2
@@ -954,7 +1063,7 @@ func (p *playerUI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
-	p.ui.ClearFocus()
+	p.stop.Focus(true)
 	p.hymnsWindow.Close()
 	p.hymnsWindowOpen = false
 	e, ok := p.hymnList.SelectedEntry().(string)
@@ -973,8 +1082,77 @@ func (p *playerUI) hymnsCloseClicked(args *widget.ButtonClickedEventArgs) {
 	p.hymnsWindowOpen = false
 }
 
-func (p *playerUI) settingsClicked(args *widget.ButtonClickedEventArgs) {
+func (p *playerUI) selectPreludeClicked(args *widget.ButtonClickedEventArgs) {
+	w := p.width - 32
+	_, tH := p.preludeWindow.TitleBar.PreferredSize()
+	_, cH := p.preludeWindow.Contents.PreferredSize()
+	h := p.height - 32
+	if h > tH+cH {
+		h = tH + cH
+	}
+	x := (p.width - w) / 2
+	y := (p.height - h) / 2
+	r := go_image.Rect(x, y, x+w, y+h)
+	p.preludeWindow.SetLocation(r)
+	p.ui.AddWindow(p.preludeWindow)
+	p.preludeWindowOpen = true
+}
+
+func (p *playerUI) playPreludeClicked(args *widget.ButtonClickedEventArgs) {
+	p.stop.Focus(true)
+	p.preludeWindow.Close()
+	p.preludeWindowOpen = false
+	p.backend.Commands <- player.Command{
+		PlayPrelude: true,
+	}
+}
+
+func (p *playerUI) preludeCloseClicked(args *widget.ButtonClickedEventArgs) {
 	p.ui.ClearFocus()
+	p.preludeWindow.Close()
+	p.preludeWindowOpen = false
+}
+
+func (p *playerUI) avoidTagClicked(args *widget.ButtonClickedEventArgs) {
+	tag, ok := p.preludeTagList.SelectedEntry().(string)
+	if !ok {
+		log.Printf("No tag selected.")
+		return
+	}
+	tags := player.CopyPreludeTags(p.prevPreludeTags)
+	tags[tag] = false
+	p.backend.Commands <- player.Command{
+		PreludeTags: tags,
+	}
+}
+
+func (p *playerUI) ignoreTagClicked(args *widget.ButtonClickedEventArgs) {
+	tag, ok := p.preludeTagList.SelectedEntry().(string)
+	if !ok {
+		log.Printf("No tag selected.")
+		return
+	}
+	tags := player.CopyPreludeTags(p.prevPreludeTags)
+	delete(tags, tag)
+	p.backend.Commands <- player.Command{
+		PreludeTags: tags,
+	}
+}
+
+func (p *playerUI) requestTagClicked(args *widget.ButtonClickedEventArgs) {
+	tag, ok := p.preludeTagList.SelectedEntry().(string)
+	if !ok {
+		log.Printf("No tag selected.")
+		return
+	}
+	tags := player.CopyPreludeTags(p.prevPreludeTags)
+	tags[tag] = true
+	p.backend.Commands <- player.Command{
+		PreludeTags: tags,
+	}
+}
+
+func (p *playerUI) settingsClicked(args *widget.ButtonClickedEventArgs) {
 	p.initOutPortsList()
 	p.settingsOutPort.SetEntries(p.outPortsAny)
 	if p.outPort != nil {
@@ -1129,6 +1307,11 @@ func (p *playerUI) updateWidgets() {
 	} else {
 		p.prompt.GetWidget().Visibility = widget.Visibility_Hide_Blocking
 		p.prompt.GetWidget().Disabled = true
+	}
+
+	if !reflect.DeepEqual(p.uiState.PreludeTags, p.prevPreludeTags) {
+		p.prevPreludeTags = p.uiState.PreludeTags
+		p.preludeTagList.SetEntries(p.tagsAny)
 	}
 }
 
