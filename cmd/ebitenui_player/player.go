@@ -1052,7 +1052,11 @@ func (p *playerUI) updateWidgets() {
 	p.tempoLabel.Label = fmt.Sprintf("Tempo: %d%%", p.tempo.Current)
 
 	if p.uiState.NumVerses > 0 {
-		p.verseLabel.Label = fmt.Sprintf("Verse: %d/%d", p.uiState.Verse+1, p.uiState.NumVerses)
+		postludeSuffix := ""
+		if p.uiState.HavePostlude {
+			postludeSuffix = "+P"
+		}
+		p.verseLabel.Label = fmt.Sprintf("Verse: %d/%d%s", p.uiState.Verse+1, p.uiState.NumVerses, postludeSuffix)
 		p.verseLabel.GetWidget().Visibility = widget.Visibility_Show
 		p.fewerVerses.GetWidget().Visibility = widget.Visibility_Show
 		p.moreVerses.GetWidget().Visibility = widget.Visibility_Show

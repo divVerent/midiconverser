@@ -106,6 +106,9 @@ type UIState struct {
 	// Number of verses to play.
 	NumVerses int
 
+	// HavePostlude tells if a postlude is pending.
+	HavePostlude bool
+
 	// Prompt is the text to prompt the user with.
 	// To clear a prompt, send the Answer message.
 	Prompt string
@@ -491,6 +494,7 @@ func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 	log.Printf("Playing full verses for prelude: %v.", optionsFile)
 
 	b.uiState.NumVerses = processor.WithDefault(b.config.PreludePlayerRepeat, 2) // Cleared by preludePlayer().
+	b.uiState.HavePostlude = false
 	for i := 0; i < b.uiState.NumVerses; i++ {
 		b.uiState.Verse = i // Cleared by preludePlayer().
 		err := b.playMIDI(verse, key)
@@ -515,6 +519,7 @@ func (b *Backend) preludePlayer() error {
 		b.uiState.CurrentMessage = ""
 		b.uiState.Verse = 0
 		b.uiState.NumVerses = 0
+		b.uiState.HavePostlude = false
 		b.sendUIState()
 	}()
 
@@ -584,12 +589,14 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 	b.uiState.PlayOne = optionsFile
 	b.uiState.CurrentFile = optionsFile
 	b.uiState.NumVerses = processor.WithDefault(options.NumVerses, 1)
+	b.uiState.HavePostlude = output[processor.OutputKey{Special: processor.Postlude}] != nil
 	b.uiState.Verse = 0
 	// b.sendUIState() // Redundant with prompt.
 	defer func() {
 		b.uiState.PlayOne = ""
 		b.uiState.CurrentFile = ""
 		b.uiState.NumVerses = 0
+		b.uiState.HavePostlude = false
 		b.uiState.Verse = 0
 		b.uiState.CurrentMessage = "" // Written to by prompt.
 		b.sendUIState()
