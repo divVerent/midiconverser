@@ -45,6 +45,7 @@ type playerUI struct {
 
 	hymnsAny    []any
 	channelsAny []any
+	tagsAny     []any
 	outPorts    map[int]drivers.Out
 	outPortsAny []any
 	font        *text.GoTextFaceSource
@@ -191,20 +192,14 @@ func (p *playerUI) shutdownBackend() {
 	p.backend = nil
 }
 
-func listHymns(fsys fs.FS) ([]string, error) {
+func listHymns(fsys fs.FS) ([]string, []string, error) {
 	all, err := fs.Glob(fsys, "*.yml")
 	if err != nil {
-		return nil, fmt.Errorf("glob: %w", err)
+		return nil, nil, fmt.Errorf("glob: %w", err)
 	}
-	var result []string
-	for _, f := range all {
-		_, err := file.ReadOptions(fsys, f)
-		if err != nil {
-			continue
-		}
-		result = append(result, f)
-	}
-	slices.SortFunc(result, func(a, b string) int {
+
+	var hymns []string
+	slices.SortFunc(hymns, func(a, b string) int {
 		aNum, bNum := 0, 0
 		fmt.Sscanf(a, "%d", &aNum)
 		fmt.Sscanf(b, "%d", &bNum)
@@ -213,17 +208,39 @@ func listHymns(fsys fs.FS) ([]string, error) {
 		}
 		return cmp.Compare(a, b)
 	})
-	return result, nil
+
+	tagsMap := map[string]bool{}
+	for _, f := range all {
+		options, err := file.ReadOptions(fsys, f)
+		if err != nil {
+			continue
+		}
+		hymns = append(hymns, f)
+		for _, t := range options.Tags {
+			tagsMap[t] = true
+		}
+	}
+	var tags []string
+	for t := range tagsMap {
+		tags = append(tags, t)
+	}
+	slices.Sort(tags)
+
+	return hymns, tags, nil
 }
 
 func (p *playerUI) initHymnsList(fsys fs.FS) error {
-	hymns, err := listHymns(fsys)
+	hymns, tags, err := listHymns(fsys)
 	if err != nil {
 		return err
 	}
 	p.hymnsAny = make([]any, 0, len(hymns))
 	for _, h := range hymns {
 		p.hymnsAny = append(p.hymnsAny, h)
+	}
+	p.tagsAny = make([]any, 0, len(tags))
+	for _, h := range tags {
+		p.tagsAny = append(p.tagsAny, h)
 	}
 	return nil
 }
@@ -280,6 +297,18 @@ func (p *playerUI) outPortNameFunc(e any) string {
 		return "none"
 	}
 	return p.outPorts[e.(int)].String()
+}
+
+func (p *playerUI) tagNameFunc(e any) string {
+	tag := e.(string)
+	state, found := p.uiState.PreludeTags[tag]
+	if !found {
+		return tag
+	}
+	if state {
+		return fmt.Sprintf("%v: preferred", tag)
+	}
+	return fmt.Sprintf("%v: avoided", tag)
 }
 
 func (p *playerUI) initUI() error {
