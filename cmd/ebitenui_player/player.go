@@ -77,6 +77,7 @@ type playerUI struct {
 	settingsTempo               *widget.Slider
 	settingsPreludePlayerRepeat *widget.Slider
 	settingsPreludePlayerSleep  *widget.Slider
+	settingsFermatasInPrelude   *widget.Checkbox
 
 	prevTempo          float64
 	loopErr            error
@@ -146,6 +147,7 @@ func copyConfigOverrideFields(from, to *processor.Config) {
 	to.BPMFactor = from.BPMFactor
 	to.PreludePlayerRepeat = from.PreludePlayerRepeat
 	to.PreludePlayerSleepSec = from.PreludePlayerSleepSec
+	to.FermatasInPrelude = from.FermatasInPrelude
 }
 
 func (p *playerUI) initBackend(fsys fs.FS) error {
@@ -843,6 +845,18 @@ func (p *playerUI) recreateUI() {
 	p.settingsPreludePlayerSleep.Current = 20
 	settingsTableContainer.AddChild(p.settingsPreludePlayerSleep)
 
+	fermatasInPreludeLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Fermatas Everywhere: ", fontFace, labelColors),
+	)
+	settingsTableContainer.AddChild(fermatasInPreludeLabel)
+	p.settingsFermatasInPrelude = widget.NewCheckbox(
+		widget.CheckboxOpts.ButtonOpts(
+			widget.ButtonOpts.Image(buttonImage),
+		),
+		widget.CheckboxOpts.Image(checkboxGraphicImage),
+	)
+	settingsTableContainer.AddChild(p.settingsFermatasInPrelude)
+
 	applySettings := widget.NewButton(
 		widget.ButtonOpts.Text("Apply", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
@@ -977,6 +991,11 @@ func (p *playerUI) settingsClicked(args *widget.ButtonClickedEventArgs) {
 	p.settingsTempo.Current = int(math.Round(processor.WithDefault(p.config.BPMFactor, 1.0) * 100))
 	p.settingsPreludePlayerRepeat.Current = processor.WithDefault(p.config.PreludePlayerRepeat, 2)
 	p.settingsPreludePlayerSleep.Current = int(math.Round(processor.WithDefault(p.config.PreludePlayerSleepSec, 2.0) * 10))
+	if p.config.FermatasInPrelude {
+		p.settingsFermatasInPrelude.SetState(widget.WidgetChecked)
+	} else {
+		p.settingsFermatasInPrelude.SetState(widget.WidgetUnchecked)
+	}
 
 	w := p.width - 32
 	_, tH := p.settingsWindow.TitleBar.PreferredSize()
@@ -1014,6 +1033,7 @@ func (p *playerUI) applySettingsClicked(args *widget.ButtonClickedEventArgs) {
 	p.config.BPMFactor = float64(p.settingsTempo.Current) * 0.01
 	p.config.PreludePlayerRepeat = p.settingsPreludePlayerRepeat.Current
 	p.config.PreludePlayerSleepSec = float64(p.settingsPreludePlayerSleep.Current) * 0.1
+	p.config.FermatasInPrelude = p.settingsFermatasInPrelude.State() == widget.WidgetChecked
 	saveConfigOverride(*c, p.config)
 	p.backend.Commands <- player.Command{
 		Config: p.config,
