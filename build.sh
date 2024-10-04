@@ -6,6 +6,8 @@ go build ./cmd/ebitenui_player
 go build ./cmd/process
 go build ./cmd/textui_player
 
+CGO_ENABLED=1 GOOS=windows GOARCH=386 CC=i686-w64-mingw32-gcc CXX=i686-w64-mingw32-g++ go build -ldflags=all=-s -ldflags=all=-w -ldflags=all=-H=windowsgui -a -trimpath -o ebitenui_player.exe ./cmd/ebitenui_player
+
 if [ -d ../midi ]; then
 	rm -rf cmd/ebitenui_player/vfs
 	mkdir cmd/ebitenui_player/vfs

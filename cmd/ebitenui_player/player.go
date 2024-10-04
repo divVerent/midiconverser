@@ -206,16 +206,6 @@ func listHymns(fsys fs.FS) ([]string, []string, error) {
 	}
 
 	var hymns []string
-	slices.SortFunc(hymns, func(a, b string) int {
-		aNum, bNum := 0, 0
-		fmt.Sscanf(a, "%d", &aNum)
-		fmt.Sscanf(b, "%d", &bNum)
-		if aNum != bNum {
-			return cmp.Compare(aNum, bNum)
-		}
-		return cmp.Compare(a, b)
-	})
-
 	tagsMap := map[string]bool{}
 	for _, f := range all {
 		options, err := file.ReadOptions(fsys, f)
@@ -227,6 +217,17 @@ func listHymns(fsys fs.FS) ([]string, []string, error) {
 			tagsMap[t] = true
 		}
 	}
+
+	slices.SortFunc(hymns, func(a, b string) int {
+		aNum, bNum := 0, 0
+		fmt.Sscanf(a, "%d", &aNum)
+		fmt.Sscanf(b, "%d", &bNum)
+		if aNum != bNum {
+			return cmp.Compare(aNum, bNum)
+		}
+		return cmp.Compare(a, b)
+	})
+
 	var tags []string
 	for t := range tagsMap {
 		tags = append(tags, t)
