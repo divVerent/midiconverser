@@ -420,7 +420,6 @@ func (p *playerUI) recreateUI() {
 	p.rootContainer.RemoveChildren()
 
 	mainContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(1),
 			widget.GridLayoutOpts.Spacing(spacing, spacing),
@@ -436,7 +435,6 @@ func (p *playerUI) recreateUI() {
 	p.rootContainer.AddChild(mainContainer)
 
 	tableContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(2),
 			widget.GridLayoutOpts.Spacing(spacing, spacing),
@@ -495,7 +493,6 @@ func (p *playerUI) recreateUI() {
 	tableContainer.AddChild(p.verseLabel)
 
 	versesContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(3),
 			widget.GridLayoutOpts.Spacing(spacing, spacing),
@@ -521,7 +518,6 @@ func (p *playerUI) recreateUI() {
 	versesContainer.AddChild(p.moreVerses)
 
 	playContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(3),
 			widget.GridLayoutOpts.Spacing(spacing, spacing),
@@ -684,7 +680,6 @@ func (p *playerUI) recreateUI() {
 	preludeWindowContainer.AddChild(p.preludeTagList)
 
 	tagActionContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.White)),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(3),
 			widget.GridLayoutOpts.Spacing(spacing, spacing),
@@ -799,7 +794,6 @@ func (p *playerUI) recreateUI() {
 	settingsWindowContainer.AddChild(p.settingsOutPort)
 
 	settingsTableContainer := widget.NewContainer(
-		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Gray{Y: 224})),
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(2),
 			widget.GridLayoutOpts.Spacing(spacing, spacing),
