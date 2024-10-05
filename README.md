@@ -9,7 +9,7 @@ with FluidSynth).
 ## Installation
 
     sudo apt install golang                # For running the MIDI generator.
-    sudo apt install alsa-utils figlet yq  # For using the included player.
+    sudo apt install alsa-utils figlet yq  # For using the text based player.
     sudo apt install fluidsynth            # For playing with local speakers.
     ./build.sh
 
@@ -30,36 +30,36 @@ with FluidSynth).
 
     with the following keys:
 
-    - `bpm_factor`: tempo factor as desired (default: 1.0).
+    - `melody_track_name_re`: partial-match regular expression that
+      melody track names should match (default: unset).
+    - `bass_track_name_re`: partial-match regular expression that bass
+      track names should match (default: unset).
     - `channel`: MIDI channel (1-16) to map all notes to, or 0 to not
       remap (default). When using an organ, map this to the great
       manual.
+    - `melody_channel`: additional channel for melody notes (default:
+      unset). When using an organ, map this to the swell manual. This is
+      basically the "melody coupler" feature some organs have.
+    - `bass_channel`: additional channel for bass notes (default:
+      unset). When using an organ, map this to the pedal. This is
+      basically the "bass coupler" feature some organs have.
     - `hold_redundant_notes`: `true` to keep redundant notes playing,
       `false` to restart them (default).
+    - `bpm_factor`: tempo factor as desired (default: 1.0).
+    - `prelude_player_repeat`: number of times each hymn will be
+      repeated in the prelude player (default: 2).
+    - `prelude_player_sleep_sec`: number of seconds between hymns in the
+      prelude player (default: 2).
+    - `fermatas_in_prelude`: interpret fermata instructions when
+      generating the prelude (default: false).
+    - `fermatas_in_postlude`: interpret fermata instructions when
+      generating the postlude (default: false).
     - `fermata_extend_beats`: number of extra beats to hold fermata
       notes (default: 1). Affects only the pre-arranged MIDI outputs.
     - `fermata_rest_beats`: number of rest beats after a fermata
       (default: 1). Affects only the pre-arranged MIDI outputs.
     - `rest_between_verses_beats`: number of beats to wait between
       verses (default: 1). Affects only the pre-arranged MIDI outputs.
-    - `prelude_player_repeat`: number of times each hymn will be
-      repeated in the prelude player (default: 2).
-    - `prelude_player_sleep_sec`: number of seconds between hymns in the
-      prelude player (default: 2).
-    - `melody_track_name_re`: partial-match regular expression that
-      melody track names should match (default: unset).
-    - `melody_channel`: additional channel for melody notes (default:
-      unset). When using an organ, map this to the swell manual. This is
-      basically the "melody coupler" feature some organs have.
-    - `bass_track_name_re`: partial-match regular expression that bass
-      track names should match (default: unset).
-    - `bass_channel`: additional channel for bass notes (default:
-      unset). When using an organ, map this to the pedal. This is
-      basically the "bass coupler" feature some organs have.
-    - `fermatas_in_prelude`: interpret fermata instructions when
-      generating the prelude (default: false).
-    - `fermatas_in_postlude`: interpret fermata instructions when
-      generating the postlude (default: false).
     - `whole_export_sleep_sec`: number of seconds at the end of a
       "whole" exported MIDI (default: 0).
 
@@ -79,6 +79,9 @@ with FluidSynth).
     with the following keys:
 
     - `input_file`: MIDI file to read.
+    - `input_file_sha256`: SHA-256 checksum of the input MIDI file
+      content (optional; can be auto filled in when passing
+      `-add_checksum`).
     - `fermatas`: list of positions of fermatas (default: empty); this
       should point *inside* the note to hold (ideally halfway).
     - `prelude`: list of begin/end positions for the prelude (default:
@@ -89,11 +92,11 @@ with FluidSynth).
       file); the end positions are exclusive and thus should be the beat
       where the next non-prelude portion begins. The last item can point
       behind the last bar. Rarely ever needed.
-    - `num_verses`: number of verses of this hymn (default: 1).
     - `postlude`: list of begin/end positions for the postlude (default:
       empty); the end positions are exclusive and thus should be the
       beat where the next non-prelude portion begins. The last item can
       point behind the last bar. Rarely ever needed.
+    - `num_verses`: number of verses of this hymn (default: 1).
     - `qpm_override`: replacement value for tempo in quarter notes per
       minute, if nonzero (default: 0).
     - `bpm_factor`: tempo factor to adjust the input (default: 1.0).
@@ -110,9 +113,8 @@ with FluidSynth).
       generating the prelude (default: same as config).
     - `fermatas_in_postlude`: interpret fermata instructions when
       generating the postlude (default: same as config).
-    - `input_file_sha256`: SHA-256 checksum of the input MIDI file
-      content (optional; can be auto filled in when passing
-      `-add_checksum`).
+    - `tags`: a list of tags to select in the prelude player.
+    - `_comment`: A text string that will be left alone by rewriting.
 
     whereas a "position" is a quoted string of the form:
 
@@ -120,7 +122,9 @@ with FluidSynth).
     - `bar.beat+num/denom` to specify a position between two beats; the
       fraction is the fraction of the next beat to use
 
-3.  `go run main.go -i hymnnumber.yml`
+3.  To generate MIDI files, ru :
+
+        ./process -i hymnnumber.yml
 
 ### Prepare for Playing
 
@@ -144,7 +148,18 @@ with FluidSynth).
 
         aplaymidi -l
 
-### Play a Hymn
+### Graphical UI Manual
+
+Just run `./ebitenui_player`. It should be rather self explanatory.
+
+As a bonus, this UI can be compiled to run in web browsers, and even
+installed on an Android phone or tablet as a PWA via the web browser's
+"Add to Home Screen" feature. See `./build.sh` for how the build process
+for the web based version works.
+
+### Text UI Manual
+
+#### Play a Hymn (Text UI)
 
 1.  `./textui_player` and hit `Return`.
 
@@ -159,15 +174,15 @@ with FluidSynth).
     a break). Otherwise it will finish at the configured number of
     verses.
 
-### Play arbitrary hymns in random order (for prelude before the meeting).
+#### Play arbitrary hymns in random order (for prelude before the meeting).
 
-1.  `./textui_player`
+1.  `./textui_player` and hit `Return`.
 
 2.  Type: `:prelude` and hit `Return`.
 
 3.  Press `Ctrl-C` to exit (preferably during a break).
 
-### Player Commands
+#### Player Commands
 
 The player supports the following keyboard commands:
 
