@@ -38,7 +38,7 @@ wasm() {
 	)
 }
 
-win32 go_build_release -o ebitenui_player.exe ./cmd/ebitenui_player
+win32 go_build_release -o ebitenui_player_nodata.exe ./cmd/ebitenui_player
 
 if [ -d ../midi ]; then
 	rm -rf cmd/ebitenui_player/vfs
@@ -51,7 +51,7 @@ if [ -d ../midi ]; then
 		tar xvf -
 	}
 
-	win32 go_build_embedrelease -o ebitenui_player_nodata.exe ./cmd/ebitenui_player
+	win32 go_build_embedrelease -o ebitenui_player.exe ./cmd/ebitenui_player
 	wasm go_build_embedrelease -o ebitenui_player.wasm ./cmd/ebitenui_player
 
 	cp "$(cd / && GOOS=js GOARCH=wasm go env GOROOT)"/misc/wasm/wasm_exec.js .
