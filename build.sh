@@ -15,7 +15,7 @@ go_build_release() {
 
 # Special flags for even smaller binaries.
 go_build_embedrelease() {
-	go build -a -ldflags=all="-s -w $EXTRA_LDFLAGS" -gcflags=all='-B -dwarf=false -l' -trimpath "$@"
+	go build -a -ldflags=all="-s -w $EXTRA_LDFLAGS" -gcflags=all='-B -dwarf=false -l' -trimpath -tags embed "$@"
 }
 
 win32() {
@@ -38,7 +38,7 @@ wasm() {
 	)
 }
 
-win32 go_build_release -o ebitenui_player_nodata.exe ./cmd/ebitenui_player
+win32 go_build_release -o ebitenui_player.exe ./cmd/ebitenui_player
 
 if [ -d ../midi ]; then
 	rm -rf cmd/ebitenui_player/vfs
