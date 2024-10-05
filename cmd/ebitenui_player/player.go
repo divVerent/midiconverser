@@ -1306,7 +1306,11 @@ func (p *playerUI) updateWidgets() {
 
 	if !reflect.DeepEqual(p.uiState.PreludeTags, p.prevPreludeTags) {
 		p.prevPreludeTags = p.uiState.PreludeTags
+		selected, ok := p.preludeTagList.SelectedEntry().(string)
 		p.preludeTagList.SetEntries(p.tagsAny)
+		if ok {
+			p.preludeTagList.SetSelectedEntry(selected)
+		}
 	}
 }
 
