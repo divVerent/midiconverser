@@ -371,18 +371,22 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 	var verseCuts [][]cut
 	var joinedVerseCuts []cut
 	var thisVerseCut []cut
-	for _, p := range verseTick {
-		theseCuts := fermatize(cut{
+	for i, p := range verseTick {
+		thisCut := cut{
 			RestBefore: 0,
 			Begin:      p.Begin,
 			End:        p.End,
 			RestAfter:  0,
-		}, fermataTick)
-		for i, c := range theseCuts {
+		}
+		if i == 0 {
+			thisCut.RestBefore = ticksBetweenVerses
+		}
+		theseCuts := fermatize(thisCut, fermataTick)
+		for j, c := range theseCuts {
 			joinedVerseCuts = append(joinedVerseCuts, c)
-			if i == 0 {
+			if j == 0 {
 				thisVerseCut = append(thisVerseCut, c)
-			} else if i%2 == 1 {
+			} else if j%2 == 1 {
 				// Fermata hold.
 				verseCuts = append(verseCuts, thisVerseCut, []cut{c})
 				thisVerseCut = nil
