@@ -4,12 +4,18 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/divVerent/midiconverser/internal/file"
 	"github.com/divVerent/midiconverser/internal/processor"
 )
+
+func loadConfig(fsys fs.FS, name string) (*processor.Config, error) {
+	return file.ReadConfig(os.DirFS("."), *c)
+}
 
 func loadConfigOverride(name string, into *processor.Config) error {
 	return nil

@@ -163,7 +163,7 @@ func (p *playerUI) initBackend(fsys fs.FS) error {
 	}
 	log.Printf("Picked output port: %v.", p.outPort)
 
-	p.config, err = file.ReadConfig(fsys, *c)
+	p.config, err = loadConfig(fsys, *c)
 	if err != nil {
 		return fmt.Errorf("failed to read config: %w", err)
 	}

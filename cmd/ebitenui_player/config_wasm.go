@@ -5,10 +5,12 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/fs"
 	"syscall/js"
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/divVerent/midiconverser/internal/file"
 	"github.com/divVerent/midiconverser/internal/processor"
 )
 
@@ -22,6 +24,10 @@ func protectJS(f func()) (err error) {
 	f()
 	ok = true
 	return
+}
+
+func loadConfig(fsys fs.FS, name string) (*processor.Config, error) {
+	return file.ReadConfig(fsys, *c)
 }
 
 func loadConfigOverride(name string, into *processor.Config) error {
