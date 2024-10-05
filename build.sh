@@ -6,21 +6,17 @@ go build ./cmd/ebitenui_player
 go build ./cmd/process
 go build ./cmd/textui_player
 
-release_flags='
-	-ldflags=all=-s
-	-ldflags=all=-w
-	-a
-	-trimpath
-'
-embedrelease_flags='
-	-tags embed
-	-ldflags=all=-s
-	-a
-	-trimpath
-	-gcflags=all=-B
-	-gcflags=all=-dwarf=false
-	-gcflags=all=-l
-'
+EXTRA_LDFLAGS=
+
+# Standard flags for release build.
+go_build_release() {
+	go build -a -ldflags=all="-s -w $EXTRA_LDFLAGS" -gcflags=all='-dwarf=false' -trimpath "$@"
+}
+
+# Special flags for even smaller binaries.
+go_build_embedrelease() {
+	go build -a -ldflags=all="-s -w $EXTRA_LDFLAGS" -gcflags=all='-B -dwarf=false -l' -trimpath "$@"
+}
 
 win32() {
 	(
@@ -29,6 +25,7 @@ win32() {
 		export GOARCH=386
 		export CC=i686-w64-mingw32-gcc
 		export CXX=i686-w64-mingw32-g++
+		export EXTRA_LDFLAGS=-H=windowsgui
 		"$@"
 	)
 }
@@ -41,7 +38,7 @@ wasm() {
 	)
 }
 
-win32 go build $release_flags -ldflags=all=-H=windowsgui -o ebitenui_player_nodata.exe ./cmd/ebitenui_player
+win32 go_build_release -o ebitenui_player_nodata.exe ./cmd/ebitenui_player
 
 if [ -d ../midi ]; then
 	rm -rf cmd/ebitenui_player/vfs
@@ -54,8 +51,8 @@ if [ -d ../midi ]; then
 		tar xvf -
 	}
 
-	win32 go build $embedrelease_flags -ldflags=all=-H=windowsgui -o ebitenui_player.exe ./cmd/ebitenui_player
-	wasm go build $embedrelease_flags -o ebitenui_player.wasm ./cmd/ebitenui_player
+	win32 go_build_embedrelease -o ebitenui_player_nodata.exe ./cmd/ebitenui_player
+	wasm go_build_embedrelease -o ebitenui_player.wasm ./cmd/ebitenui_player
 
 	cp "$(cd / && GOOS=js GOARCH=wasm go env GOROOT)"/misc/wasm/wasm_exec.js .
 	sw-precache --config=ebitenui_player.sw-precache-config.js --verbose
