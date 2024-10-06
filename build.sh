@@ -23,7 +23,7 @@ go_build_release() {
 
 # Special flags for even smaller binaries.
 go_build_embedrelease() {
-	go build -a -ldflags=all="-s -w $EXTRA_LDFLAGS" -gcflags=all='-B -dwarf=false -l' -trimpath -tags embed "$@"
+	go build -a -ldflags=all="-s -w $EXTRA_LDFLAGS" -gcflags=all='-B -dwarf=false' -trimpath -tags embed "$@"
 }
 
 win32() {
