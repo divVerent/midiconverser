@@ -1,9 +1,10 @@
+/cmd/ebitenui_player/vfs
 /ebitenui_player
 /ebitenui_player.exe
-/ebitenui_player_nodata.exe
 /ebitenui_player.sw-precache.js
 /ebitenui_player.wasm
+/ebitenui_player_nodata.exe
+/internal/version/version.txt
 /process
 /textui_player
 /wasm_exec.js
-/cmd/ebitenui_player/vfs
