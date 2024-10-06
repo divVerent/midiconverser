@@ -362,6 +362,7 @@ func (p *playerUI) recreateUI() {
 	listSliderSize := int(math.Round(8 * p.scale))
 	buttonInsets := int(math.Round(p.scale))
 	checkSize := int(math.Round(3 * p.scale))
+	sliderMinHandleSize := int(math.Round(4 * p.scale))
 
 	titleBarHeight := int(fontSize + 2*float64(buttonInsets))
 	portListHeight := int(titleBarHeight * 3)
@@ -502,6 +503,7 @@ func (p *playerUI) recreateUI() {
 	p.tempo = widget.NewSlider(
 		widget.SliderOpts.MinMax(50, 200),
 		widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+		widget.SliderOpts.MinHandleSize(sliderMinHandleSize),
 		widget.SliderOpts.ChangedHandler(p.tempoChanged),
 		widget.SliderOpts.PageSizeFunc(func() int {
 			return 1
@@ -612,7 +614,8 @@ func (p *playerUI) recreateUI() {
 		widget.ListOpts.ScrollContainerOpts(
 			widget.ScrollContainerOpts.Image(scrollContainerImage),
 		),
-		widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+		widget.ListOpts.SliderOpts(
+			widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
 			widget.SliderOpts.MinHandleSize(listSliderSize),
 		),
 		widget.ListOpts.HideHorizontalSlider(),
@@ -691,7 +694,8 @@ func (p *playerUI) recreateUI() {
 		widget.ListOpts.ScrollContainerOpts(
 			widget.ScrollContainerOpts.Image(scrollContainerImage),
 		),
-		widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+		widget.ListOpts.SliderOpts(
+			widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
 			widget.SliderOpts.MinHandleSize(listSliderSize),
 		),
 		widget.ListOpts.HideHorizontalSlider(),
@@ -804,7 +808,8 @@ func (p *playerUI) recreateUI() {
 		widget.ListOpts.ScrollContainerOpts(
 			widget.ScrollContainerOpts.Image(scrollContainerImage),
 		),
-		widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+		widget.ListOpts.SliderOpts(
+			widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
 			widget.SliderOpts.MinHandleSize(listSliderSize),
 		),
 		widget.ListOpts.HideHorizontalSlider(),
@@ -845,7 +850,8 @@ func (p *playerUI) recreateUI() {
 			widget.ListOpts.ScrollContainerOpts(
 				widget.ScrollContainerOpts.Image(scrollContainerImage),
 			),
-			widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+			widget.ListOpts.SliderOpts(
+				widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
 				widget.SliderOpts.MinHandleSize(listSliderSize),
 			),
 			widget.ListOpts.HideHorizontalSlider(),
@@ -875,7 +881,8 @@ func (p *playerUI) recreateUI() {
 			widget.ListOpts.ScrollContainerOpts(
 				widget.ScrollContainerOpts.Image(scrollContainerImage),
 			),
-			widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+			widget.ListOpts.SliderOpts(
+				widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
 				widget.SliderOpts.MinHandleSize(listSliderSize),
 			),
 			widget.ListOpts.HideHorizontalSlider(),
@@ -905,7 +912,8 @@ func (p *playerUI) recreateUI() {
 			widget.ListOpts.ScrollContainerOpts(
 				widget.ScrollContainerOpts.Image(scrollContainerImage),
 			),
-			widget.ListOpts.SliderOpts(widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+			widget.ListOpts.SliderOpts(
+				widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
 				widget.SliderOpts.MinHandleSize(listSliderSize),
 			),
 			widget.ListOpts.HideHorizontalSlider(),
@@ -935,6 +943,7 @@ func (p *playerUI) recreateUI() {
 	p.settingsTempo = widget.NewSlider(
 		widget.SliderOpts.MinMax(50, 200),
 		widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+		widget.SliderOpts.MinHandleSize(sliderMinHandleSize),
 		widget.SliderOpts.ChangedHandler(func(args *widget.SliderChangedEventArgs) {
 			settingsTempoLabel.Label = fmt.Sprintf("Global Tempo: %d%%", args.Current)
 		}),
@@ -952,6 +961,7 @@ func (p *playerUI) recreateUI() {
 	p.settingsPreludePlayerRepeat = widget.NewSlider(
 		widget.SliderOpts.MinMax(1, 5),
 		widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+		widget.SliderOpts.MinHandleSize(sliderMinHandleSize),
 		widget.SliderOpts.ChangedHandler(func(args *widget.SliderChangedEventArgs) {
 			settingsPreludePlayerRepeatLabel.Label = fmt.Sprintf("Prelude Repeats: %d", p.settingsPreludePlayerRepeat.Current)
 		}),
@@ -969,6 +979,7 @@ func (p *playerUI) recreateUI() {
 	p.settingsPreludePlayerSleep = widget.NewSlider(
 		widget.SliderOpts.MinMax(5, 50),
 		widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+		widget.SliderOpts.MinHandleSize(sliderMinHandleSize),
 		widget.SliderOpts.ChangedHandler(func(args *widget.SliderChangedEventArgs) {
 			settingsPreludePlayerSleepLabel.Label = fmt.Sprintf("Prelude Sleep: %.1fs", float64(args.Current)*0.1)
 		}),
