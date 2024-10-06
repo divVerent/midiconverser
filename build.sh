@@ -47,6 +47,8 @@ wasm() {
 }
 
 win32 go_build_release -o ebitenui_player_nodata.exe ./cmd/ebitenui_player
+cp /usr/lib/gcc/i686-w64-mingw32/12-win32/libstdc++-6.dll .
+cp /usr/lib/gcc/i686-w64-mingw32/12-win32/libgcc_s_dw2-1.dll .
 
 if [ -d ../midi ]; then
 	rm -rf cmd/ebitenui_player/vfs
