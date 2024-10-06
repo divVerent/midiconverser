@@ -2,6 +2,14 @@
 
 set -ex
 
+version() {
+	desc=$(git describe --always --long --match 'v*.*' --exclude 'v*.*.*' HEAD)
+	date=$(git log -n 1 --pretty=format:%cd --date=format:%Y%m%d HEAD)
+	echo "$desc-$date"
+}
+
+version > internal/version/version.txt
+
 go build ./cmd/ebitenui_player
 go build ./cmd/process
 go build ./cmd/textui_player
@@ -45,6 +53,7 @@ if [ -d ../midi ]; then
 	mkdir cmd/ebitenui_player/vfs
 	{
 		cd ../midi
+		version > version.txt
 		tar cf - *.yml */*.mid
 	} | {
 		cd cmd/ebitenui_player/vfs

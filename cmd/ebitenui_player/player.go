@@ -13,7 +13,6 @@ import (
 	"math"
 	"os"
 	"reflect"
-	"runtime/debug"
 	"slices"
 
 	"golang.org/x/image/font/gofont/goregular"
@@ -29,6 +28,7 @@ import (
 	"github.com/divVerent/midiconverser/internal/file"
 	"github.com/divVerent/midiconverser/internal/player"
 	"github.com/divVerent/midiconverser/internal/processor"
+	"github.com/divVerent/midiconverser/internal/version"
 )
 
 var (
@@ -89,6 +89,7 @@ type playerUI struct {
 	preludeWindowOpen  bool
 	settingsWindowOpen bool
 	prevPreludeTags    map[string]bool
+	dataVersion        string
 }
 
 func Main() error {
@@ -109,6 +110,8 @@ func Main() error {
 		width:  w,
 		height: h,
 	}
+
+	p.initDataVersion(fsys)
 
 	err = p.initHymnsList(fsys)
 	if err != nil {
@@ -198,6 +201,16 @@ func (p *playerUI) shutdownBackend() {
 		}
 	}
 	p.backend = nil
+}
+
+func (p *playerUI) initDataVersion(fsys fs.FS) {
+	v, err := fs.ReadFile(fsys, "version.txt")
+	if err != nil {
+		p.dataVersion = "(unknown)"
+		log.Printf("Could not read version file: %v.", err)
+		return
+	}
+	p.dataVersion = string(bytes.TrimSpace(v))
 }
 
 func listHymns(fsys fs.FS) ([]string, []string, error) {
@@ -342,19 +355,6 @@ func newImageColor(size int, c color.Color) *ebiten.Image {
 	return img
 }
 
-func version() string {
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return "(no BuildInfo)"
-	}
-	for _, s := range info.Settings {
-		if s.Key == "vcs.revision" {
-			return s.Value
-		}
-	}
-	return "(no vcs.revision)"
-}
-
 func (p *playerUI) recreateUI() {
 	fontSize := 4.0 * p.scale
 	smallFontSize := 2.0 * p.scale
@@ -450,7 +450,7 @@ func (p *playerUI) recreateUI() {
 	p.rootContainer.AddChild(mainContainer)
 
 	versionLabel := widget.NewLabel(
-		widget.LabelOpts.Text(fmt.Sprintf("Version: %s", version()), smallFontFace, labelColors),
+		widget.LabelOpts.Text(fmt.Sprintf("Version: code %s, data %s", version.Version(), p.dataVersion), smallFontFace, labelColors),
 		widget.LabelOpts.TextOpts(
 			widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
 		),
