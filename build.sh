@@ -51,6 +51,7 @@ win32 go_build_release -o ebitenui_player_nodata.exe ./cmd/ebitenui_player
 for path in /usr/i686-w64-mingw32/bin /usr/lib/gcc/i686-w64-mingw32/12-win32; do
 	cp "$path"/libstdc++-6.dll . || true
 	cp "$path"/libgcc_s_dw2-1.dll . || true
+	cp "$path"/libwinpthread-1.dll . || true
 done
 
 if [ -d ../midi ]; then
