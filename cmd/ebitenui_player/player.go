@@ -13,6 +13,7 @@ import (
 	"math"
 	"os"
 	"reflect"
+	"runtime/debug"
 	"slices"
 
 	"golang.org/x/image/font/gofont/goregular"
@@ -341,6 +342,19 @@ func newImageColor(size int, c color.Color) *ebiten.Image {
 	return img
 }
 
+func version() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "(no BuildInfo)"
+	}
+	for _, s := range info.Settings {
+		if s.Key == "vcs.revision" {
+			return s.Value
+		}
+	}
+	return "(no vcs.revision)"
+}
+
 func (p *playerUI) recreateUI() {
 	fontSize := 4.0 * p.scale
 	smallFontSize := 2.0 * p.scale
@@ -425,7 +439,7 @@ func (p *playerUI) recreateUI() {
 			widget.GridLayoutOpts.Columns(1),
 			widget.GridLayoutOpts.Spacing(spacing, spacing),
 			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
-			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, false, false, true}),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, false, false, false, true}),
 		)),
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
@@ -434,6 +448,14 @@ func (p *playerUI) recreateUI() {
 			})),
 	)
 	p.rootContainer.AddChild(mainContainer)
+
+	versionLabel := widget.NewLabel(
+		widget.LabelOpts.Text(fmt.Sprintf("Version: %s", version()), smallFontFace, labelColors),
+		widget.LabelOpts.TextOpts(
+			widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+		),
+	)
+	mainContainer.AddChild(versionLabel)
 
 	tableContainer := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
