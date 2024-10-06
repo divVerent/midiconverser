@@ -55,12 +55,12 @@ if [ -d ../midi ]; then
 	mkdir cmd/ebitenui_player/vfs
 	{
 		cd ../midi
-		version > version.txt
 		tar cf - *.yml */*.mid
 	} | {
 		cd cmd/ebitenui_player/vfs
 		tar xvf -
 	}
+	version > cmd/ebitenui_player/vfs/version.txt
 
 	win32 go_build_embedrelease -o ebitenui_player.exe ./cmd/ebitenui_player
 	wasm go_build_embedrelease -o ebitenui_player.wasm ./cmd/ebitenui_player
