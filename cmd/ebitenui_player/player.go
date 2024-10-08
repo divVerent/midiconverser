@@ -157,16 +157,11 @@ func copyConfigOverrideFields(from, to *processor.Config) {
 	to.PreludePlayerRepeat = from.PreludePlayerRepeat
 	to.PreludePlayerSleepSec = from.PreludePlayerSleepSec
 	to.FermatasInPrelude = from.FermatasInPrelude
+	to.OutputPort = from.OutputPort
 }
 
 func (p *playerUI) initBackend(fsys fs.FS) error {
 	var err error
-	p.outPort, err = player.FindBestPort(*port)
-	if err != nil {
-		log.Printf("Could not find MIDI port: %v - continuning without; playing will fail.", err)
-	}
-	log.Printf("Picked output port: %v.", p.outPort)
-
 	p.config, err = loadConfig(fsys, *c)
 	if err != nil {
 		return fmt.Errorf("failed to read config: %w", err)
@@ -176,6 +171,12 @@ func (p *playerUI) initBackend(fsys fs.FS) error {
 	if err != nil {
 		log.Printf("Failed to load config override: %v.", err)
 	}
+
+	p.outPort, err = player.FindBestPort(*port, p.config.OutputPort)
+	if err != nil {
+		log.Printf("Could not find MIDI port: %v - continuning without; playing will fail.", err)
+	}
+	log.Printf("Picked output port: %v.", p.outPort)
 
 	p.backend = player.NewBackend(&player.Options{
 		FSys:     fsys,
@@ -1231,6 +1232,7 @@ func (p *playerUI) applySettingsClicked(args *widget.ButtonClickedEventArgs) {
 				OutPort: port,
 			}
 		}
+		p.config.OutputPort = port.String()
 	}
 	p.config.Channel = p.settingsChannel.SelectedEntry().(int)
 	p.config.MelodyChannel = p.settingsMelodyChannel.SelectedEntry().(int)

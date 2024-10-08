@@ -12,10 +12,10 @@ import (
 var (
 	badPortsRE       = regexp.MustCompile(`\bMidi Through\b|\bPipeWire-System\b|\bPipeWire-RT-Event\b`)
 	usbPortsRE       = regexp.MustCompile(`\bUSB|\bUM-`)
-	softSynthPortsRE = regexp.MustCompile(`\bFLUID\b|\bSynth input port\b|\bTiMidity\b`)
+	softSynthPortsRE = regexp.MustCompile(`\bFLUID\b|\bSynth\b|\bTiMidity\b`)
 )
 
-func FindBestPort(pattern string) (drivers.Out, error) {
+func FindBestPort(pattern string, preferred string) (drivers.Out, error) {
 	var goodPorts []drivers.Out
 	if pattern != "" {
 		portRE, err := regexp.Compile(pattern)
@@ -24,6 +24,14 @@ func FindBestPort(pattern string) (drivers.Out, error) {
 		}
 		for _, port := range midi.GetOutPorts() {
 			if !portRE.MatchString(port.String()) {
+				continue
+			}
+			goodPorts = append(goodPorts, port)
+		}
+	}
+	if len(goodPorts) == 0 && preferred != "" {
+		for _, port := range midi.GetOutPorts() {
+			if port.String() != preferred {
 				continue
 			}
 			goodPorts = append(goodPorts, port)

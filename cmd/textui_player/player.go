@@ -310,16 +310,16 @@ func Main() error {
 	}
 	fsys := os.DirFS(cwd)
 
-	outPort, err := player.FindBestPort(*port)
-	if err != nil {
-		return fmt.Errorf("could not find MIDI port: %w", err)
-	}
-	log.Printf("Picked output port: %v.", outPort)
-
 	config, err := file.ReadConfig(fsys, *c)
 	if err != nil {
 		return fmt.Errorf("failed to read config: %w", err)
 	}
+
+	outPort, err := player.FindBestPort(*port, config.OutputPort)
+	if err != nil {
+		return fmt.Errorf("could not find MIDI port: %w", err)
+	}
+	log.Printf("Picked output port: %v.", outPort)
 
 	b := player.NewBackend(&player.Options{
 		FSys:     fsys,

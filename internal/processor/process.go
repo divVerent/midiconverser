@@ -130,6 +130,9 @@ type Config struct {
 	// Misc for exporting. Not needed in UI.
 	RestBetweenVersesBeats int     `yaml:"rest_between_verses_beats,omitempty"`
 	WholeExportSleepSec    float64 `yaml:"whole_export_sleep_sec,omitempty"`
+
+	// Device configuration. Used by the player.
+	OutputPort string `yaml:"output_port"`
 }
 
 // Options define file specific options.
