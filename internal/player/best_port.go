@@ -12,7 +12,7 @@ import (
 var (
 	badPortsRE       = regexp.MustCompile(`\bMidi Through\b|\bPipeWire-System\b|\bPipeWire-RT-Event\b`)
 	usbPortsRE       = regexp.MustCompile(`\bUSB|\bUM-`)
-	softSynthPortsRE = regexp.MustCompile(`\bFLUID\b|\bSynth\b|\bTiMidity\b`)
+	softSynthPortsRE = regexp.MustCompile(`\bFLUID\b|\bSynth\b|\bTiMidity\b|\bZynAddSubFX\b`)
 )
 
 func FindBestPort(pattern string, preferred string) (drivers.Out, error) {
