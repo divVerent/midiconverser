@@ -32,7 +32,7 @@ import (
 )
 
 var (
-	c    = flag.String("c", "config.yml", "config file name (YAML)")
+	c    = flag.String("c", "midiconverser.yml", "config file name (YAML)")
 	port = flag.String("port", "", "regular expression to match the preferred output port")
 	i    = flag.String("i", "", "when set, just play this file then exit")
 )

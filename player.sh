@@ -130,8 +130,8 @@ else
 			;;
 	esac
 
-	repeat=$(yq < config.yml '.prelude_player_repeat // 2')
-	sleep=$(yq < config.yml '.prelude_player_sleep_sec // 2')
+	repeat=$(yq < midiconverser.yml '.prelude_player_repeat // 2')
+	sleep=$(yq < midiconverser.yml '.prelude_player_sleep_sec // 2')
 	while :; do
 		verses=$(echo *.verse.mid | xargs -n 1 | shuf)"$LF"
 		while [ -n "$verses" ]; do

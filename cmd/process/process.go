@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	c           = flag.String("c", "config.yml", "config file name (YAML)")
+	c           = flag.String("c", "midiconverser.yml", "config file name (YAML)")
 	i           = flag.String("i", "", "input file name (YAML)")
 	addChecksum = flag.Bool("add_checksum", false, "automatically add checksum to the input YAML")
 	oPrefix     = flag.String("o_prefix", "", "output file name for outputting separate files")
