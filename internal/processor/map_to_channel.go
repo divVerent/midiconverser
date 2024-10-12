@@ -3,6 +3,7 @@ package processor
 import (
 	"log"
 	"regexp"
+	"strings"
 
 	"gitlab.com/gomidi/midi/v2/smf"
 )
@@ -35,10 +36,20 @@ func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, mel
 	for i, t := range mid.Tracks {
 		var name string
 		for _, ev := range t {
-			if !ev.Message.GetMetaTrackName(&name) {
-				continue
+			// Take the _last_ event for the track name.
+			// But only within the first tick.
+			if ev.Delta != 0 {
+				break
 			}
-			break
+			var text string
+			if ev.Message.GetMetaTrackName(&text) {
+				name = text
+			}
+			if ev.Message.GetMetaText(&text) {
+				if rest, found := strings.CutPrefix(text, "track_name="); found {
+					name = rest
+				}
+			}
 		}
 		log.Printf("Track %d name: %s.", i, name)
 		if melodyTracks == nil && melodyRE != "" && melody.MatchString(name) {

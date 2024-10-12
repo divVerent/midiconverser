@@ -51,14 +51,18 @@ win32 go_build_release -o ebitenui_player_nodata.exe ./cmd/ebitenui_player
 if [ -d ../midi ]; then
 	rm -rf cmd/ebitenui_player/vfs
 	mkdir cmd/ebitenui_player/vfs
-	{
+	(
 		cd ../midi
 		version > version.txt
+		(
+			cd hymns-extra
+			./build.sh
+		)
 		tar cf - version.txt *.yml */*.mid
-	} | {
+	) | (
 		cd cmd/ebitenui_player/vfs
 		tar xvf -
-	}
+	)
 
 	win32 go_build_embedrelease -o ebitenui_player.exe ./cmd/ebitenui_player
 	wasm go_build_embedrelease -o ebitenui_player.wasm ./cmd/ebitenui_player
