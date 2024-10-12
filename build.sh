@@ -65,5 +65,4 @@ if [ -d ../midi ]; then
 
 	cp "$(cd / && GOOS=js GOARCH=wasm go env GOROOT)"/misc/wasm/wasm_exec.js .
 	workbox generateSW ebitenui_player.workbox-config.js --verbose
-	mv service-worker.js ebitenui_player.sw-precache.js
 fi
