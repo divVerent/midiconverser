@@ -17,8 +17,8 @@ with FluidSynth).
 
 ### Generate Files For a Hymn
 
-1.  If not done yet, write a YAML file `midiconverser.yml` like the following
-    (written for the LD-34 organ):
+1.  If not done yet, write a YAML file `midiconverser.yml` like the
+    following (written for the LD-34 organ):
 
         channel: 2
         melody_channel: 1

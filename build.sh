@@ -64,6 +64,6 @@ if [ -d ../midi ]; then
 	wasm go_build_embedrelease -o ebitenui_player.wasm ./cmd/ebitenui_player
 
 	cp "$(cd / && GOOS=js GOARCH=wasm go env GOROOT)"/misc/wasm/wasm_exec.js .
-	sw-precache --config=ebitenui_player.sw-precache-config.js --verbose
+	workbox generateSW ebitenui_player.workbox-config.js --verbose
 	mv service-worker.js ebitenui_player.sw-precache.js
 fi

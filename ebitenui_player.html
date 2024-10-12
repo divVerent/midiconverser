@@ -1,33 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="generator" content="HTML Tidy for HTML5 for Linux version 5.6.0">
+  <meta name="generator" content="HTML Tidy for HTML5 for Linux version 5.8.0">
   <link rel="manifest" href="ebitenui_player.manifest.json" crossorigin="use-credentials">
   <script src="wasm_exec.js"></script>
   <script>
     // PWA stuff.
     if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("ebitenui_player.sw-precache.js").then(r => {
-          r.onupdatefound = function() {
-            let installingWorker = r.installing;
-            installingWorker.onstatechange = () => {
-              switch (installingWorker.state) {
-                case "installed":
-                  if (navigator.serviceWorker.controller) {
-                    console.log("Service worker updated.");
-                  } else {
-                    console.log("Service worker available offline.");
-                  }
-                  break;
-                case "redundant":
-                  console.error("Service worker redundant.");
-                  break;
-              }
-            };
-          };
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('ebitenui_player.service-worker.js').then(r => {
+          console.info('Service worker registered.');
         }).catch(e => {
-          console.error("Could not register service worker: ", e);
+          console.error('Failed to register service worker: ', e, '.');
         });
       });
     }
