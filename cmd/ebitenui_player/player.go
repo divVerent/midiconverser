@@ -222,12 +222,19 @@ func listHymns(fsys fs.FS) ([]string, []string, error) {
 
 	var hymns []string
 	tagsMap := map[string]bool{}
-	for _, f := range all {
-		options, err := file.ReadOptions(fsys, f)
+	for _, name := range all {
+		options, err := file.ReadOptions(fsys, name)
 		if err != nil {
+			log.Printf("Skipping file %v because it seems to not be a hymn: %v.", name, err)
 			continue
 		}
-		hymns = append(hymns, f)
+		f, err := fsys.Open(options.InputFile)
+		if err != nil {
+			log.Printf("Skipping file %v because input file is not available: %v.", name, err)
+			continue
+		}
+		f.Close()
+		hymns = append(hymns, name)
 		for _, t := range options.Tags {
 			tagsMap[t] = true
 		}
