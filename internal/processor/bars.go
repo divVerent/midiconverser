@@ -2,6 +2,7 @@ package processor
 
 import (
 	"fmt"
+	"log"
 	"slices"
 
 	"gitlab.com/gomidi/midi/v2/smf"
@@ -123,8 +124,13 @@ func findBars(midi *smf.SMF) (bars, error) {
 				whole := 4 * int64(midi.TimeFormat.(smf.MetricTicks))
 				beat := int64(midi.TimeFormat.(smf.MetricTicks)) * int64(cpt) / 24
 				if (beat*int64(denom))%whole != 0 {
-					return nil, fmt.Errorf("Unusual beat duration: got %d ticks per beat and %d ticks per whole in a %d/%d time signature.",
-						beat, whole, num, denom)
+					// This is a bug in abc2midi.
+					log.Printf("Unusual beat duration: got %d ticks per beat and %d ticks per whole in a %d/%d time signature - fixing by making a beat 1/%d.",
+						beat, whole, num, denom, denom)
+					if whole%int64(denom) != 0 {
+						return nil, fmt.Errorf("cannot autofix beat duration: whole %d not divisible by denom %d", whole, denom)
+					}
+					beat = whole / int64(denom)
 				}
 				beatNum := beat * int64(denom) / whole
 				sigs = append(sigs, timeSig{
