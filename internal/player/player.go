@@ -434,31 +434,26 @@ func fixOutput(output map[processor.OutputKey]*smf.SMF) error {
 	return nil
 }
 
-// load loads and processes the given input.
-func (b *Backend) load(optionsFile string) (map[processor.OutputKey]*smf.SMF, *processor.Options, error) {
-	options, err := file.ReadOptions(b.fsys, optionsFile)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read %v: %w", optionsFile, err)
-	}
-
+// process processes the given input.
+func (b *Backend) process(options *processor.Options) (map[processor.OutputKey]*smf.SMF, error) {
 	output, err := file.Process(b.fsys, &b.config, options)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to process %v: %w", optionsFile, err)
+		return nil, fmt.Errorf("failed to process: %w", err)
 	}
 
 	err = fixOutput(output)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to autofix %v: %w", optionsFile, err)
+		return nil, fmt.Errorf("failed to autofix: %w", err)
 	}
 
-	return output, options, nil
+	return output, nil
 }
 
 // preludePlayerOne plays the given file's whole verse for prelude purposes.
 func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
-	output, options, err := b.load(optionsFile)
+	options, err := file.ReadOptions(b.fsys, optionsFile)
 	if err != nil {
-		log.Printf("Skipping prelude file %v due to: %v.", optionsFile, err)
+		log.Printf("Skipping prelude file %v due to read error: %v.", optionsFile, err)
 		return false, nil
 	}
 
@@ -489,6 +484,12 @@ func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 
 	if options.NumVerses <= 1 {
 		log.Printf("Skipping %s due to baked-in repeats.", optionsFile)
+		return false, nil
+	}
+
+	output, err := b.process(options)
+	if err != nil {
+		log.Printf("Skipping prelude file %v due to process error: %v.", optionsFile, err)
 		return false, nil
 	}
 
@@ -593,9 +594,13 @@ func (b *Backend) prompt(ask, response string) error {
 
 // singlePlayer plays the given file interactively.
 func (b *Backend) singlePlayer(optionsFile string) error {
-	output, options, err := b.load(optionsFile)
+	options, err := file.ReadOptions(b.fsys, optionsFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read %v: %w", optionsFile, err)
+	}
+	output, err := b.process(options)
+	if err != nil {
+		return fmt.Errorf("failed to process %v: %w", optionsFile, err)
 	}
 
 	key := processor.OutputKey{Special: processor.Panic}
