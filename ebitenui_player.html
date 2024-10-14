@@ -5,6 +5,12 @@
   <link rel="manifest" href="ebitenui_player.manifest.json" crossorigin="use-credentials">
   <script src="wasm_exec.js"></script>
   <script>
+    // Early out when there is no browser support.
+    if (navigator.requestMIDIAccess == null) {
+      document.write('Sorry, this browser does not support MIDI access.');
+      return;
+    }
+
     // PWA stuff.
     if ("serviceWorker" in navigator) {
       window.addEventListener('load', () => {
