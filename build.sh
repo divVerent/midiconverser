@@ -60,6 +60,7 @@ if [ -d ../midi ]; then
 		)
 		7za a -tzip -mx=9 "$vfszip" version.txt *.yml */*.mid
 	)
+	age --encrypt --passphrase -o "$vfszip.age" "$vfszip"
 
 	win32 go_build_embedrelease -o ebitenui_player.exe ./cmd/ebitenui_player
 	wasm go_build_embedrelease -o ebitenui_player.wasm ./cmd/ebitenui_player
