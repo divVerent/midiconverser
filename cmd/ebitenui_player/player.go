@@ -1428,7 +1428,7 @@ func (p *playerUI) openPasswordWindow(args *widget.ButtonClickedEventArgs) {
 		h = tH + cH
 	}
 	x := (p.width - w) / 2
-	y := (p.height - h) / 2
+	y := 16 // Top-align password dialog to not conflict with mobile text entry.
 	r := go_image.Rect(x, y, x+w, y+h)
 	p.passwordWindow.SetLocation(r)
 	p.ui.AddWindow(p.passwordWindow)
