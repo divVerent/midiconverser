@@ -1428,7 +1428,7 @@ func (p *playerUI) openPasswordWindow(args *widget.ButtonClickedEventArgs) {
 		h = tH + cH
 	}
 	x := (p.width - w) / 2
-	y := (p.height - h) / 4 // Top half for android kbd.
+	y := (p.height/2 - h) / 2 // Top half for android kbd.
 	r := go_image.Rect(x, y, x+w, y+h)
 	p.passwordWindow.SetLocation(r)
 	p.ui.AddWindow(p.passwordWindow)
