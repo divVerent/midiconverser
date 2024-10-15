@@ -52,8 +52,9 @@ type playerUI struct {
 	outPortsAny []any
 	font        *text.GoTextFaceSource
 
-	width, height int
-	scale         float64
+	width, height  int
+	scale          float64
+	mustRecreateUI bool
 
 	rootContainer               *widget.Container
 	currentlyPlaying            *widget.Label
@@ -107,23 +108,18 @@ func Main() error {
 	}
 
 	p := playerUI{
-		width:  w,
-		height: h,
+		width:       w,
+		height:      h,
+		dataVersion: "(not loaded yet)",
 	}
 
-	p.initDataVersion(fsys)
-
-	err = p.initHymnsList(fsys)
+	err = p.initWithFS(fsys)
 	if err != nil {
 		return err
 	}
 
 	p.initChannelsList()
 
-	err = p.initBackend(fsys)
-	if err != nil {
-		return err
-	}
 	defer p.shutdownBackend()
 
 	err = p.initUI()
@@ -160,6 +156,27 @@ func copyConfigOverrideFields(from, to *processor.Config) {
 	to.OutputPort = from.OutputPort
 }
 
+func (p *playerUI) initWithFS(fsys fs.FS) error {
+	if fsys == nil {
+		// Need to reinit later.
+		return nil
+	}
+
+	p.initDataVersion(fsys)
+
+	err := p.initHymnsList(fsys)
+	if err != nil {
+		return err
+	}
+
+	err = p.initBackend(fsys)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (p *playerUI) initBackend(fsys fs.FS) error {
 	var err error
 	p.config, err = loadConfig(fsys, *c)
@@ -185,6 +202,8 @@ func (p *playerUI) initBackend(fsys fs.FS) error {
 		PlayOnly: *i,
 	})
 
+	p.mustRecreateUI = true
+
 	go func() {
 		p.loopErr = p.backend.Loop()
 		p.backend.Close()
@@ -194,6 +213,10 @@ func (p *playerUI) initBackend(fsys fs.FS) error {
 }
 
 func (p *playerUI) shutdownBackend() {
+	if p.backend == nil {
+		// Never launched.
+		return
+	}
 	close(p.backend.Commands)
 	for {
 		_, ok := <-p.backend.UIStates
@@ -1057,6 +1080,9 @@ func (p *playerUI) recreateUI() {
 }
 
 func (p *playerUI) stopClicked(args *widget.ButtonClickedEventArgs) {
+	if p.backend == nil {
+		return
+	}
 	p.ui.ClearFocus()
 	p.backend.Commands <- player.Command{
 		Exit: true,
@@ -1064,30 +1090,45 @@ func (p *playerUI) stopClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) promptClicked(args *widget.ButtonClickedEventArgs) {
+	if p.backend == nil {
+		return
+	}
 	p.backend.Commands <- player.Command{
 		Answer: true,
 	}
 }
 
 func (p *playerUI) tempoChanged(args *widget.SliderChangedEventArgs) {
+	if p.backend == nil {
+		return
+	}
 	p.backend.Commands <- player.Command{
 		Tempo: float64(args.Current) / 100.0,
 	}
 }
 
 func (p *playerUI) fewerVersesClicked(args *widget.ButtonClickedEventArgs) {
+	if p.backend == nil {
+		return
+	}
 	p.backend.Commands <- player.Command{
 		NumVerses: p.uiState.NumVerses - 1,
 	}
 }
 
 func (p *playerUI) moreVersesClicked(args *widget.ButtonClickedEventArgs) {
+	if p.backend == nil {
+		return
+	}
 	p.backend.Commands <- player.Command{
 		NumVerses: p.uiState.NumVerses + 1,
 	}
 }
 
 func (p *playerUI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
+	if p.backend == nil {
+		return
+	}
 	w := p.width - 32
 	h := p.height - 32
 	x := (p.width - w) / 2
@@ -1102,6 +1143,9 @@ func (p *playerUI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
 	p.stop.Focus(true)
 	p.hymnsWindow.Close()
 	p.hymnsWindowOpen = false
+	if p.backend == nil {
+		return
+	}
 	e, ok := p.hymnList.SelectedEntry().(string)
 	if !ok {
 		log.Printf("No hymn selected.")
@@ -1119,6 +1163,9 @@ func (p *playerUI) hymnsCloseClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) selectPreludeClicked(args *widget.ButtonClickedEventArgs) {
+	if p.backend == nil {
+		return
+	}
 	w := p.width - 32
 	_, tH := p.preludeWindow.TitleBar.PreferredSize()
 	_, cH := p.preludeWindow.Contents.PreferredSize()
@@ -1138,6 +1185,9 @@ func (p *playerUI) playPreludeClicked(args *widget.ButtonClickedEventArgs) {
 	p.stop.Focus(true)
 	p.preludeWindow.Close()
 	p.preludeWindowOpen = false
+	if p.backend == nil {
+		return
+	}
 	p.backend.Commands <- player.Command{
 		PlayPrelude: true,
 	}
@@ -1150,6 +1200,9 @@ func (p *playerUI) preludeCloseClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) avoidTagClicked(args *widget.ButtonClickedEventArgs) {
+	if p.backend == nil {
+		return
+	}
 	tag, ok := p.preludeTagList.SelectedEntry().(string)
 	if !ok {
 		log.Printf("No tag selected.")
@@ -1163,6 +1216,9 @@ func (p *playerUI) avoidTagClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) ignoreTagClicked(args *widget.ButtonClickedEventArgs) {
+	if p.backend == nil {
+		return
+	}
 	tag, ok := p.preludeTagList.SelectedEntry().(string)
 	if !ok {
 		log.Printf("No tag selected.")
@@ -1176,6 +1232,9 @@ func (p *playerUI) ignoreTagClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) requestTagClicked(args *widget.ButtonClickedEventArgs) {
+	if p.backend == nil {
+		return
+	}
 	tag, ok := p.preludeTagList.SelectedEntry().(string)
 	if !ok {
 		log.Printf("No tag selected.")
@@ -1189,6 +1248,9 @@ func (p *playerUI) requestTagClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *playerUI) settingsClicked(args *widget.ButtonClickedEventArgs) {
+	if p.backend == nil {
+		return
+	}
 	p.initOutPortsList()
 	p.settingsOutPort.SetEntries(p.outPortsAny)
 	if p.outPort != nil {
@@ -1230,6 +1292,9 @@ func (p *playerUI) applySettingsClicked(args *widget.ButtonClickedEventArgs) {
 	p.ui.ClearFocus()
 	p.settingsWindow.Close()
 	p.settingsWindowOpen = false
+	if p.backend == nil {
+		return
+	}
 	nextPort := p.settingsOutPort.SelectedEntry()
 	if nextPort != nil {
 		port := p.outPorts[nextPort.(int)]
@@ -1267,8 +1332,9 @@ func (p *playerUI) updateWidgets() {
 		float64(p.width)/80,
 		float64(p.height)/120,
 	)
-	if math.Abs(scale-p.scale) > 0.01 {
+	if math.Abs(scale-p.scale) > 0.001 || p.mustRecreateUI {
 		p.scale = scale
+		p.mustRecreateUI = false
 		p.recreateUI()
 	}
 
@@ -1357,28 +1423,36 @@ func (p *playerUI) updateWidgets() {
 }
 
 func (p *playerUI) Update() error {
+	defer p.ui.Update()
+
 	if ebiten.IsWindowBeingClosed() {
-		p.backend.Commands <- player.Command{
-			Quit: true,
+		if p.backend == nil {
+			return player.QuitError
+		} else {
+			p.backend.Commands <- player.Command{
+				Quit: true,
+			}
 		}
 	}
 
-updateLoop:
-	for {
-		select {
-		case ui, ok := <-p.backend.UIStates:
-			if !ok {
-				log.Printf("UI closed.")
-				// UI channel was closed.
-				if p.loopErr != nil {
-					return p.loopErr
+	if p.backend != nil {
+	updateLoop:
+		for {
+			select {
+			case ui, ok := <-p.backend.UIStates:
+				if !ok {
+					log.Printf("UI closed.")
+					// UI channel was closed.
+					if p.loopErr != nil {
+						return p.loopErr
+					}
+					return player.QuitError
 				}
-				return player.QuitError
+				p.uiState = ui
+			default:
+				// All done.
+				break updateLoop
 			}
-			p.uiState = ui
-		default:
-			// All done.
-			break updateLoop
 		}
 	}
 
@@ -1390,7 +1464,6 @@ updateLoop:
 
 	wakelockSet(p.uiState.PlayOne != "" || p.uiState.PlayPrelude)
 
-	p.ui.Update()
 	return nil
 }
 
