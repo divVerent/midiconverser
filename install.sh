@@ -10,5 +10,5 @@ for f in ebitenui_player.exe ebitenui_player.service-worker.js ebitenui_player.s
 done
 
 for f in ebitenui_player.html ebitenui_player.manifest.json; do
-	sed -e "s,ebitenui_player\\.,$absolute_url/$ebitenui_player.,g" < "$f" > "$fs_path/$f"
+	sed -e "s,ebitenui_player\\.,$absolute_url/ebitenui_player.,g" < "$f" > "$fs_path/$f"
 done
