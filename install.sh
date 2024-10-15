@@ -1,14 +1,19 @@
 #!/bin/sh
 
 fs_path=$1
-absolute_url=$2
 
 set -ex
 
-for f in ebitenui_player.exe ebitenui_player.service-worker.js ebitenui_player.svg ebitenui_player.wasm; do
-	cp -v "$f" "$fs_path/$f"
-done
+files='
+	ebitenui_player.exe
+	ebitenui_player.html
+	ebitenui_player.manifest.json
+	ebitenui_player.svg
+	ebitenui_player.wasm
+	wasm_exec.js
+	ebitenui_player.service-worker.js
+'
 
-for f in ebitenui_player.html ebitenui_player.manifest.json; do
-	sed -e "s,ebitenui_player\\.,$absolute_url/ebitenui_player.,g" < "$f" > "$fs_path/$f"
+for f in $files; do
+	cp -v "$f" "$fs_path/$f"
 done
