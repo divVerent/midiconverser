@@ -132,7 +132,10 @@ type Config struct {
 	WholeExportSleepSec    float64 `yaml:"whole_export_sleep_sec,omitempty"`
 
 	// Device configuration. Used by the player.
-	OutputPort string `yaml:"output_port"`
+	OutputPort string `yaml:"output_port,omitempty"`
+
+	// DataPassword to read the data, if needed.
+	DataPassword string `yaml:"data_password,omitempty"`
 }
 
 // Options define file specific options.

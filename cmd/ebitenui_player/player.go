@@ -83,12 +83,15 @@ type playerUI struct {
 	settingsPreludePlayerRepeat *widget.Slider
 	settingsPreludePlayerSleep  *widget.Slider
 	settingsFermatasInPrelude   *widget.Checkbox
+	passwordWindow              *widget.Window
+	password                    *widget.TextInput
 
 	prevTempo          float64
 	loopErr            error
 	hymnsWindowOpen    bool
 	preludeWindowOpen  bool
 	settingsWindowOpen bool
+	passwordWindowOpen bool
 	prevPreludeTags    map[string]bool
 	dataVersion        string
 }
@@ -102,7 +105,14 @@ func Main() error {
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowClosingHandled(true)
 
-	fsys, err := openFS()
+	// TODO: refactor to load the config override only once.
+	var initialPWConfig processor.Config
+	err := loadConfigOverride(*c, &initialPWConfig)
+	if err != nil {
+		log.Printf("Failed to load config override for password: %v.", err)
+	}
+
+	fsys, err := openFS(initialPWConfig.DataPassword)
 	if err != nil {
 		return fmt.Errorf("failed to open FS: %v", err)
 	}
@@ -154,6 +164,7 @@ func copyConfigOverrideFields(from, to *processor.Config) {
 	to.PreludePlayerSleepSec = from.PreludePlayerSleepSec
 	to.FermatasInPrelude = from.FermatasInPrelude
 	to.OutputPort = from.OutputPort
+	to.DataPassword = from.DataPassword
 }
 
 func (p *playerUI) initWithFS(fsys fs.FS) error {
@@ -455,11 +466,20 @@ func (p *playerUI) recreateUI() {
 		DisabledSelected:           color.White,
 		DisabledSelectedBackground: color.Black,
 	}
-
 	checkboxGraphicImage := &widget.CheckboxGraphicImage{
 		Unchecked: &widget.ButtonImageImage{Idle: newImageColor(checkSize, color.NRGBA{R: 128, G: 128, B: 128, A: 32})},
 		Checked:   &widget.ButtonImageImage{Idle: newImageColor(checkSize, color.NRGBA{R: 128, G: 128, B: 128, A: 255})},
 		Greyed:    &widget.ButtonImageImage{Idle: newImageColor(checkSize, color.Alpha{A: 0})},
+	}
+	textInputImage := &widget.TextInputImage{
+		Idle:     image.NewNineSliceColor(color.Gray{Y: 192}),
+		Disabled: image.NewNineSliceColor(color.Gray{Y: 224}),
+	}
+	textInputColor := &widget.TextInputColor{
+		Idle:          color.Black,
+		Disabled:      color.Black,
+		Caret:         color.Gray{Y: 128},
+		DisabledCaret: color.Gray{Y: 128},
 	}
 
 	// Rebuild the rootContainer.
@@ -1077,6 +1097,73 @@ func (p *playerUI) recreateUI() {
 	if p.settingsWindowOpen {
 		p.settingsClicked(nil)
 	}
+
+	// Rebuild the password window.
+
+	passwordWindowContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Gray{Y: 224})),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true, false, false}),
+		)),
+	)
+
+	passwordLabel := widget.NewLabel(
+		widget.LabelOpts.Text("Enter password: ", fontFace, labelColors),
+	)
+	passwordWindowContainer.AddChild(passwordLabel)
+	p.password = widget.NewTextInput(
+		widget.TextInputOpts.Image(textInputImage),
+		widget.TextInputOpts.Face(fontFace),
+		widget.TextInputOpts.Color(textInputColor),
+		widget.TextInputOpts.Padding(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
+		widget.TextInputOpts.CaretOpts(
+			widget.CaretOpts.Size(fontFace, 2),
+		),
+		widget.TextInputOpts.Secure(true),
+		widget.TextInputOpts.Placeholder("Password"),
+	)
+	passwordWindowContainer.AddChild(p.password)
+
+	applyPassword := widget.NewButton(
+		widget.ButtonOpts.Text("OK", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
+		widget.ButtonOpts.ClickedHandler(p.applyPasswordClicked),
+	)
+	passwordWindowContainer.AddChild(applyPassword)
+
+	passwordTitleContainer := widget.NewContainer(
+		widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Black)),
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{true}),
+		)),
+	)
+	passwordTitle := widget.NewText(
+		widget.TextOpts.Text("Password", fontFace, color.White),
+		widget.TextOpts.Insets(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
+		widget.TextOpts.Position(widget.TextPositionStart, widget.TextPositionCenter),
+	)
+	passwordTitleContainer.AddChild(passwordTitle)
+
+	if p.passwordWindowOpen {
+		p.passwordWindow.Close()
+	}
+
+	p.passwordWindow = widget.NewWindow(
+		widget.WindowOpts.Contents(passwordWindowContainer),
+		widget.WindowOpts.TitleBar(passwordTitleContainer, titleBarHeight),
+		widget.WindowOpts.Modal(),
+		widget.WindowOpts.CloseMode(widget.NONE),
+	)
+
+	if p.passwordWindowOpen {
+		p.openPasswordWindow(nil)
+	}
 }
 
 func (p *playerUI) stopClicked(args *widget.ButtonClickedEventArgs) {
@@ -1326,6 +1413,62 @@ func (p *playerUI) settingsCloseClicked(args *widget.ButtonClickedEventArgs) {
 	p.settingsWindowOpen = false
 }
 
+func (p *playerUI) openPasswordWindow(args *widget.ButtonClickedEventArgs) {
+	if p.backend != nil {
+		return
+	}
+
+	p.password.SetText("")
+
+	w := p.width - 32
+	_, tH := p.passwordWindow.TitleBar.PreferredSize()
+	_, cH := p.passwordWindow.Contents.PreferredSize()
+	h := p.height - 32
+	if h > tH+cH {
+		h = tH + cH
+	}
+	x := (p.width - w) / 2
+	y := (p.height - h) / 2
+	r := go_image.Rect(x, y, x+w, y+h)
+	p.passwordWindow.SetLocation(r)
+	p.ui.AddWindow(p.passwordWindow)
+
+	p.password.Focus(true)
+
+	p.passwordWindowOpen = true
+}
+
+func (p *playerUI) applyPasswordClicked(args *widget.ButtonClickedEventArgs) {
+	p.ui.ClearFocus()
+	p.passwordWindow.Close()
+	p.passwordWindowOpen = false
+
+	if p.backend != nil {
+		return
+	}
+	pw := p.password.GetText()
+	fsys, err := openFS(pw)
+	if err != nil {
+		log.Printf("Could not open FS with password: %v.", err)
+		return
+	}
+	if fsys == nil {
+		log.Printf("Got no FS with password: %v.", err)
+		return
+	}
+	err = p.initWithFS(fsys)
+	if err != nil {
+		log.Printf("Could not initialize with password: %v.", err)
+		return
+	}
+	if p.backend == nil {
+		log.Printf("Got no backend with password: %v.", err)
+		return
+	}
+	p.config.DataPassword = pw
+	saveConfigOverride(*c, p.config)
+}
+
 // updateUI updates all widgets to current playback state.
 func (p *playerUI) updateWidgets() {
 	scale := math.Min(
@@ -1419,6 +1562,10 @@ func (p *playerUI) updateWidgets() {
 		if ok {
 			p.preludeTagList.SetSelectedEntry(selected)
 		}
+	}
+
+	if p.backend == nil && !p.passwordWindowOpen {
+		p.openPasswordWindow(nil)
 	}
 }
 

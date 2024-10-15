@@ -18,6 +18,12 @@ func loadConfig(fsys fs.FS, name string) (*processor.Config, error) {
 }
 
 func loadConfigOverride(name string, into *processor.Config) error {
+	// Kinda superfluous, as loadConfig already got all, but it's needed for password.
+	config, err := file.ReadConfig(os.DirFS("."), *c)
+	if err != nil {
+		return err
+	}
+	*into = *config
 	return nil
 }
 

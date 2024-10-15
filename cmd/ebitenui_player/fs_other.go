@@ -7,6 +7,6 @@ import (
 	"os"
 )
 
-func openFS() (fs.FS, error) {
+func openFS(pw string) (fs.FS, error) {
 	return os.DirFS("."), nil
 }
