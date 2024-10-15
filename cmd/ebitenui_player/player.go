@@ -114,7 +114,7 @@ func Main() error {
 
 	fsys, err := openFS(initialPWConfig.DataPassword)
 	if err != nil {
-		return fmt.Errorf("failed to open FS: %v", err)
+		log.Printf("Failed to open FS, so deferring for later: %v", err)
 	}
 
 	p := playerUI{
