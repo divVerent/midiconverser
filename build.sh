@@ -49,8 +49,8 @@ wasm() {
 win32 go_build_release -o ebitenui_player_nodata.exe ./cmd/ebitenui_player
 
 if [ -d ../midi ]; then
-	rm -rf cmd/ebitenui_player/vfs
-	mkdir cmd/ebitenui_player/vfs
+	vfszip=$PWD/cmd/ebitenui_player/vfs.zip
+	rm -rf "$vfszip"
 	(
 		cd ../midi
 		version > version.txt
@@ -58,10 +58,7 @@ if [ -d ../midi ]; then
 			cd hymns-extra
 			./build.sh
 		)
-		tar cf - version.txt *.yml */*.mid
-	) | (
-		cd cmd/ebitenui_player/vfs
-		tar xvf -
+		7za a -tzip -mx=9 "$vfszip" version.txt *.yml */*.mid
 	)
 
 	win32 go_build_embedrelease -o ebitenui_player.exe ./cmd/ebitenui_player

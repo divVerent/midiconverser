@@ -3,13 +3,15 @@
 package main
 
 import (
-	"embed"
+	"archive/zip"
+	"bytes"
+	_ "embed"
 	"io/fs"
 )
 
-//go:embed vfs/*
-var vfs embed.FS
+//go:embed vfs.zip
+var vfs []byte
 
 func openFS(pw string) (fs.FS, error) {
-	return fs.Sub(vfs, "vfs")
+	return zip.NewReader(bytes.NewReader(vfs), int64(len(vfs)))
 }
