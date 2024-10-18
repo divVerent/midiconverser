@@ -8,9 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		903CE4152CC318910025BE5A /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 903CE4142CC318910025BE5A /* AppDelegate.m */; };
-		903CE4182CC318910025BE5A /* Renderer.m in Sources */ = {isa = PBXBuildFile; fileRef = 903CE4172CC318910025BE5A /* Renderer.m */; };
 		903CE41B2CC318910025BE5A /* GameViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 903CE41A2CC318910025BE5A /* GameViewController.m */; };
-		903CE41D2CC318910025BE5A /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 903CE41C2CC318910025BE5A /* Shaders.metal */; };
 		903CE4212CC318910025BE5A /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 903CE41F2CC318910025BE5A /* Main.storyboard */; };
 		903CE4232CC318B20025BE5A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 903CE4222CC318B20025BE5A /* Assets.xcassets */; };
 		903CE4262CC318B20025BE5A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 903CE4252CC318B20025BE5A /* main.m */; };
@@ -20,12 +18,8 @@
 		903CE4102CC318900025BE5A /* midiconverser.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = midiconverser.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		903CE4132CC318910025BE5A /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		903CE4142CC318910025BE5A /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
-		903CE4162CC318910025BE5A /* Renderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Renderer.h; sourceTree = "<group>"; };
-		903CE4172CC318910025BE5A /* Renderer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Renderer.m; sourceTree = "<group>"; };
 		903CE4192CC318910025BE5A /* GameViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GameViewController.h; sourceTree = "<group>"; };
 		903CE41A2CC318910025BE5A /* GameViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GameViewController.m; sourceTree = "<group>"; };
-		903CE41C2CC318910025BE5A /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
-		903CE41E2CC318910025BE5A /* ShaderTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes.h; sourceTree = "<group>"; };
 		903CE4202CC318910025BE5A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		903CE4222CC318B20025BE5A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		903CE4242CC318B20025BE5A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -66,12 +60,8 @@
 				903CE4322CC319470025BE5A /* midiconverser.entitlements */,
 				903CE4132CC318910025BE5A /* AppDelegate.h */,
 				903CE4142CC318910025BE5A /* AppDelegate.m */,
-				903CE4162CC318910025BE5A /* Renderer.h */,
-				903CE4172CC318910025BE5A /* Renderer.m */,
 				903CE4192CC318910025BE5A /* GameViewController.h */,
 				903CE41A2CC318910025BE5A /* GameViewController.m */,
-				903CE41C2CC318910025BE5A /* Shaders.metal */,
-				903CE41E2CC318910025BE5A /* ShaderTypes.h */,
 				903CE41F2CC318910025BE5A /* Main.storyboard */,
 				903CE4222CC318B20025BE5A /* Assets.xcassets */,
 				903CE4242CC318B20025BE5A /* Info.plist */,
@@ -149,8 +139,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				903CE4262CC318B20025BE5A /* main.m in Sources */,
-				903CE41D2CC318910025BE5A /* Shaders.metal in Sources */,
-				903CE4182CC318910025BE5A /* Renderer.m in Sources */,
 				903CE41B2CC318910025BE5A /* GameViewController.m in Sources */,
 				903CE4152CC318910025BE5A /* AppDelegate.m in Sources */,
 			);

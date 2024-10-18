@@ -8,9 +8,10 @@
 #import <UIKit/UIKit.h>
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
-#import "Renderer.h"
+
+#import <Midiconverser/Midiconverser.h>
 
 // Our iOS view controller
-@interface GameViewController : UIViewController
+@interface GameViewController : MidiconverserEbitenViewController
 
 @end
