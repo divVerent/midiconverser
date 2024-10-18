@@ -340,7 +340,7 @@ func channelNameFunc(e any) string {
 }
 
 func (p *playerUI) initOutPortsList() {
-	if p.outPorts != nil && len(p.outPorts) == 0 {
+	if p.outPorts != nil && p.outPort == nil {
 		// This is a rescan after it already was empty once.
 		rescanMIDI()
 	}
