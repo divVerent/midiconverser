@@ -1,11 +1,11 @@
 /*.dll
-/cmd/ebitenui_player/vfs.zip
-/cmd/ebitenui_player/vfs.zip.age
 /ebitenui_player
 /ebitenui_player.exe
 /ebitenui_player.service-worker.js
 /ebitenui_player.wasm
 /ebitenui_player_nodata.exe
+/internal/ebiplayer/vfs.zip
+/internal/ebiplayer/vfs.zip.age
 /internal/version/version.txt
 /process
 /textui_player

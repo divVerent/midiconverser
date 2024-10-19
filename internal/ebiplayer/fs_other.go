@@ -1,6 +1,6 @@
 //go:build !embed
 
-package main
+package ebiplayer
 
 import (
 	"io/fs"

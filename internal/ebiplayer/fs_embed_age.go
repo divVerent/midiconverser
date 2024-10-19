@@ -1,6 +1,6 @@
 //go:build embed && age
 
-package main
+package ebiplayer
 
 import (
 	"archive/zip"

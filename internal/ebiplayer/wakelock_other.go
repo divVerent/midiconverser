@@ -1,5 +1,5 @@
 //go:build !wasm
 
-package main
+package ebiplayer
 
 func wakelockSet(goal bool) {}
