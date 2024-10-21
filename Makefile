@@ -29,16 +29,16 @@ ifeq ($(filter embed,$(BUILDTAGS)),)
 EBITENUI_PLAYER_DEPS =
 else
 ifeq ($(filter age,$(BUILDTAGS)),)
-EBITENUI_PLAYER_DEPS = cmd/ebitenui_player/vfs.zip
+EBITENUI_PLAYER_DEPS = internal/ebiplayer/vfs.zip
 else
-EBITENUI_PLAYER_DEPS = cmd/ebitenui_player/vfs.zip.age
+EBITENUI_PLAYER_DEPS = internal/ebiplayer/vfs.zip.age
 endif
 endif
 
 all: ebitenui_player$(GOEXE) process$(GOEXE) textui_player$(GOEXE)
 
 clean:
-	$(RM) internal/version/version.txt ebitenui_player$(GOEXE) process$(GOEXE) textui_player$(GOEXE) cmd/ebitenui_player/vfs.zip cmd/ebitenui_player/vfs.zip.age wasm_exec.js ebitenui_player.service-worker.js
+	$(RM) internal/version/version.txt ebitenui_player$(GOEXE) process$(GOEXE) textui_player$(GOEXE) internal/ebiplayer/vfs.zip internal/ebiplayer/vfs.zip.age wasm_exec.js ebitenui_player.service-worker.js
 
 internal/version/version.txt:
 	echo $$(git describe --always --long --match 'v*.*' --exclude 'v*.*.*' HEAD)-$$(git log -n 1 --pretty=format:%cd --date=format:%Y%m%d HEAD) > "$@"
@@ -52,7 +52,7 @@ process$(GOEXE): internal/version/version.txt
 textui_player$(GOEXE): internal/version/version.txt
 	$(GO) build $(GO_FLAGS) -o $@ ./cmd/textui_player
 
-cmd/ebitenui_player/vfs.zip: ../midi
+internal/ebiplayer/vfs.zip: ../midi
 	set -ex; \
 	pwd=$(PWD); \
 	cd ../midi; \
@@ -62,7 +62,7 @@ cmd/ebitenui_player/vfs.zip: ../midi
 	cd ..; \
 	$(7ZA) "$$pwd"/$@ version.txt *.yml */*.mid
 
-cmd/ebitenui_player/vfs.zip.age: cmd/ebitenui_player/vfs.zip
+internal/ebiplayer/vfs.zip.age: internal/ebiplayer/vfs.zip
 	$(AGE) --encrypt --passphrase -o $@ $<
 
 wasm_exec.js:

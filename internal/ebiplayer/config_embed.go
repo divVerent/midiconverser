@@ -1,6 +1,6 @@
-//go:build !wasm && !embed
+//go:build embed && !wasm
 
-package main
+package ebiplayer
 
 import (
 	"fmt"
@@ -14,21 +14,21 @@ import (
 )
 
 func loadConfig(fsys fs.FS, name string) (*processor.Config, error) {
-	return file.ReadConfig(os.DirFS("."), *c)
+	return file.ReadConfig(fsys, name)
 }
 
 func loadConfigOverride(name string, into *processor.Config) error {
-	// Kinda superfluous, as loadConfig already got all, but it's needed for password.
-	config, err := file.ReadConfig(os.DirFS("."), *c)
+	config, err := file.ReadConfig(os.DirFS("."), name)
 	if err != nil {
 		return err
 	}
-	*into = *config
+	copyConfigOverrideFields(config, into)
 	return nil
 }
 
 func saveConfigOverride(name string, config *processor.Config) (err error) {
-	// Actually save all fields here.
+	var subset processor.Config
+	copyConfigOverrideFields(config, &subset)
 	f, err := os.Create(name)
 	if err != nil {
 		return fmt.Errorf("could not recreate: %v", err)
@@ -41,5 +41,5 @@ func saveConfigOverride(name string, config *processor.Config) (err error) {
 	}()
 	enc := yaml.NewEncoder(f)
 	enc.SetIndent(2) // Match yq.
-	return enc.Encode(config)
+	return enc.Encode(subset)
 }

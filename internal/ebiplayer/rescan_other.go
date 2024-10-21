@@ -1,6 +1,6 @@
 //go:build !wasm
 
-package main
+package ebiplayer
 
 func rescanMIDI() {
 	// Happens automatically in background.

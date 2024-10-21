@@ -1,6 +1,6 @@
 //go:build wasm
 
-package main
+package ebiplayer
 
 import (
 	"bytes"
@@ -27,7 +27,7 @@ func protectJS(f func()) (err error) {
 }
 
 func loadConfig(fsys fs.FS, name string) (*processor.Config, error) {
-	return file.ReadConfig(fsys, *c)
+	return file.ReadConfig(fsys, name)
 }
 
 func loadConfigOverride(name string, into *processor.Config) error {
