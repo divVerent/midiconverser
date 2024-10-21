@@ -383,6 +383,7 @@ func (p *UI) recreateUI() {
 	buttonInsets := int(math.Round(p.scale))
 	checkSize := int(math.Round(3 * p.scale))
 	sliderMinHandleSize := int(math.Round(4 * p.scale))
+	tempoSliderSize := int(math.Round(8 * p.scale))
 
 	titleBarHeight := int(fontSize + 2*float64(buttonInsets))
 	portListHeight := int(titleBarHeight * 3)
@@ -469,7 +470,7 @@ func (p *UI) recreateUI() {
 			widget.GridLayoutOpts.Columns(1),
 			widget.GridLayoutOpts.Spacing(spacing, spacing),
 			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
-			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, false, false, false, true}),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, false, true}),
 		)),
 		widget.ContainerOpts.WidgetOpts(
 			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
@@ -487,6 +488,24 @@ func (p *UI) recreateUI() {
 	)
 	mainContainer.AddChild(versionLabel)
 
+	tempoBarContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(2),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Stretch([]bool{true, false}, []bool{true}),
+		)),
+	)
+	mainContainer.AddChild(tempoBarContainer)
+
+	buttonsContainer := widget.NewContainer(
+		widget.ContainerOpts.Layout(widget.NewGridLayout(
+			widget.GridLayoutOpts.Columns(1),
+			widget.GridLayoutOpts.Spacing(spacing, spacing),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{true}),
+		)),
+	)
+	tempoBarContainer.AddChild(buttonsContainer)
+
 	tableContainer := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(2),
@@ -494,10 +513,10 @@ func (p *UI) recreateUI() {
 			widget.GridLayoutOpts.Stretch([]bool{false, true}, []bool{false}),
 		)),
 	)
-	mainContainer.AddChild(tableContainer)
+	buttonsContainer.AddChild(tableContainer)
 
 	currentlyPlayingLabel := widget.NewLabel(
-		widget.LabelOpts.Text("Now Playing: ", fontFace, labelColors),
+		widget.LabelOpts.Text("Playing: ", fontFace, labelColors),
 	)
 	tableContainer.AddChild(currentlyPlayingLabel)
 	p.currentlyPlaying = widget.NewLabel(
@@ -515,7 +534,7 @@ func (p *UI) recreateUI() {
 	tableContainer.AddChild(p.status)
 
 	p.playbackLabel = widget.NewLabel(
-		widget.LabelOpts.Text("Playback: ...", fontFace, labelColors),
+		widget.LabelOpts.Text("At: ...", fontFace, labelColors),
 	)
 	tableContainer.AddChild(p.playbackLabel)
 	p.playback = widget.NewProgressBar(
@@ -524,22 +543,6 @@ func (p *UI) recreateUI() {
 	tableContainer.AddChild(p.playback)
 
 	// TODO add a control for prelude tags.
-
-	p.tempoLabel = widget.NewLabel(
-		widget.LabelOpts.Text("Tempo: ...", fontFace, labelColors),
-	)
-	tableContainer.AddChild(p.tempoLabel)
-	p.tempo = widget.NewSlider(
-		widget.SliderOpts.MinMax(80, 125),
-		widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
-		widget.SliderOpts.MinHandleSize(sliderMinHandleSize),
-		widget.SliderOpts.ChangedHandler(p.tempoChanged),
-		widget.SliderOpts.PageSizeFunc(func() int {
-			return 1
-		}),
-	)
-	p.prevTempo = -1 // Force refresh.
-	tableContainer.AddChild(p.tempo)
 
 	p.verseLabel = widget.NewLabel(
 		widget.LabelOpts.Text("Verse: ...", fontFace, labelColors),
@@ -571,6 +574,28 @@ func (p *UI) recreateUI() {
 	)
 	versesContainer.AddChild(p.moreVerses)
 
+	p.tempoLabel = widget.NewLabel(
+		widget.LabelOpts.Text("T=...", fontFace, labelColors),
+		widget.LabelOpts.TextOpts(
+			widget.TextOpts.Position(widget.TextPositionEnd, widget.TextPositionCenter),
+		),
+	)
+	versesContainer.AddChild(p.tempoLabel)
+
+	p.tempo = widget.NewSlider(
+		// Tempo value is negated so up is faster.
+		widget.SliderOpts.MinMax(-125, -80),
+		widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
+		widget.SliderOpts.MinHandleSize(tempoSliderSize),
+		widget.SliderOpts.ChangedHandler(p.tempoChanged),
+		widget.SliderOpts.PageSizeFunc(func() int {
+			return 1
+		}),
+		widget.SliderOpts.Direction(widget.DirectionVertical),
+	)
+	p.prevTempo = -1 // Force refresh.
+	tempoBarContainer.AddChild(p.tempo)
+
 	playContainer := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(3),
@@ -578,7 +603,7 @@ func (p *UI) recreateUI() {
 			widget.GridLayoutOpts.Stretch([]bool{true, false, false}, []bool{false}),
 		)),
 	)
-	mainContainer.AddChild(playContainer)
+	buttonsContainer.AddChild(playContainer)
 
 	p.stop = widget.NewButton(
 		widget.ButtonOpts.Text("Stop", fontFace, buttonTextColor),
@@ -610,7 +635,7 @@ func (p *UI) recreateUI() {
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
 		widget.ButtonOpts.ClickedHandler(p.settingsClicked),
 	)
-	mainContainer.AddChild(settings)
+	buttonsContainer.AddChild(settings)
 
 	p.prompt = widget.NewButton(
 		widget.ButtonOpts.Text("b", fontFace, buttonTextColor),
@@ -1168,7 +1193,8 @@ func (p *UI) tempoChanged(args *widget.SliderChangedEventArgs) {
 		return
 	}
 	p.backend.Commands <- player.Command{
-		Tempo: float64(args.Current) / 100.0,
+		// Tempo value is negated so up is faster.
+		Tempo: -float64(args.Current) / 100.0,
 	}
 }
 
@@ -1477,7 +1503,7 @@ func (p *UI) updateWidgets() {
 	}
 
 	if p.uiState.Playing {
-		p.playbackLabel.Label = "Playing: "
+		p.playbackLabel.Label = "At: "
 		p.playbackLabel.GetWidget().Disabled = false
 		p.playback.Min = 0
 		p.playback.Max = 1000000
@@ -1497,10 +1523,12 @@ func (p *UI) updateWidgets() {
 	}
 
 	if p.uiState.Tempo != p.prevTempo {
-		p.tempo.Current = int(math.Round(100.0 * p.uiState.Tempo))
+		// Tempo value is negated so up is faster.
+		p.tempo.Current = -int(math.Round(100.0 * p.uiState.Tempo))
 		p.prevTempo = p.uiState.Tempo
 	}
-	p.tempoLabel.Label = fmt.Sprintf("Tempo: %d%%", p.tempo.Current)
+	// Tempo value is negated so up is faster.
+	p.tempoLabel.Label = fmt.Sprintf("T=%d%%", -p.tempo.Current)
 
 	if p.uiState.NumVerses > 0 {
 		postludeSuffix := ""

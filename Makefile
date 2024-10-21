@@ -35,6 +35,8 @@ EBITENUI_PLAYER_DEPS = internal/ebiplayer/vfs.zip.age
 endif
 endif
 
+SOURCES = $(shell find . -name \*.go)
+
 all: ebitenui_player$(GOEXE) process$(GOEXE) textui_player$(GOEXE)
 .PHONY: all
 
@@ -45,13 +47,13 @@ clean:
 internal/version/version.txt:
 	echo $$(git describe --always --long --match 'v*.*' --exclude 'v*.*.*' HEAD)-$$(git log -n 1 --pretty=format:%cd --date=format:%Y%m%d HEAD) > "$@"
 
-ebitenui_player$(GOEXE): internal/version/version.txt $(EBITENUI_PLAYER_DEPS)
+ebitenui_player$(GOEXE): internal/version/version.txt $(EBITENUI_PLAYER_DEPS) $(SOURCES)
 	$(GO) build $(GO_FLAGS) -o $@ ./cmd/ebitenui_player
 
-process$(GOEXE): internal/version/version.txt
+process$(GOEXE): internal/version/version.txt $(SOURCES)
 	$(GO) build $(GO_FLAGS) -o $@ ./cmd/process
 
-textui_player$(GOEXE): internal/version/version.txt
+textui_player$(GOEXE): internal/version/version.txt $(SOURCES)
 	$(GO) build $(GO_FLAGS) -o $@ ./cmd/textui_player
 
 internal/ebiplayer/vfs.zip: ../midi
