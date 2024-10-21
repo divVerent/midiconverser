@@ -3,10 +3,13 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		903B74F72CC694A7008F2F57 /* midiconverser.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 903B74F62CC694A7008F2F57 /* midiconverser.xcframework */; };
+		903B75012CC6961B008F2F57 /* CoreMIDI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 903B75002CC6961B008F2F57 /* CoreMIDI.framework */; };
+		903B75042CC6962D008F2F57 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 903B75032CC6962D008F2F57 /* GameController.framework */; };
 		903CE4152CC318910025BE5A /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 903CE4142CC318910025BE5A /* AppDelegate.m */; };
 		903CE41B2CC318910025BE5A /* GameViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 903CE41A2CC318910025BE5A /* GameViewController.m */; };
 		903CE4212CC318910025BE5A /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 903CE41F2CC318910025BE5A /* Main.storyboard */; };
@@ -15,6 +18,12 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		903B74F62CC694A7008F2F57 /* midiconverser.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = midiconverser.xcframework; path = midiconverser/go/midiconverser/midiconverser.xcframework; sourceTree = "<group>"; };
+		903B74FB2CC695A1008F2F57 /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk/usr/lib/libc++.tbd"; sourceTree = DEVELOPER_DIR; };
+		903B74FC2CC695AE008F2F57 /* libc++abi.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++abi.tbd"; path = "Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk/usr/lib/libc++abi.tbd"; sourceTree = DEVELOPER_DIR; };
+		903B74FD2CC695C4008F2F57 /* libc++.1.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.1.tbd"; path = "Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk/usr/lib/libc++.1.tbd"; sourceTree = DEVELOPER_DIR; };
+		903B75002CC6961B008F2F57 /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk/System/Library/Frameworks/CoreMIDI.framework; sourceTree = DEVELOPER_DIR; };
+		903B75032CC6962D008F2F57 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk/System/iOSSupport/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		903CE4102CC318900025BE5A /* midiconverser.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = midiconverser.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		903CE4132CC318910025BE5A /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		903CE4142CC318910025BE5A /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -32,17 +41,34 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				903B75012CC6961B008F2F57 /* CoreMIDI.framework in Frameworks */,
+				903B74F72CC694A7008F2F57 /* midiconverser.xcframework in Frameworks */,
+				903B75042CC6962D008F2F57 /* GameController.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		903B74F52CC694A6008F2F57 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				903B75032CC6962D008F2F57 /* GameController.framework */,
+				903B75002CC6961B008F2F57 /* CoreMIDI.framework */,
+				903B74FD2CC695C4008F2F57 /* libc++.1.tbd */,
+				903B74FC2CC695AE008F2F57 /* libc++abi.tbd */,
+				903B74FB2CC695A1008F2F57 /* libc++.tbd */,
+				903B74F62CC694A7008F2F57 /* midiconverser.xcframework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		903CE4072CC318900025BE5A = {
 			isa = PBXGroup;
 			children = (
 				903CE4122CC318900025BE5A /* midiconverser */,
 				903CE4112CC318900025BE5A /* Products */,
+				903B74F52CC694A6008F2F57 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -286,6 +312,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
+				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.divverent.midiconverser;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
@@ -309,6 +336,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
+				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.divverent.midiconverser;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
