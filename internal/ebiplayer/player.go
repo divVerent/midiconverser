@@ -92,6 +92,11 @@ type UI struct {
 }
 
 func (p *UI) Init(w, h int, configFile, inputFile, requestedPort string) error {
+	ebiten.SetWindowSize(w, h)
+	ebiten.SetWindowTitle("MIDI Converser - graphical player")
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	ebiten.SetWindowClosingHandled(true)
+
 	p.configFile = configFile
 	p.inputFile = inputFile
 	p.requestedPort = requestedPort

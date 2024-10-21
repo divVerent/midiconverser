@@ -12,10 +12,9 @@ export GOOS=ios
 go run github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile bind \
 	-target ios \
 	-o midiconverser.xcframework \
-	-iosversion 12.0 \
+	-iosversion 13.0 \
 	-tags 'embed age' \
 	-gcflags=all=-dwarf=false \
 	-ldflags=all='-s -w' \
-	-a \
 	-trimpath \
 	github.com/divVerent/midiconverser/XcodeProjects/iOS/midiconverser/go/midiconverser

@@ -21,14 +21,8 @@ var (
 func Main() error {
 	flag.Parse()
 
-	w, h := 360, 800
-	ebiten.SetWindowSize(w, h)
-	ebiten.SetWindowTitle("MIDI Converser - graphical player")
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-	ebiten.SetWindowClosingHandled(true)
-
 	var p ebiplayer.UI
-	err := p.Init(w, h, *c, *i, *port)
+	err := p.Init(360, 800, *c, *i, *port)
 	if err != nil {
 		return err
 	}
