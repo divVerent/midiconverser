@@ -530,7 +530,7 @@ func (p *UI) recreateUI() {
 	)
 	tableContainer.AddChild(p.tempoLabel)
 	p.tempo = widget.NewSlider(
-		widget.SliderOpts.MinMax(50, 200),
+		widget.SliderOpts.MinMax(80, 125),
 		widget.SliderOpts.Images(sliderTrackImage, sliderButtonImage),
 		widget.SliderOpts.MinHandleSize(sliderMinHandleSize),
 		widget.SliderOpts.ChangedHandler(p.tempoChanged),
@@ -580,6 +580,14 @@ func (p *UI) recreateUI() {
 	)
 	mainContainer.AddChild(playContainer)
 
+	p.stop = widget.NewButton(
+		widget.ButtonOpts.Text("Stop", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
+		widget.ButtonOpts.ClickedHandler(p.stopClicked),
+	)
+	playContainer.AddChild(p.stop)
+
 	selectHymn := widget.NewButton(
 		widget.ButtonOpts.Text("Hymn...", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
@@ -595,14 +603,6 @@ func (p *UI) recreateUI() {
 		widget.ButtonOpts.ClickedHandler(p.selectPreludeClicked),
 	)
 	playContainer.AddChild(selectPrelude)
-
-	p.stop = widget.NewButton(
-		widget.ButtonOpts.Text("Stop", fontFace, buttonTextColor),
-		widget.ButtonOpts.Image(buttonImage),
-		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
-		widget.ButtonOpts.ClickedHandler(p.stopClicked),
-	)
-	playContainer.AddChild(p.stop)
 
 	settings := widget.NewButton(
 		widget.ButtonOpts.Text("Settings...", fontFace, buttonTextColor),
