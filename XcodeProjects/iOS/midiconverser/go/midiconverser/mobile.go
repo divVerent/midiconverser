@@ -6,8 +6,8 @@ package midiconverser
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/v2/mobile"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/mobile"
 
 	"github.com/divVerent/midiconverser/internal/ebiplayer"
 )

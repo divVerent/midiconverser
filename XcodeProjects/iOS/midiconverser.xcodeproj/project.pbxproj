@@ -3,201 +3,150 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		903B74F72CC694A7008F2F57 /* midiconverser.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 903B74F62CC694A7008F2F57 /* midiconverser.xcframework */; };
-		903B75012CC6961B008F2F57 /* CoreMIDI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 903B75002CC6961B008F2F57 /* CoreMIDI.framework */; };
-		903B75042CC6962D008F2F57 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 903B75032CC6962D008F2F57 /* GameController.framework */; };
-		903CE4152CC318910025BE5A /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 903CE4142CC318910025BE5A /* AppDelegate.m */; };
-		903CE41B2CC318910025BE5A /* GameViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 903CE41A2CC318910025BE5A /* GameViewController.m */; };
-		903CE4212CC318910025BE5A /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 903CE41F2CC318910025BE5A /* Main.storyboard */; };
-		903CE4232CC318B20025BE5A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 903CE4222CC318B20025BE5A /* Assets.xcassets */; };
-		903CE4262CC318B20025BE5A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 903CE4252CC318B20025BE5A /* main.m */; };
-		90A5CD6D2CC6B77200C585CD /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 90A5CD6B2CC6B77200C585CD /* LaunchScreen.storyboard */; };
+		90CAFCDC2CC6C27A00903BC9 /* CoreMIDI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 90CAFCDB2CC6C27A00903BC9 /* CoreMIDI.framework */; };
+		90CAFCDE2CC6C27F00903BC9 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 90CAFCDD2CC6C27F00903BC9 /* GameController.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		903B74F62CC694A7008F2F57 /* midiconverser.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = midiconverser.xcframework; path = midiconverser/go/midiconverser/midiconverser.xcframework; sourceTree = "<group>"; };
-		903B75002CC6961B008F2F57 /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk/System/Library/Frameworks/CoreMIDI.framework; sourceTree = DEVELOPER_DIR; };
-		903B75032CC6962D008F2F57 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk/System/iOSSupport/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
-		903CE4102CC318900025BE5A /* midiconverser.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = midiconverser.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		903CE4132CC318910025BE5A /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
-		903CE4142CC318910025BE5A /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
-		903CE4192CC318910025BE5A /* GameViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GameViewController.h; sourceTree = "<group>"; };
-		903CE41A2CC318910025BE5A /* GameViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GameViewController.m; sourceTree = "<group>"; };
-		903CE4202CC318910025BE5A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		903CE4222CC318B20025BE5A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		903CE4242CC318B20025BE5A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		903CE4252CC318B20025BE5A /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		903CE4322CC319470025BE5A /* midiconverser.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = midiconverser.entitlements; sourceTree = "<group>"; };
-		90A5CD6C2CC6B77200C585CD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		90CAFCBC2CC6C1C200903BC9 /* midiconverser.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = midiconverser.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		90CAFCDB2CC6C27A00903BC9 /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = System/Library/Frameworks/CoreMIDI.framework; sourceTree = SDKROOT; };
+		90CAFCDD2CC6C27F00903BC9 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		90CAFCBE2CC6C1C200903BC9 /* midiconverser */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = midiconverser; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
-		903CE40D2CC318900025BE5A /* Frameworks */ = {
+		90CAFCB92CC6C1C200903BC9 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				903B75012CC6961B008F2F57 /* CoreMIDI.framework in Frameworks */,
-				903B74F72CC694A7008F2F57 /* midiconverser.xcframework in Frameworks */,
-				903B75042CC6962D008F2F57 /* GameController.framework in Frameworks */,
+				90CAFCDE2CC6C27F00903BC9 /* GameController.framework in Frameworks */,
+				90CAFCDC2CC6C27A00903BC9 /* CoreMIDI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		903B74F52CC694A6008F2F57 /* Frameworks */ = {
+		90CAFCB32CC6C1C200903BC9 = {
 			isa = PBXGroup;
 			children = (
-				903B75032CC6962D008F2F57 /* GameController.framework */,
-				903B75002CC6961B008F2F57 /* CoreMIDI.framework */,
-				903B74F62CC694A7008F2F57 /* midiconverser.xcframework */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		903CE4072CC318900025BE5A = {
-			isa = PBXGroup;
-			children = (
-				903CE4122CC318900025BE5A /* midiconverser */,
-				903CE4112CC318900025BE5A /* Products */,
-				903B74F52CC694A6008F2F57 /* Frameworks */,
+				90CAFCBE2CC6C1C200903BC9 /* midiconverser */,
+				90CAFCDA2CC6C27A00903BC9 /* Frameworks */,
+				90CAFCBD2CC6C1C200903BC9 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		903CE4112CC318900025BE5A /* Products */ = {
+		90CAFCBD2CC6C1C200903BC9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				903CE4102CC318900025BE5A /* midiconverser.app */,
+				90CAFCBC2CC6C1C200903BC9 /* midiconverser.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		903CE4122CC318900025BE5A /* midiconverser */ = {
+		90CAFCDA2CC6C27A00903BC9 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				90A5CD6B2CC6B77200C585CD /* LaunchScreen.storyboard */,
-				903CE4322CC319470025BE5A /* midiconverser.entitlements */,
-				903CE4132CC318910025BE5A /* AppDelegate.h */,
-				903CE4142CC318910025BE5A /* AppDelegate.m */,
-				903CE4192CC318910025BE5A /* GameViewController.h */,
-				903CE41A2CC318910025BE5A /* GameViewController.m */,
-				903CE41F2CC318910025BE5A /* Main.storyboard */,
-				903CE4222CC318B20025BE5A /* Assets.xcassets */,
-				903CE4242CC318B20025BE5A /* Info.plist */,
-				903CE4252CC318B20025BE5A /* main.m */,
+				90CAFCDD2CC6C27F00903BC9 /* GameController.framework */,
+				90CAFCDB2CC6C27A00903BC9 /* CoreMIDI.framework */,
 			);
-			path = midiconverser;
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		903CE40F2CC318900025BE5A /* midiconverser */ = {
+		90CAFCBB2CC6C1C200903BC9 /* midiconverser */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 903CE4292CC318B30025BE5A /* Build configuration list for PBXNativeTarget "midiconverser" */;
+			buildConfigurationList = 90CAFCD72CC6C1C400903BC9 /* Build configuration list for PBXNativeTarget "midiconverser" */;
 			buildPhases = (
-				903CE40C2CC318900025BE5A /* Sources */,
-				903CE40D2CC318900025BE5A /* Frameworks */,
-				903CE40E2CC318900025BE5A /* Resources */,
+				90CAFCB82CC6C1C200903BC9 /* Sources */,
+				90CAFCB92CC6C1C200903BC9 /* Frameworks */,
+				90CAFCBA2CC6C1C200903BC9 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				90CAFCBE2CC6C1C200903BC9 /* midiconverser */,
+			);
 			name = midiconverser;
+			packageProductDependencies = (
+			);
 			productName = midiconverser;
-			productReference = 903CE4102CC318900025BE5A /* midiconverser.app */;
+			productReference = 90CAFCBC2CC6C1C200903BC9 /* midiconverser.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		903CE4082CC318900025BE5A /* Project object */ = {
+		90CAFCB42CC6C1C200903BC9 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1240;
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
-					903CE40F2CC318900025BE5A = {
-						CreatedOnToolsVersion = 12.4;
+					90CAFCBB2CC6C1C200903BC9 = {
+						CreatedOnToolsVersion = 16.0;
 					};
 				};
 			};
-			buildConfigurationList = 903CE40B2CC318900025BE5A /* Build configuration list for PBXProject "midiconverser" */;
-			compatibilityVersion = "Xcode 9.3";
+			buildConfigurationList = 90CAFCB72CC6C1C200903BC9 /* Build configuration list for PBXProject "midiconverser" */;
+			compatibilityVersion = "Xcode 12.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = 903CE4072CC318900025BE5A;
-			productRefGroup = 903CE4112CC318900025BE5A /* Products */;
+			mainGroup = 90CAFCB32CC6C1C200903BC9;
+			minimizedProjectReferenceProxies = 1;
+			productRefGroup = 90CAFCBD2CC6C1C200903BC9 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				903CE40F2CC318900025BE5A /* midiconverser */,
+				90CAFCBB2CC6C1C200903BC9 /* midiconverser */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		903CE40E2CC318900025BE5A /* Resources */ = {
+		90CAFCBA2CC6C1C200903BC9 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				90A5CD6D2CC6B77200C585CD /* LaunchScreen.storyboard in Resources */,
-				903CE4232CC318B20025BE5A /* Assets.xcassets in Resources */,
-				903CE4212CC318910025BE5A /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		903CE40C2CC318900025BE5A /* Sources */ = {
+		90CAFCB82CC6C1C200903BC9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				903CE4262CC318B20025BE5A /* main.m in Sources */,
-				903CE41B2CC318910025BE5A /* GameViewController.m in Sources */,
-				903CE4152CC318910025BE5A /* AppDelegate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
-/* Begin PBXVariantGroup section */
-		903CE41F2CC318910025BE5A /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				903CE4202CC318910025BE5A /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		90A5CD6B2CC6B77200C585CD /* LaunchScreen.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				90A5CD6C2CC6B77200C585CD /* Base */,
-			);
-			name = LaunchScreen.storyboard;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
-
 /* Begin XCBuildConfiguration section */
-		903CE4272CC318B20025BE5A /* Debug */ = {
+		90CAFCD52CC6C1C400903BC9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
@@ -227,7 +176,8 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -241,22 +191,24 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "-lc++";
 				SDKROOT = iphoneos;
 			};
 			name = Debug;
 		};
-		903CE4282CC318B20025BE5A /* Release */ = {
+		90CAFCD62CC6C1C400903BC9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
@@ -286,7 +238,8 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -294,86 +247,106 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = "-lc++";
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
-		903CE42A2CC318B30025BE5A /* Debug */ = {
+		90CAFCD82CC6C1C400903BC9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = midiconverser/midiconverser.entitlements;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = T8J7H3X4G9;
-				INFOPLIST_FILE = midiconverser/Info.plist;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.1;
-				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 12.1;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UIRequiredDeviceCapabilities = metal;
+				INFOPLIST_KEY_UIStatusBarHidden = NO;
+				INFOPLIST_KEY_UIStatusBarStyle = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.divverent.midiconverser;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTS_MACCATALYST = YES;
-				TARGETED_DEVICE_FAMILY = "1,2,6";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
-		903CE42B2CC318B30025BE5A /* Release */ = {
+		90CAFCD92CC6C1C400903BC9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = midiconverser/midiconverser.entitlements;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = T8J7H3X4G9;
-				INFOPLIST_FILE = midiconverser/Info.plist;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.1;
-				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 12.1;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UIRequiredDeviceCapabilities = metal;
+				INFOPLIST_KEY_UIStatusBarHidden = NO;
+				INFOPLIST_KEY_UIStatusBarStyle = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.divverent.midiconverser;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTS_MACCATALYST = YES;
-				TARGETED_DEVICE_FAMILY = "1,2,6";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		903CE40B2CC318900025BE5A /* Build configuration list for PBXProject "midiconverser" */ = {
+		90CAFCB72CC6C1C200903BC9 /* Build configuration list for PBXProject "midiconverser" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				903CE4272CC318B20025BE5A /* Debug */,
-				903CE4282CC318B20025BE5A /* Release */,
+				90CAFCD52CC6C1C400903BC9 /* Debug */,
+				90CAFCD62CC6C1C400903BC9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		903CE4292CC318B30025BE5A /* Build configuration list for PBXNativeTarget "midiconverser" */ = {
+		90CAFCD72CC6C1C400903BC9 /* Build configuration list for PBXNativeTarget "midiconverser" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				903CE42A2CC318B30025BE5A /* Debug */,
-				903CE42B2CC318B30025BE5A /* Release */,
+				90CAFCD82CC6C1C400903BC9 /* Debug */,
+				90CAFCD92CC6C1C400903BC9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 903CE4082CC318900025BE5A /* Project object */;
+	rootObject = 90CAFCB42CC6C1C200903BC9 /* Project object */;
 }

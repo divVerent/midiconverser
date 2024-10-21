@@ -22,5 +22,4 @@ go run github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile bind \
 	-gcflags=all=-dwarf=false \
 	-ldflags=all='-s -w' \
 	-trimpath \
-	-a \
 	github.com/divVerent/midiconverser/XcodeProjects/iOS/midiconverser/go/midiconverser
