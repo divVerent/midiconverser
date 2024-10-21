@@ -36,9 +36,11 @@ endif
 endif
 
 all: ebitenui_player$(GOEXE) process$(GOEXE) textui_player$(GOEXE)
+.PHONY: all
 
 clean:
-	$(RM) internal/version/version.txt ebitenui_player$(GOEXE) process$(GOEXE) textui_player$(GOEXE) internal/ebiplayer/vfs.zip internal/ebiplayer/vfs.zip.age wasm_exec.js ebitenui_player.service-worker.js
+	$(RM) internal/version/version.txt ebitenui_player$(GOEXE) process$(GOEXE) textui_player$(GOEXE) internal/ebiplayer/vfs.zip internal/ebiplayer/vfs.zip.age wasm_exec.js ebitenui_player.service-worker.js XcodeProjects/iOS/midiconverser/go/midiconverser/midiconverser.xcframework
+.PHONY: clean
 
 internal/version/version.txt:
 	echo $$(git describe --always --long --match 'v*.*' --exclude 'v*.*.*' HEAD)-$$(git log -n 1 --pretty=format:%cd --date=format:%Y%m%d HEAD) > "$@"
@@ -70,3 +72,12 @@ wasm_exec.js:
 
 ebitenui_player.service-worker.js: ebitenui_player.workbox-config.js ebitenui_player.wasm wasm_exec.js
 	$(WORKBOX) generateSW ebitenui_player.workbox-config.js
+
+XcodeProjects/iOS/midiconverser/go/midiconverser/midiconverser.xcframework: internal/ebiplayer/vfs.zip.age
+	set -ex; \
+	cd XcodeProjects/iOS/midiconverser/go/midiconverser; \
+	./build.sh
+
+ios: internal/version/version.txt XcodeProjects/iOS/midiconverser/go/midiconverser/midiconverser.xcframework
+	open XcodeProjects/iOS/midiconverser.xcodeproj
+.PHONY: ios
