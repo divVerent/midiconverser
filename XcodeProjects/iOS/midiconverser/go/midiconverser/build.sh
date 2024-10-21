@@ -14,11 +14,12 @@ go mod tidy
 go get github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@$ebiver
 trap 'go mod tidy' EXIT
 
+# NOTE: to enable "age", have to find way to force virtual keyboard.
 go run github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile bind \
 	-target ios \
 	-o midiconverser.xcframework \
 	-iosversion 12.0 \
-	-tags 'embed age' \
+	-tags 'embed' \
 	-gcflags=all=-dwarf=false \
 	-ldflags=all='-s -w' \
 	-trimpath \
