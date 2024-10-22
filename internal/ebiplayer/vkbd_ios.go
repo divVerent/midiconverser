@@ -69,18 +69,19 @@ var vKeys = func() [][]vKey {
 		}
 		return k
 	}
+	// This is derived from the iPad keyboard on iOS 12.5.7.
 	return [][]vKey{
 		{
-			n("qQ1["), n("wW2]"), n("eE3{"), n("rR4}"), n("tT5#"), n("yY6%"), n("uU7^"), n("iI8*"), n("oO9+"), n("pP0="),
+			n("qQ11"), n("wW22"), n("eE33"), n("rR44"), n("tT55"), n("yY66"), n("uU77"), n("iI88"), n("oO99"), n("pP00"),
 		},
 		{
-			n("aA-_"), n("sS/\\"), n("dD:|"), n("fF;~"), n("gG(<"), n("hH)>"), n("jJ$J"), n("kK%"), n("lL@"),
+			n("aA@@"), n("sS##"), n("dD$$"), n("fF&_"), n("gG*^"), n("hH(["), n("jJ)]"), n("kK'{"), n("lL\"}"), backspace,
 		},
 		{
-			shift, n("zZ"), n("xX.."), n("cC,,"), n("vV??"), n("bB!!"), n("nN''"), n("mM\"\""), backspace,
+			shift, n("zZ%%"), n("xX-|"), n("cC+~"), n("vV=="), n("bB/\\"), n("nN;<"), n("mM:>"), n(",!"), n(".?"),
 		},
 		{
-			alt, space, n("."),
+			alt, space, alt,
 		},
 	}
 }()
