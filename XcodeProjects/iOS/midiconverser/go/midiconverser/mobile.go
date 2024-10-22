@@ -13,7 +13,7 @@ import (
 )
 
 type game struct {
-	ui ebiplayer.UI
+	ui      ebiplayer.UI
 	drawErr error
 }
 

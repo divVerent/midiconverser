@@ -80,6 +80,8 @@ type UI struct {
 	settingsFermatasInPrelude   *widget.Checkbox
 	passwordWindow              *widget.Window
 	password                    *widget.TextInput
+	vKeys                       [][]*widget.Button
+	vKeyMode                    int
 
 	prevTempo          float64
 	loopErr            error
@@ -384,6 +386,7 @@ func (p *UI) recreateUI() {
 	checkSize := int(math.Round(3 * p.scale))
 	sliderMinHandleSize := int(math.Round(4 * p.scale))
 	tempoSliderSize := int(math.Round(8 * p.scale))
+	keySpacing := int(math.Round(p.scale))
 
 	titleBarHeight := int(fontSize + 2*float64(buttonInsets))
 	portListHeight := int(titleBarHeight * 3)
@@ -1109,7 +1112,7 @@ func (p *UI) recreateUI() {
 			widget.GridLayoutOpts.Columns(1),
 			widget.GridLayoutOpts.Spacing(spacing, spacing),
 			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
-			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true, false, false}),
+			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, true, false}),
 		)),
 	)
 
@@ -1129,6 +1132,33 @@ func (p *UI) recreateUI() {
 		widget.TextInputOpts.Placeholder("Password"),
 	)
 	passwordWindowContainer.AddChild(p.password)
+
+	p.vKeys = nil
+	for _, row := range vKeys {
+		rowContainer := widget.NewContainer(
+			widget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.Gray{Y: 224})),
+			widget.ContainerOpts.Layout(widget.NewGridLayout(
+				widget.GridLayoutOpts.Columns(len(row)),
+				widget.GridLayoutOpts.Spacing(keySpacing, keySpacing),
+				widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(keySpacing)),
+				widget.GridLayoutOpts.Stretch([]bool{true, true, true, true, true, true, true, true, true, true}, []bool{true}),
+			)),
+		)
+		passwordWindowContainer.AddChild(rowContainer)
+		var vRow []*widget.Button
+		for range row {
+			btn := widget.NewButton(
+				widget.ButtonOpts.Text("", fontFace, buttonTextColor),
+				widget.ButtonOpts.Image(buttonImage),
+				widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
+				widget.ButtonOpts.ClickedHandler(p.passwordKeyPressed),
+			)
+			rowContainer.AddChild(btn)
+			vRow = append(vRow, btn)
+		}
+		p.vKeys = append(p.vKeys, vRow)
+	}
+	p.vKeysUpdate()
 
 	applyPassword := widget.NewButton(
 		widget.ButtonOpts.Text("OK", fontFace, buttonTextColor),
@@ -1216,16 +1246,31 @@ func (p *UI) moreVersesClicked(args *widget.ButtonClickedEventArgs) {
 	}
 }
 
+func (p *UI) positionWindow(win *widget.Window, f float64) {
+	w := p.width - 32
+	_, tH := win.TitleBar.PreferredSize()
+	_, cH := win.Contents.PreferredSize()
+	h := tH + cH
+	if h > p.height-32 {
+		h = p.height - 32
+	}
+	x := (p.width - w) / 2
+	y := (int(float64(p.height)*f) - h) / 2
+	if x < 16 {
+		x = 16
+	}
+	if y < 16 {
+		y = 16
+	}
+	r := go_image.Rect(x, y, x+w, y+h)
+	win.SetLocation(r)
+}
+
 func (p *UI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
 	if p.backend == nil {
 		return
 	}
-	w := p.width - 32
-	h := p.height - 32
-	x := (p.width - w) / 2
-	y := (p.height - h) / 2
-	r := go_image.Rect(x, y, x+w, y+h)
-	p.hymnsWindow.SetLocation(r)
+	p.positionWindow(p.hymnsWindow, 1.0)
 	p.ui.AddWindow(p.hymnsWindow)
 	p.hymnsWindowOpen = true
 }
@@ -1257,17 +1302,7 @@ func (p *UI) selectPreludeClicked(args *widget.ButtonClickedEventArgs) {
 	if p.backend == nil {
 		return
 	}
-	w := p.width - 32
-	_, tH := p.preludeWindow.TitleBar.PreferredSize()
-	_, cH := p.preludeWindow.Contents.PreferredSize()
-	h := p.height - 32
-	if h > tH+cH {
-		h = tH + cH
-	}
-	x := (p.width - w) / 2
-	y := (p.height - h) / 2
-	r := go_image.Rect(x, y, x+w, y+h)
-	p.preludeWindow.SetLocation(r)
+	p.positionWindow(p.preludeWindow, 1.0)
 	p.ui.AddWindow(p.preludeWindow)
 	p.preludeWindowOpen = true
 }
@@ -1364,17 +1399,7 @@ func (p *UI) settingsClicked(args *widget.ButtonClickedEventArgs) {
 		p.settingsFermatasInPrelude.SetState(widget.WidgetUnchecked)
 	}
 
-	w := p.width - 32
-	_, tH := p.settingsWindow.TitleBar.PreferredSize()
-	_, cH := p.settingsWindow.Contents.PreferredSize()
-	h := p.height - 32
-	if h > tH+cH {
-		h = tH + cH
-	}
-	x := (p.width - w) / 2
-	y := (p.height - h) / 2
-	r := go_image.Rect(x, y, x+w, y+h)
-	p.settingsWindow.SetLocation(r)
+	p.positionWindow(p.settingsWindow, 1.0)
 	p.ui.AddWindow(p.settingsWindow)
 	p.settingsWindowOpen = true
 }
@@ -1424,22 +1449,41 @@ func (p *UI) openPasswordWindow(args *widget.ButtonClickedEventArgs) {
 
 	p.password.SetText("")
 
-	w := p.width - 32
-	_, tH := p.passwordWindow.TitleBar.PreferredSize()
-	_, cH := p.passwordWindow.Contents.PreferredSize()
-	h := p.height/2 - 32 // Top half for android kbd.
-	if h > tH+cH {
-		h = tH + cH
-	}
-	x := (p.width - w) / 2
-	y := (p.height/2 - h) / 2 // Top half for android kbd.
-	r := go_image.Rect(x, y, x+w, y+h)
-	p.passwordWindow.SetLocation(r)
+	p.positionWindow(p.passwordWindow, 0.5)
 	p.ui.AddWindow(p.passwordWindow)
 
 	p.password.Focus(true)
 
 	p.passwordWindowOpen = true
+}
+
+func (p *UI) passwordKeyPressed(args *widget.ButtonClickedEventArgs) {
+	var action vKey
+	for i, row := range p.vKeys {
+		for j, btn := range row {
+			if args.Button == btn {
+				action = vKeys[i][j]
+			}
+		}
+	}
+	prevPW := p.password.GetText()
+	prevMode := p.vKeyMode
+	pw, mode := action.modeAt(prevMode).applyTo(prevPW, prevMode)
+	if pw != prevPW {
+		p.password.SetText(pw)
+	}
+	if prevMode != mode {
+		p.vKeyMode = mode
+		p.vKeysUpdate()
+	}
+}
+
+func (p *UI) vKeysUpdate() {
+	for i, row := range p.vKeys {
+		for j, btn := range row {
+			btn.Text().Label = vKeys[i][j].modeAt(p.vKeyMode).display
+		}
+	}
 }
 
 func (p *UI) applyPasswordClicked(args *widget.ButtonClickedEventArgs) {
