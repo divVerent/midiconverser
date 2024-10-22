@@ -47,6 +47,8 @@ type UI struct {
 	outPortsAny []any
 	font        *text.GoTextFaceSource
 
+	rawWidth, rawHeight  int
+	insets widget.Insets
 	width, height  int
 	scale          float64
 	mustRecreateUI bool
@@ -468,11 +470,18 @@ func (p *UI) recreateUI() {
 
 	p.rootContainer.RemoveChildren()
 
+	topInsets := widget.Insets{
+		Left: spacing + p.insets.Left,
+		Top: spacing + p.insets.Top,
+		Right: spacing + p.insets.Right,
+		Bottom: spacing + p.insets.Bottom,
+	}
+
 	mainContainer := widget.NewContainer(
 		widget.ContainerOpts.Layout(widget.NewGridLayout(
 			widget.GridLayoutOpts.Columns(1),
 			widget.GridLayoutOpts.Spacing(spacing, spacing),
-			widget.GridLayoutOpts.Padding(widget.NewInsetsSimple(spacing)),
+			widget.GridLayoutOpts.Padding(topInsets),
 			widget.GridLayoutOpts.Stretch([]bool{true}, []bool{false, false, true}),
 		)),
 		widget.ContainerOpts.WidgetOpts(
@@ -1262,6 +1271,8 @@ func (p *UI) positionWindow(win *widget.Window, f float64) {
 	if y < 16 {
 		y = 16
 	}
+	x += p.insets.Left
+	y += p.insets.Top
 	r := go_image.Rect(x, y, x+w, y+h)
 	win.SetLocation(r)
 }
@@ -1430,7 +1441,10 @@ func (p *UI) applySettingsClicked(args *widget.ButtonClickedEventArgs) {
 	p.config.PreludePlayerRepeat = p.settingsPreludePlayerRepeat.Current
 	p.config.PreludePlayerSleepSec = float64(p.settingsPreludePlayerSleep.Current) * 0.1
 	p.config.FermatasInPrelude = p.settingsFermatasInPrelude.State() == widget.WidgetChecked
-	saveConfigOverride(p.configFile, p.config)
+	err := saveConfigOverride(p.configFile, p.config)
+	if err != nil {
+		log.Printf("Could not save config override with new config: %v.", err)
+	}
 	p.backend.Commands <- player.Command{
 		Config: p.config,
 	}
@@ -1514,17 +1528,25 @@ func (p *UI) applyPasswordClicked(args *widget.ButtonClickedEventArgs) {
 		return
 	}
 	p.config.DataPassword = pw
-	saveConfigOverride(p.configFile, p.config)
+	err = saveConfigOverride(p.configFile, p.config)
+	if err != nil {
+		log.Printf("Could not save config override with password: %v.", err)
+	}
 }
 
 // updateUI updates all widgets to current playback state.
 func (p *UI) updateWidgets() {
+	insets := safeAreaMargins()
+	p.width = p.rawWidth - insets.Left - insets.Right
+	p.height = p.rawHeight - insets.Top - insets.Bottom
+
 	scale := math.Min(
 		float64(p.width)/80,
 		float64(p.height)/120,
 	)
-	if math.Abs(scale-p.scale) > 0.001 || p.mustRecreateUI {
+	if math.Abs(scale-p.scale) > 0.001 || p.mustRecreateUI || insets != p.insets {
 		p.scale = scale
+		p.insets = insets
 		p.mustRecreateUI = false
 		p.recreateUI()
 	}
@@ -1665,25 +1687,11 @@ func (p *UI) Update() error {
 }
 
 func (p *UI) Draw(screen *ebiten.Image) {
-	sz := screen.Bounds().Size()
-	insets := safeAreaMargins()
-	if insets != (widget.Insets{}) {
-		screen.Fill(color.Black)
-	}
-	p.ui.Draw(screen.SubImage(go_image.Rectangle{
-		Min: go_image.Point{
-			X: insets.Left,
-			Y: insets.Top,
-		},
-		Max: go_image.Point{
-			X: sz.X - insets.Right,
-			Y: sz.Y - insets.Top,
-		},
-	}).(*ebiten.Image))
+	p.ui.Draw(screen)
 }
 
 func (p *UI) Layout(outsideWidth int, outsideHeight int) (int, int) {
-	p.width = outsideWidth
-	p.height = outsideHeight
-	return p.width, p.height
+	p.rawWidth = outsideWidth
+	p.rawHeight = outsideHeight
+	return p.rawWidth, p.rawHeight
 }

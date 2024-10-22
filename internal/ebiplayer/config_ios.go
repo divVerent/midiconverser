@@ -4,6 +4,7 @@ package ebiplayer
 
 import (
 	"fmt"
+	"log"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -71,9 +72,13 @@ func loadConfigOverride(name string, into *processor.Config) error {
 func saveConfigOverride(name string, config *processor.Config) (err error) {
 	var subset processor.Config
 	copyConfigOverrideFields(config, &subset)
+	err = os.MkdirAll(configRoot, 0777)
+	if err != nil {
+		log.Printf("Could not create config directory %v: %v.", configRoot, err)
+	}
 	f, err := os.Create(filepath.Join(configRoot, name))
 	if err != nil {
-		return fmt.Errorf("could not recreate: %v", err)
+		return fmt.Errorf("could not recreate: %w", err)
 	}
 	defer func() {
 		closeErr := f.Close()

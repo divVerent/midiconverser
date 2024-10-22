@@ -7,12 +7,20 @@ package ebiplayer
 
 #import <UIKit/UIApplication.h>
 
+#include <dispatch/dispatch.h>
+
 void wakelockSet(bool goal) {
-	// Always have to set it to NO first:
-	// https://stackoverflow.com/questions/1058717/idletimerdisabled-not-working-since-iphone-3-0
-	[[UIApplication sharedApplication] setIdleTimerDisabled:NO];
 	if (goal) {
-		[[UIApplication sharedApplication] setIdleTimerDisabled:YES];
+		dispatch_async(dispatch_get_main_queue(), ^{
+			// Always have to set it to NO first:
+			// https://stackoverflow.com/questions/1058717/idletimerdisabled-not-working-since-iphone-3-0
+			[[UIApplication sharedApplication] setIdleTimerDisabled:NO];
+			[[UIApplication sharedApplication] setIdleTimerDisabled:YES];
+		});
+	} else {
+		dispatch_async(dispatch_get_main_queue(), ^{
+			[[UIApplication sharedApplication] setIdleTimerDisabled:NO];
+		});
 	}
 }
 */
