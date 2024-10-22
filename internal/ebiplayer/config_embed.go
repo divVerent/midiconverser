@@ -1,4 +1,4 @@
-//go:build embed && !wasm
+//go:build embed && !wasm && !ios
 
 package ebiplayer
 

@@ -1,4 +1,4 @@
-//go:build !wasm && !embed
+//go:build !embed
 
 package ebiplayer
 
