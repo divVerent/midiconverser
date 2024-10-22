@@ -6,19 +6,19 @@ var vKeys = func() [][]vKey {
 	shift := vKey{
 		modes: []vKeyMode{
 			{
-				display:  "ABC",
+				display:  "AB",
 				switchTo: 1,
 			},
 			{
-				display:  "abc",
+				display:  "ab",
 				switchTo: 0,
 			},
 			{
-				display:  "#+=",
+				display:  "#+",
 				switchTo: 3,
 			},
 			{
-				display:  "123",
+				display:  "12",
 				switchTo: 2,
 			},
 		},
@@ -34,19 +34,19 @@ var vKeys = func() [][]vKey {
 	alt := vKey{
 		modes: []vKeyMode{
 			{
-				display:  "123",
+				display:  "12",
 				switchTo: 2,
 			},
 			{
-				display:  "123",
+				display:  "12",
 				switchTo: 2,
 			},
 			{
-				display:  "abc",
+				display:  "ab",
 				switchTo: 0,
 			},
 			{
-				display:  "abc",
+				display:  "ab",
 				switchTo: 0,
 			},
 		},
