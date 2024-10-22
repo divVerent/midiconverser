@@ -1665,7 +1665,21 @@ func (p *UI) Update() error {
 }
 
 func (p *UI) Draw(screen *ebiten.Image) {
-	p.ui.Draw(screen)
+	sz := screen.Bounds().Size()
+	insets := safeAreaMargins()
+	if insets != (widget.Insets{}) {
+		screen.Fill(color.Black)
+	}
+	p.ui.Draw(screen.SubImage(go_image.Rectangle{
+		Min: go_image.Point{
+			X: insets.Left,
+			Y: insets.Top,
+		},
+		Max: go_image.Point{
+			X: sz.X - insets.Right,
+			Y: sz.Y - insets.Top,
+		},
+	}).(*ebiten.Image))
 }
 
 func (p *UI) Layout(outsideWidth int, outsideHeight int) (int, int) {
