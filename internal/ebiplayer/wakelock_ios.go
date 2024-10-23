@@ -2,6 +2,10 @@
 
 package ebiplayer
 
+import (
+	"time"
+)
+
 /*
 #cgo CFLAGS: -x objective-c
 
@@ -26,6 +30,8 @@ void wakelockSet(bool goal) {
 */
 import "C"
 
-func wakelockSet(goal bool) {
+const wakelockRefreshInterval = time.Seconds * 10
+
+func wakelockSetInternal(goal bool) {
 	C.wakelockSet(C.bool(goal))
 }

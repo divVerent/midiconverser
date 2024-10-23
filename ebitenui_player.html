@@ -76,13 +76,12 @@
     }
 
     // wakelockSet is a simple synchronous API for Go code to use.
+    //
+    // Should be called every about 10 seconds.
     function wakelockSet(state) {
       wakelockGoal = state;
       wakelockUpdate();
     }
-
-    // Automatic refresh routine for the wakelock state.
-    const wakelockTimer = setInterval(wakelockUpdate, 10000);
 
     // Polyfill.
     if (!WebAssembly.instantiateStreaming) {
