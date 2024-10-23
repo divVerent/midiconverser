@@ -8,4 +8,4 @@ import (
 
 const wakelockRefreshInterval = time.Hour
 
-func wakelockSet(goal bool) {}
+func wakelockSetInternal(goal bool) {}

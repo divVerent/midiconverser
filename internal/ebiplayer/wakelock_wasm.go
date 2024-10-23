@@ -3,12 +3,12 @@
 package ebiplayer
 
 import (
-	"time"
 	"syscall/js"
+	"time"
 )
 
 const wakelockRefreshInterval = time.Second * 10
 
-func wakelockSet(goal bool) {
+func wakelockSetInternal(goal bool) {
 	js.Global().Call("wakelockSet", goal)
 }
