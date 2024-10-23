@@ -30,7 +30,7 @@ void wakelockSet(bool goal) {
 */
 import "C"
 
-const wakelockRefreshInterval = time.Seconds * 10
+const wakelockRefreshInterval = time.Second * 10
 
 func wakelockSetInternal(goal bool) {
 	C.wakelockSet(C.bool(goal))
