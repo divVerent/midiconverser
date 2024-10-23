@@ -36,9 +36,9 @@ func safeAreaMargins() widget.Insets {
 		return widget.Insets{}
 	}
 	return widget.Insets{
-		Left: int(left),
-		Top: int(top),
-		Right: int(right),
+		Left:   int(left),
+		Top:    int(top),
+		Right:  int(right),
 		Bottom: int(bottom),
 	}
 }

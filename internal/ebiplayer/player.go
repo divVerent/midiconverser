@@ -47,11 +47,11 @@ type UI struct {
 	outPortsAny []any
 	font        *text.GoTextFaceSource
 
-	rawWidth, rawHeight  int
-	insets widget.Insets
-	width, height  int
-	scale          float64
-	mustRecreateUI bool
+	rawWidth, rawHeight int
+	insets              widget.Insets
+	width, height       int
+	scale               float64
+	mustRecreateUI      bool
 
 	rootContainer               *widget.Container
 	currentlyPlaying            *widget.Label
@@ -471,9 +471,9 @@ func (p *UI) recreateUI() {
 	p.rootContainer.RemoveChildren()
 
 	topInsets := widget.Insets{
-		Left: spacing + p.insets.Left,
-		Top: spacing + p.insets.Top,
-		Right: spacing + p.insets.Right,
+		Left:   spacing + p.insets.Left,
+		Top:    spacing + p.insets.Top,
+		Right:  spacing + p.insets.Right,
 		Bottom: spacing + p.insets.Bottom,
 	}
 

@@ -4,8 +4,8 @@ package ebiplayer
 
 import (
 	"fmt"
-	"log"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"unsafe"
