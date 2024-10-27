@@ -1599,7 +1599,10 @@ func (p *UI) updateWidgets() {
 	if p.uiState.NumVerses > 0 {
 		postludeSuffix := ""
 		if p.uiState.HavePostlude {
-			postludeSuffix = "+P"
+			postludeSuffix += "+P"
+		}
+		if p.uiState.UnrolledNumVerses != 0 {
+			postludeSuffix += fmt.Sprintf("=%d", p.uiState.UnrolledNumVerses)
 		}
 		p.verseLabel.Label = fmt.Sprintf("Verse: %d/%d%s", p.uiState.Verse+1, p.uiState.NumVerses, postludeSuffix)
 		p.verseLabel.GetWidget().Visibility = widget.Visibility_Show

@@ -142,6 +142,12 @@ type UIState struct {
 
 	// Verse is the current verse.
 	Verse int
+
+	// Comment is the hymn comment string.
+	Comment string
+
+	// UnrolledNumVerses of real verses in hymn. Only useful if NumVerses == 1.
+	UnrolledNumVerses int
 }
 
 func (ui UIState) ActualPlaybackPos() time.Duration {
@@ -482,7 +488,7 @@ func (b *Backend) preludePlayerOne(optionsFile string) (bool, error) {
 		return false, nil
 	}
 
-	if options.NumVerses <= 1 {
+	if options.UnrolledNumVerses != 0 {
 		log.Printf("Skipping %s due to baked-in repeats.", optionsFile)
 		return false, nil
 	}
@@ -612,6 +618,8 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 	b.uiState.PlayOne = optionsFile
 	b.uiState.CurrentFile = optionsFile
 	b.uiState.NumVerses = processor.WithDefault(options.NumVerses, 1)
+	b.uiState.UnrolledNumVerses = options.UnrolledNumVerses
+	b.uiState.Comment = options.Comment
 	b.uiState.HavePostlude = output[processor.OutputKey{Special: processor.Postlude}] != nil
 	b.uiState.Verse = 0
 	// b.sendUIState() // Redundant with prompt.
@@ -619,6 +627,8 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 		b.uiState.PlayOne = ""
 		b.uiState.CurrentFile = ""
 		b.uiState.NumVerses = 0
+		b.uiState.UnrolledNumVerses = 0
+		b.uiState.Comment = ""
 		b.uiState.HavePostlude = false
 		b.uiState.Verse = 0
 		b.uiState.CurrentMessage = "" // Written to by prompt.

@@ -150,6 +150,7 @@ type Options struct {
 	Verse              []Range `yaml:"verse,omitempty"`
 	Postlude           []Range `yaml:"postlude,omitempty"`
 	NumVerses          int     `yaml:"num_verses,omitempty"`
+	UnrolledNumVerses  int     `yaml:"unrolled_num_verses,omitempty"`
 	QPMOverride        float64 `yaml:"qpm_override,omitempty"`
 	BPMFactor          float64 `yaml:"bpm_factor,omitempty"`
 	MaxAdjust          int64   `yaml:"max_adjust,omitempty"`

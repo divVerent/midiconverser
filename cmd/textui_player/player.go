@@ -204,7 +204,9 @@ func textModeUI(b *player.Backend, fsys fs.FS) error {
 			bar,
 			"",
 			ifLine(ui.Tempo != 0, fmt.Sprintf("\033[1mTempo:\033[m %.0f%%", 100*ui.Tempo)),
-			ifLine(ui.NumVerses != 0, fmt.Sprintf("\033[1mVerse:\033[m %d/%d", ui.Verse+1, ui.NumVerses)),
+			ifLine(ui.NumVerses != 0, fmt.Sprintf("\033[1mVerse:\033[m %d/%d", ui.Verse+1, ui.NumVerses)) +
+				ifLine(ui.NumVerses != 0 && ui.HavePostlude, "+P") +
+				ifLine(ui.NumVerses != 0 && ui.UnrolledNumVerses != 0, fmt.Sprintf("=%d", ui.UnrolledNumVerses)),
 			ifLine(len(ui.PreludeTags) != 0, fmt.Sprintf("\033[1mPrelude tags:\033[m %v", preludeTagsStr(ui.PreludeTags))),
 			"",
 			ifLine(ui.Err != nil, fmt.Sprintf("\033[1;31mError:\033[0;31m %v\033[m", ui.Err)),
