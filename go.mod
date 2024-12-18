@@ -3,7 +3,7 @@ module github.com/divVerent/midiconverser
 go 1.22.5
 
 require (
-	filippo.io/age v1.2.0
+	filippo.io/age v1.2.1
 	github.com/ebitenui/ebitenui v0.6.0
 	github.com/hajimehoshi/ebiten/v2 v2.7.10
 	gitlab.com/gomidi/midi/v2 v2.2.10
