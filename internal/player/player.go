@@ -22,6 +22,7 @@ import (
 
 func tagsDefault() map[string]bool {
 	tags := map[string]bool{
+		"external": false,
 		"men":      false,
 		"national": false,
 		"women":    false,
