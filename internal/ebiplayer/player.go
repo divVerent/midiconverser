@@ -257,7 +257,7 @@ func listHymns(fsys fs.FS) ([]string, []string, error) {
 	}
 
 	slices.SortFunc(hymns, func(a, b string) int {
-		aNum, bNum := math.IntMax, math.IntMax
+		aNum, bNum := math.MaxInt, math.MaxInt
 		fmt.Sscanf(a, "%d", &aNum)
 		fmt.Sscanf(b, "%d", &bNum)
 		if aNum != bNum {

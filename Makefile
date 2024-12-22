@@ -61,7 +61,7 @@ internal/ebiplayer/vfs.zip: ../midi
 	pwd=$(PWD); \
 	cd ../midi; \
 	echo $$(git describe --always --long --match 'v*.*' --exclude 'v*.*.*' HEAD)-$$(git log -n 1 --pretty=format:%cd --date=format:%Y%m%d HEAD) > version.txt; \
-	cd hymns-extra; \
+	cd hymns-extra-abc; \
 	./build.sh; \
 	cd ..; \
 	$(7ZA) "$$pwd"/$@ version.txt *.yml */*.mid
