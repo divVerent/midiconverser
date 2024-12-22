@@ -17,8 +17,8 @@ with FluidSynth).
 
 ### Generate Files For a Hymn
 
-1.  If not done yet, write a YAML file `midiconverser.yml` like the
-    following (written for the LD-34 organ):
+1.  If not done yet, write a YAML file `midiconverser.yml` like the following
+    (written for the LD-34 organ):
 
         channel: 2
         melody_channel: 1
@@ -34,6 +34,10 @@ with FluidSynth).
       melody track names should match (default: unset).
     - `bass_track_name_re`: partial-match regular expression that bass
       track names should match (default: unset).
+    - `solo_track_name_re`: partial-match regular expression that solo
+      track names should match (default: unset). If a track is marked as
+      solo, then it is removed from the `channel` output if it matches
+      the conditions for melody or bass.
     - `channel`: MIDI channel (1-16) to map all notes to, or 0 to not
       remap (default). When using an organ, map this to the great
       manual.
@@ -109,6 +113,9 @@ with FluidSynth).
       melody, overriding global settings (default: unset).
     - `bass_tracks`: list of track indexes (zero-based) to map to bass,
       overriding global settings (default: unset).
+    - `solo_tracks`: list of track indexes (zero-based) to not map the general
+      channel when they have already been mapped to melody or bass (default:
+      unset).
     - `fermatas_in_prelude`: interpret fermata instructions when
       generating the prelude (default: same as config).
     - `fermatas_in_postlude`: interpret fermata instructions when

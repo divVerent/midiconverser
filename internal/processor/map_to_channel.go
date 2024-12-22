@@ -9,7 +9,7 @@ import (
 )
 
 // mapToChannel maps all events of the song to the given MIDI channel.
-func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, melodyCh int, bassRE string, bassTracks []int, bassCh int) error {
+func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, melodyCh int, bassRE string, bassTracks []int, bassCh int, soloRE string, soloTracks []int) error {
 	if ch < 0 && melodyCh < 0 && bassCh < 0 {
 		// No remapping.
 		return nil
@@ -32,6 +32,17 @@ func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, mel
 	for _, i := range bassTracks {
 		isBass[i] = true
 	}
+
+	solo, err := regexp.Compile(soloRE)
+	if err != nil {
+		return err
+	}
+	isSolo := make(map[int]bool, len(soloTracks))
+	for _, i := range soloTracks {
+		isSolo[i] = true
+	}
+
+	log.Printf("Melody coupler tracks: %v; bass coupler tracks: %v; solo tracks: %v", isMelody, isBass, isSolo)
 
 	for i, t := range mid.Tracks {
 		var name string
@@ -58,6 +69,9 @@ func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, mel
 		if bassTracks == nil && bassRE != "" && bass.MatchString(name) {
 			isBass[i] = true
 		}
+		if soloTracks == nil && soloRE != "" && solo.MatchString(name) {
+			isSolo[i] = true
+		}
 	}
 
 	// Disable melody or bass coupler if no special channel is requested.
@@ -68,7 +82,7 @@ func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, mel
 		isBass = nil
 	}
 
-	log.Printf("Melody coupler tracks: %v; bass coupler tracks: %v", isMelody, isBass)
+	log.Printf("Melody coupler tracks: %v; bass coupler tracks: %v; solo tracks: %v", isMelody, isBass, isSolo)
 
 	numTracks := len(mid.Tracks)
 	melodyTrack := numTracks
@@ -84,7 +98,9 @@ func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, mel
 	trackTime := make([]int64, numTracks)
 	err = ForEachEventWithTime(mid, func(time int64, track int, msg smf.Message) error {
 		channels := map[uint8]bool{}
+		wrote := false
 		out := func(outTrack int, outCh int) {
+			wrote = true
 			newMsg := append(smf.Message(nil), msg...)
 			// Remap channel if requested.
 			var evCh uint8
@@ -118,7 +134,9 @@ func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, mel
 		if isBass[track] {
 			out(bassTrack, bassCh)
 		}
-		out(track, ch)
+		if !wrote || !isSolo[track] {
+			out(track, ch)
+		}
 		return nil
 	})
 	if err != nil {

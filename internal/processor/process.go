@@ -106,6 +106,7 @@ type Config struct {
 	// Hymnbook specific configuration. Not needed in UI.
 	MelodyTrackNameRE string `yaml:"melody_track_name_re,omitempty"`
 	BassTrackNameRE   string `yaml:"bass_track_name_re,omitempty"`
+	SoloTrackNameRE   string `yaml:"solo_track_name_re,omitempty"`
 
 	// Organ specific configuration or override. Should be offered as UI element.
 	Channel            int  `yaml:"channel,omitempty"`
@@ -157,6 +158,7 @@ type Options struct {
 	KeepEventOrder     bool    `yaml:"keep_event_order,omitempty"`
 	MelodyTracks       []int   `yaml:"melody_tracks,omitempty"`
 	BassTracks         []int   `yaml:"bass_tracks,omitempty"`
+	SoloTracks         []int   `yaml:"solo_tracks,omitempty"`
 	FermatasInPrelude  *bool   `yaml:"fermatas_in_prelude,omitempty"`
 	FermatasInPostlude *bool   `yaml:"fermatas_in_postlude,omitempty"`
 
@@ -248,7 +250,7 @@ func Process(mid *smf.SMF, config *Config, options *Options) (map[OutputKey]*smf
 	}
 
 	// Map all to MIDI channel 2 for the organ.
-	err = mapToChannel(mid, config.Channel-1, config.MelodyTrackNameRE, options.MelodyTracks, config.MelodyChannel-1, config.BassTrackNameRE, options.BassTracks, config.BassChannel-1)
+	err = mapToChannel(mid, config.Channel-1, config.MelodyTrackNameRE, options.MelodyTracks, config.MelodyChannel-1, config.BassTrackNameRE, options.BassTracks, config.BassChannel-1, config.SoloTrackNameRE, options.SoloTracks)
 	if err != nil {
 		return nil, err
 	}
