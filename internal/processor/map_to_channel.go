@@ -42,8 +42,6 @@ func mapToChannel(mid *smf.SMF, ch int, melodyRE string, melodyTracks []int, mel
 		isSolo[i] = true
 	}
 
-	log.Printf("Melody coupler tracks: %v; bass coupler tracks: %v; solo tracks: %v", isMelody, isBass, isSolo)
-
 	for i, t := range mid.Tracks {
 		var name string
 		for _, ev := range t {
