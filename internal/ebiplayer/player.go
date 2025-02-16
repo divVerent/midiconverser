@@ -58,7 +58,10 @@ type UI struct {
 	statusLabel                 *widget.Label
 	status                      *widget.Label
 	playbackLabel               *widget.Label
+	playbackOrSkip              *widget.FlipBook
+	playbackOrSkipState         bool
 	playback                    *widget.ProgressBar
+	skip                        *widget.Button
 	tempoLabel                  *widget.Label
 	tempo                       *widget.Slider
 	verseLabel                  *widget.Label
@@ -549,12 +552,33 @@ func (p *UI) recreateUI() {
 		widget.LabelOpts.Text("At: ...", fontFace, labelColors),
 	)
 	tableContainer.AddChild(p.playbackLabel)
+
+	p.playbackOrSkip = widget.NewFlipBook()
+	tableContainer.AddChild(p.playbackOrSkip)
+
 	p.playback = widget.NewProgressBar(
 		widget.ProgressBarOpts.Images(progressTrackImage, progressImage),
+		widget.ProgressBarOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				StretchHorizontal: true,
+				StretchVertical:   true,
+			})),
 	)
-	tableContainer.AddChild(p.playback)
+	p.playbackOrSkip.SetPage(p.playback)
+	p.playbackOrSkipState = false
 
-	// TODO add a control for prelude tags.
+	p.skip = widget.NewButton(
+		widget.ButtonOpts.Text("(skip)", fontFace, buttonTextColor),
+		widget.ButtonOpts.Image(buttonImage),
+		widget.ButtonOpts.TextPadding(widget.Insets{Left: buttonInsets, Right: buttonInsets}),
+		widget.ButtonOpts.ClickedHandler(p.skipClicked),
+		widget.ButtonOpts.WidgetOpts(
+			widget.WidgetOpts.LayoutData(widget.AnchorLayoutData{
+				StretchHorizontal: true,
+				StretchVertical:   true,
+			})),
+	)
+	p.skip.GetWidget().Disabled = true
 
 	p.verseLabel = widget.NewLabel(
 		widget.LabelOpts.Text("Verse: ...", fontFace, labelColors),
@@ -650,7 +674,7 @@ func (p *UI) recreateUI() {
 	buttonsContainer.AddChild(settings)
 
 	p.prompt = widget.NewButton(
-		widget.ButtonOpts.Text("b", fontFace, buttonTextColor),
+		widget.ButtonOpts.Text("(prompt)", fontFace, buttonTextColor),
 		widget.ButtonOpts.Image(buttonImage),
 		widget.ButtonOpts.TextPadding(widget.NewInsetsSimple(buttonInsets)),
 		widget.ButtonOpts.ClickedHandler(p.promptClicked),
@@ -1227,6 +1251,15 @@ func (p *UI) promptClicked(args *widget.ButtonClickedEventArgs) {
 	}
 }
 
+func (p *UI) skipClicked(args *widget.ButtonClickedEventArgs) {
+	if p.backend == nil {
+		return
+	}
+	p.backend.Commands <- player.Command{
+		Skip: true,
+	}
+}
+
 func (p *UI) tempoChanged(args *widget.SliderChangedEventArgs) {
 	if p.backend == nil {
 		return
@@ -1628,6 +1661,21 @@ func (p *UI) updateWidgets() {
 	} else {
 		p.prompt.GetWidget().Visibility = widget.Visibility_Hide_Blocking
 		p.prompt.GetWidget().Disabled = true
+	}
+
+	if p.uiState.SkipPrompt != "" {
+		if !p.playbackOrSkipState {
+			p.playbackOrSkip.SetPage(p.skip)
+			p.skip.Text().Label = p.uiState.SkipPrompt
+			p.skip.GetWidget().Disabled = false
+			p.playbackOrSkipState = true
+		}
+	} else {
+		if p.playbackOrSkipState {
+			p.playbackOrSkip.SetPage(p.playback)
+			p.skip.GetWidget().Disabled = true
+			p.playbackOrSkipState = false
+		}
 	}
 
 	if !reflect.DeepEqual(p.uiState.PreludeTags, p.prevPreludeTags) {

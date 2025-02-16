@@ -71,6 +71,9 @@ type Command struct {
 	// Answer continues the current playback (exits a Prompt state).
 	Answer bool
 
+	// Skip skips the current playback (exits a Prompt state).
+	Skip bool
+
 	// Config contains a new configuration. Will be applied on next hymn.
 	Config *processor.Config
 
@@ -115,8 +118,12 @@ type UIState struct {
 	HavePostlude bool
 
 	// Prompt is the text to prompt the user with.
-	// To clear a prompt, send the Answer message.
+	// To clear a prompt, send the Answer or Skip message.
 	Prompt string
+
+	// SkipPrompt is nonempty is when the skip button should be available.
+	// To clear a prompt, send the Answer or Skip message.
+	SkipPrompt string
 
 	// Informational outputs.
 
@@ -253,7 +260,7 @@ func (b *Backend) sigSleep(t time.Duration) error {
 			return SigIntError
 		case cmd := <-b.Commands:
 			if err := b.handleCommandDuringSleep(cmd); err != nil {
-				if !errors.Is(err, promptAnsweredError) {
+				if !errors.Is(err, promptAnsweredError) && !errors.Is(err, promptSkippedError) {
 					if b.nextCommand != nil {
 						log.Panicf("Unreachable code: already have a next command!")
 					}
@@ -269,6 +276,7 @@ func (b *Backend) sigSleep(t time.Duration) error {
 }
 
 var promptAnsweredError = errors.New("prompt answered")
+var promptSkippedError = errors.New("prompt skipped")
 var exitPlaybackError = errors.New("exiting playback")
 
 func CopyPreludeTags(from map[string]bool) map[string]bool {
@@ -303,6 +311,12 @@ func (b *Backend) handleCommandDuringSleep(cmd Command) error {
 			return nil
 		}
 		return promptAnsweredError // Caught when waiting for prompt.
+	case cmd.Skip:
+		if b.uiState.SkipPrompt == "" {
+			log.Printf("Spurious prompt skip: %+v.", cmd)
+			return nil
+		}
+		return promptSkippedError // Caught when waiting for prompt.
 	case cmd.Config != nil:
 		b.config = *cmd.Config
 		return nil
@@ -574,11 +588,13 @@ func (b *Backend) preludePlayer() error {
 }
 
 // prompt asks the user something.
-func (b *Backend) prompt(ask, response string) error {
+func (b *Backend) prompt(ask, response, skipAsk string) (bool, error) {
 	b.uiState.Prompt = ask
+	b.uiState.SkipPrompt = skipAsk
 	b.sendUIState()
 	defer func() {
 		b.uiState.Prompt = ""
+		b.uiState.SkipPrompt = ""
 		b.sendUIState()
 	}()
 	errC := make(chan error, 1)
@@ -592,11 +608,14 @@ func (b *Backend) prompt(ask, response string) error {
 		}
 	}()
 	err := <-errC
-	if !errors.Is(err, promptAnsweredError) {
-		return err
+	if errors.Is(err, promptAnsweredError) {
+		b.uiState.CurrentMessage = response
+		return false, nil
 	}
-	b.uiState.CurrentMessage = response
-	return nil
+	if errors.Is(err, promptSkippedError) {
+		return true, nil
+	}
+	return false, err
 }
 
 // singlePlayer plays the given file interactively.
@@ -639,13 +658,15 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 	key = processor.OutputKey{Special: processor.Prelude}
 	prelude := output[key]
 	if prelude != nil {
-		err := b.prompt("Start Prelude", "playing prelude")
+		skip, err := b.prompt("Start Prelude", "playing prelude", "Skip Prelude")
 		if err != nil {
 			return err
 		}
-		err = b.playMIDI(prelude, key)
-		if err != nil {
-			return fmt.Errorf("could not play %v prelude: %w", optionsFile, err)
+		if !skip {
+			err = b.playMIDI(prelude, key)
+			if err != nil {
+				return fmt.Errorf("could not play %v prelude: %w", optionsFile, err)
+			}
 		}
 	}
 
@@ -674,9 +695,16 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 			} else {
 				msg = "Continue"
 			}
-			err := b.prompt(msg, fmt.Sprintf("playing part %d/%d", j+1, n))
+			var skipText string
+			if j == 0 {
+				skipText = "Skip Verse"
+			}
+			skip, err := b.prompt(msg, fmt.Sprintf("playing part %d/%d", j+1, n), skipText)
 			if err != nil {
 				return err
+			}
+			if skip {
+				break
 			}
 			err = b.playMIDI(part, key)
 			if err != nil {
@@ -688,13 +716,15 @@ func (b *Backend) singlePlayer(optionsFile string) error {
 	key = processor.OutputKey{Special: processor.Postlude}
 	postlude := output[key]
 	if postlude != nil {
-		err := b.prompt("Start Postlude", "playing postlude")
+		skip, err := b.prompt("Start Postlude", "playing postlude", "Skip Postlude")
 		if err != nil {
 			return err
 		}
-		err = b.playMIDI(postlude, key)
-		if err != nil {
-			return fmt.Errorf("could not play %v postlude: %w", optionsFile, err)
+		if !skip {
+			err = b.playMIDI(postlude, key)
+			if err != nil {
+				return fmt.Errorf("could not play %v postlude: %w", optionsFile, err)
+			}
 		}
 	}
 

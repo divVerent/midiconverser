@@ -31,10 +31,11 @@ var (
 	tagsRE    = regexp.MustCompile(`^tags((?: -?\w+)*)$`)
 	tempoRE   = regexp.MustCompile(`^tempo ([\d.]+)$`)
 	versesRE  = regexp.MustCompile(`^verses (\d+)$`)
+	skipRE    = regexp.MustCompile(`^s(?:k(?:ip?)?)?$`)
 	quitRE    = regexp.MustCompile(`^q(?:u(?:it?)?)?$`)
 )
 
-func processCommand(b *player.Backend, fsys fs.FS, cmd []byte) error {
+func processCommand(b *player.Backend, ui *player.UIState, fsys fs.FS, cmd []byte) error {
 	if preludeRE.Match(cmd) {
 		b.Commands <- player.Command{
 			PlayPrelude: true,
@@ -90,6 +91,15 @@ func processCommand(b *player.Backend, fsys fs.FS, cmd []byte) error {
 		}
 		b.Commands <- player.Command{
 			NumVerses: num,
+		}
+		return nil
+	}
+	if skipRE.Match(cmd) {
+		if ui.SkipPrompt == "" {
+			return errors.New("skip command while not able to")
+		}
+		b.Commands <- player.Command{
+			Skip: true,
 		}
 		return nil
 	}
@@ -211,6 +221,7 @@ func textModeUI(b *player.Backend, fsys fs.FS) error {
 			"",
 			ifLine(ui.Err != nil, fmt.Sprintf("\033[1;31mError:\033[0;31m %v\033[m", ui.Err)),
 			ifLine(ui.Prompt != "", fmt.Sprintf("\033[1;33mPrompt: %v\033[m", ui.Prompt)),
+			ifLine(ui.SkipPrompt != "", fmt.Sprintf("\033[1;33mSkip: %v\033[m", ui.SkipPrompt)),
 			"",
 			ifLine(commandErr != nil, fmt.Sprintf("\033[1;31mCommand Error:\033[0;31m %v\033[m", commandErr)),
 			ifLine(inputMode, fmt.Sprintf("\033[1m:\033[m%s", inputCommand)),
@@ -233,7 +244,7 @@ func textModeUI(b *player.Backend, fsys fs.FS) error {
 					}
 				case 0x0A, 0x0D:
 					if len(inputCommand) > 0 {
-						err := processCommand(b, fsys, inputCommand)
+						err := processCommand(b, &ui, fsys, inputCommand)
 						if err != nil {
 							commandErr = fmt.Errorf("could not parse command %q: %v", inputCommand, err)
 						}
