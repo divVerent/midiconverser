@@ -1257,7 +1257,6 @@ func (p *UI) skipClicked(args *widget.ButtonClickedEventArgs) {
 		return
 	}
 	// Reset focus to prompt.
-	p.ui.ClearFocus()
 	p.prompt.Focus(true)
 	p.backend.Commands <- player.Command{
 		Skip: true,
@@ -1324,7 +1323,6 @@ func (p *UI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *UI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
-	p.ui.ClearFocus()
 	p.stop.Focus(true)
 	p.hymnsWindow.Close()
 	p.hymnsWindowOpen = false
@@ -1357,7 +1355,6 @@ func (p *UI) selectPreludeClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *UI) playPreludeClicked(args *widget.ButtonClickedEventArgs) {
-	p.ui.ClearFocus()
 	p.stop.Focus(true)
 	p.preludeWindow.Close()
 	p.preludeWindowOpen = false
@@ -1505,7 +1502,6 @@ func (p *UI) openPasswordWindow(args *widget.ButtonClickedEventArgs) {
 	p.positionWindow(p.passwordWindow, 0.5)
 	p.ui.AddWindow(p.passwordWindow)
 
-	p.ui.ClearFocus()
 	p.password.Focus(true)
 
 	p.passwordWindowOpen = true
@@ -1660,7 +1656,6 @@ func (p *UI) updateWidgets() {
 
 	if p.uiState.Prompt != "" {
 		if p.prompt.GetWidget().Disabled {
-			p.ui.ClearFocus()
 			p.prompt.Focus(true)
 		}
 		p.prompt.Text().Label = p.uiState.Prompt
