@@ -1669,16 +1669,16 @@ func (p *UI) updateWidgets() {
 	if p.uiState.SkipPrompt != "" {
 		if !p.skipVisible {
 			p.playbackOrSkip.SetPage(p.skip)
-			p.skip.Text().Label = p.uiState.SkipPrompt
 			p.skipVisible = true
-			p.skip.GetWidget().Disabled = false
 		}
+		p.skip.Text().Label = p.uiState.SkipPrompt
+		p.skip.GetWidget().Disabled = false
 	} else {
 		if p.skipVisible {
 			p.playbackOrSkip.SetPage(p.playback)
 			p.skipVisible = false
-			p.skip.GetWidget().Disabled = true
 		}
+		p.skip.GetWidget().Disabled = true
 	}
 
 	if !reflect.DeepEqual(p.uiState.PreludeTags, p.prevPreludeTags) {
