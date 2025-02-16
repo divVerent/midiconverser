@@ -59,7 +59,7 @@ type UI struct {
 	status                      *widget.Label
 	playbackLabel               *widget.Label
 	playbackOrSkip              *widget.FlipBook
-	playbackOrSkipState         bool
+	skipVisible                 bool
 	playback                    *widget.ProgressBar
 	skip                        *widget.Button
 	tempoLabel                  *widget.Label
@@ -565,7 +565,7 @@ func (p *UI) recreateUI() {
 			})),
 	)
 	p.playbackOrSkip.SetPage(p.playback)
-	p.playbackOrSkipState = false
+	p.skipVisible = false
 
 	p.skip = widget.NewButton(
 		widget.ButtonOpts.Text("(skip)", fontFace, buttonTextColor),
@@ -1249,6 +1249,8 @@ func (p *UI) promptClicked(args *widget.ButtonClickedEventArgs) {
 	p.backend.Commands <- player.Command{
 		Answer: true,
 	}
+	p.prompt.GetWidget().Disabled = true
+	p.skip.GetWidget().Disabled = true
 }
 
 func (p *UI) skipClicked(args *widget.ButtonClickedEventArgs) {
@@ -1258,6 +1260,8 @@ func (p *UI) skipClicked(args *widget.ButtonClickedEventArgs) {
 	p.backend.Commands <- player.Command{
 		Skip: true,
 	}
+	p.prompt.GetWidget().Disabled = true
+	p.skip.GetWidget().Disabled = true
 }
 
 func (p *UI) tempoChanged(args *widget.SliderChangedEventArgs) {
@@ -1664,17 +1668,17 @@ func (p *UI) updateWidgets() {
 	}
 
 	if p.uiState.SkipPrompt != "" {
-		if !p.playbackOrSkipState {
+		if !p.skipVisible {
 			p.playbackOrSkip.SetPage(p.skip)
 			p.skip.Text().Label = p.uiState.SkipPrompt
+			p.skipVisible = true
 			p.skip.GetWidget().Disabled = false
-			p.playbackOrSkipState = true
 		}
 	} else {
-		if p.playbackOrSkipState {
+		if p.skipVisible {
 			p.playbackOrSkip.SetPage(p.playback)
+			p.skipVisible = false
 			p.skip.GetWidget().Disabled = true
-			p.playbackOrSkipState = false
 		}
 	}
 
