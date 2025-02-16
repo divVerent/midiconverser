@@ -1246,22 +1246,21 @@ func (p *UI) promptClicked(args *widget.ButtonClickedEventArgs) {
 	if p.backend == nil {
 		return
 	}
+	// Keep focus on prompt.
 	p.backend.Commands <- player.Command{
 		Answer: true,
 	}
-	p.prompt.GetWidget().Disabled = true
-	p.skip.GetWidget().Disabled = true
 }
 
 func (p *UI) skipClicked(args *widget.ButtonClickedEventArgs) {
 	if p.backend == nil {
 		return
 	}
+	// Reset focus to prompt.
+	p.prompt.Focus(true)
 	p.backend.Commands <- player.Command{
 		Skip: true,
 	}
-	p.prompt.GetWidget().Disabled = true
-	p.skip.GetWidget().Disabled = true
 }
 
 func (p *UI) tempoChanged(args *widget.SliderChangedEventArgs) {
