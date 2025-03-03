@@ -9,6 +9,8 @@ export CGO_CXXFLAGS='-g0 -O3'
 export CGO_LDFLAGS='-g0 -O3'
 export GOOS=ios
 
+make -C ../../../../.. internal/version/version.txt internal/ebiplayer/vfs.zip.age
+
 ebiver=$(go mod graph | grep ^github.com/hajimehoshi/ebiten/v2@ | cut -d @ -f 2 | cut -d ' ' -f 1 | uniq)
 go mod tidy
 go get github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@$ebiver
