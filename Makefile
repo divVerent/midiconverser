@@ -58,7 +58,7 @@ textui_player$(GOEXE): internal/version/version.txt $(SOURCES)
 
 internal/ebiplayer/vfs.zip: ../midi
 	set -ex; \
-	pwd=$(PWD); \
+	pwd=$$PWD; \
 	cd ../midi; \
 	echo $$(git describe --always --long --match 'v*.*' --exclude 'v*.*.*' HEAD)-$$(git log -n 1 --pretty=format:%cd --date=format:%Y%m%d HEAD) > version.txt; \
 	cd hymns-extra-abc; \
