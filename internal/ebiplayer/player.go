@@ -454,9 +454,9 @@ func (p *UI) recreateUI() {
 		DisabledSelectedBackground: color.Black,
 	}
 	checkboxGraphicImage := &widget.CheckboxGraphicImage{
-		Unchecked: &widget.ButtonImageImage{Idle: newImageColor(checkSize, color.NRGBA{R: 128, G: 128, B: 128, A: 32})},
-		Checked:   &widget.ButtonImageImage{Idle: newImageColor(checkSize, color.NRGBA{R: 128, G: 128, B: 128, A: 255})},
-		Greyed:    &widget.ButtonImageImage{Idle: newImageColor(checkSize, color.Alpha{A: 0})},
+		Unchecked: &widget.ButtonImage{Idle: newImageColor(checkSize, color.NRGBA{R: 128, G: 128, B: 128, A: 32})},
+		Checked:   &widget.ButtonImage{Idle: newImageColor(checkSize, color.NRGBA{R: 128, G: 128, B: 128, A: 255})},
+		Greyed:    &widget.ButtonImage{Idle: newImageColor(checkSize, color.Alpha{A: 0})},
 	}
 	textInputImage := &widget.TextInputImage{
 		Idle:     image.NewNineSliceColor(color.Gray{Y: 192}),
