@@ -70,7 +70,7 @@ internal/ebiplayer/vfs.zip.age: internal/ebiplayer/vfs.zip
 	$(AGE) --encrypt --passphrase -o $@ $<
 
 wasm_exec.js:
-	cp "$(shell cd / && $(GO) env GOROOT)"/misc/wasm/wasm_exec.js .
+	cp "$(shell cd / && $(GO) env GOROOT)"/lib/wasm/wasm_exec.js .
 
 ebitenui_player.service-worker.js: ebitenui_player.workbox-config.js ebitenui_player.wasm wasm_exec.js
 	$(WORKBOX) generateSW ebitenui_player.workbox-config.js
