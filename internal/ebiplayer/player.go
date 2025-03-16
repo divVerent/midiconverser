@@ -96,6 +96,9 @@ type UI struct {
 	passwordWindowOpen bool
 	prevPreludeTags    map[string]bool
 	dataVersion        string
+
+	// Focus workaround.
+	everFocused []widget.Focuser
 }
 
 func (p *UI) Init(w, h int, configFile, inputFile, requestedPort string) error {
@@ -410,14 +413,16 @@ func (p *UI) recreateUI() {
 		Disabled: color.Gray{Y: 128},
 	}
 	buttonTextColor := &widget.ButtonTextColor{
-		Idle:    color.White,
-		Hover:   color.Gray{Y: 64},
-		Pressed: color.Black,
+		Idle:     color.White,
+		Hover:    color.Gray{Y: 64},
+		Pressed:  color.Black,
+		Disabled: color.Gray{Y: 192},
 	}
 	buttonImage := &widget.ButtonImage{
-		Idle:    image.NewNineSliceColor(color.Black),
-		Hover:   image.NewNineSliceColor(color.Gray{Y: 192}),
-		Pressed: image.NewNineSliceColor(color.White),
+		Idle:     image.NewNineSliceColor(color.Black),
+		Hover:    image.NewNineSliceColor(color.Gray{Y: 192}),
+		Pressed:  image.NewNineSliceColor(color.White),
+		Disabled: image.NewNineSliceColor(color.Gray{Y: 64}),
 	}
 	sliderTrackImage := &widget.SliderTrackImage{
 		Idle:  image.NewNineSliceColor(color.Gray{Y: 128}),
@@ -1233,9 +1238,22 @@ func (p *UI) recreateUI() {
 }
 
 func (p *UI) setFocus(widget widget.Focuser) {
+	// This workaround should not be necessary, as p.ui.ClearFocus() should already do it...
+	// TODO: Investigate.
+	known := false
+	for _, w := range p.everFocused {
+		if w == widget {
+			known = true
+			continue
+		}
+		w.Focus(false)
+	}
 	p.ui.ClearFocus()
 	if widget != nil {
 		widget.Focus(true)
+		if !known {
+			p.everFocused = append(p.everFocused, widget)
+		}
 	}
 }
 
@@ -1253,7 +1271,8 @@ func (p *UI) promptClicked(args *widget.ButtonClickedEventArgs) {
 	if p.backend == nil {
 		return
 	}
-	// Keep focus on prompt.
+	// Reset focus to stop.
+	p.setFocus(p.stop)
 	p.backend.Commands <- player.Command{
 		Answer: true,
 	}
@@ -1618,6 +1637,9 @@ func (p *UI) updateWidgets() {
 		p.playback.Max = 1000000
 		p.playback.SetCurrent(int(math.Round(1000000 * p.uiState.ActualPlaybackFraction())))
 		p.playback.GetWidget().Disabled = false
+		if p.stop.GetWidget().Disabled {
+			p.setFocus(p.stop)
+		}
 		p.stop.GetWidget().Disabled = false
 	} else if p.uiState.CurrentFile != "" {
 		p.playbackLabel.Label = "Waiting: "
