@@ -1232,11 +1232,18 @@ func (p *UI) recreateUI() {
 	}
 }
 
+func (p *UI) setFocus(widget widget.Focuser) {
+	p.ui.ClearFocus()
+	if widget != nil {
+		widget.Focus(true)
+	}
+}
+
 func (p *UI) stopClicked(args *widget.ButtonClickedEventArgs) {
 	if p.backend == nil {
 		return
 	}
-	p.ui.ClearFocus()
+	p.setFocus(nil)
 	p.backend.Commands <- player.Command{
 		Exit: true,
 	}
@@ -1257,7 +1264,7 @@ func (p *UI) skipClicked(args *widget.ButtonClickedEventArgs) {
 		return
 	}
 	// Reset focus to prompt.
-	p.prompt.Focus(true)
+	p.setFocus(p.prompt)
 	p.backend.Commands <- player.Command{
 		Skip: true,
 	}
@@ -1323,7 +1330,7 @@ func (p *UI) selectHymnClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *UI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
-	p.stop.Focus(true)
+	p.setFocus(p.stop)
 	p.hymnsWindow.Close()
 	p.hymnsWindowOpen = false
 	if p.backend == nil {
@@ -1340,7 +1347,7 @@ func (p *UI) playHymnClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *UI) hymnsCloseClicked(args *widget.ButtonClickedEventArgs) {
-	p.ui.ClearFocus()
+	p.setFocus(nil)
 	p.hymnsWindow.Close()
 	p.hymnsWindowOpen = false
 }
@@ -1355,7 +1362,7 @@ func (p *UI) selectPreludeClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *UI) playPreludeClicked(args *widget.ButtonClickedEventArgs) {
-	p.stop.Focus(true)
+	p.setFocus(p.stop)
 	p.preludeWindow.Close()
 	p.preludeWindowOpen = false
 	if p.backend == nil {
@@ -1367,7 +1374,7 @@ func (p *UI) playPreludeClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *UI) preludeCloseClicked(args *widget.ButtonClickedEventArgs) {
-	p.ui.ClearFocus()
+	p.setFocus(nil)
 	p.preludeWindow.Close()
 	p.preludeWindowOpen = false
 }
@@ -1452,7 +1459,7 @@ func (p *UI) settingsClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *UI) applySettingsClicked(args *widget.ButtonClickedEventArgs) {
-	p.ui.ClearFocus()
+	p.setFocus(nil)
 	p.settingsWindow.Close()
 	p.settingsWindowOpen = false
 	if p.backend == nil {
@@ -1487,7 +1494,7 @@ func (p *UI) applySettingsClicked(args *widget.ButtonClickedEventArgs) {
 }
 
 func (p *UI) settingsCloseClicked(args *widget.ButtonClickedEventArgs) {
-	p.ui.ClearFocus()
+	p.setFocus(nil)
 	p.settingsWindow.Close()
 	p.settingsWindowOpen = false
 }
@@ -1502,7 +1509,7 @@ func (p *UI) openPasswordWindow(args *widget.ButtonClickedEventArgs) {
 	p.positionWindow(p.passwordWindow, 0.5)
 	p.ui.AddWindow(p.passwordWindow)
 
-	p.password.Focus(true)
+	p.setFocus(p.password)
 
 	p.passwordWindowOpen = true
 }
@@ -1537,7 +1544,7 @@ func (p *UI) vKeysUpdate() {
 }
 
 func (p *UI) applyPasswordClicked(args *widget.ButtonClickedEventArgs) {
-	p.ui.ClearFocus()
+	p.setFocus(nil)
 	p.passwordWindow.Close()
 	p.passwordWindowOpen = false
 
@@ -1656,7 +1663,7 @@ func (p *UI) updateWidgets() {
 
 	if p.uiState.Prompt != "" {
 		if p.prompt.GetWidget().Disabled {
-			p.prompt.Focus(true)
+			p.setFocus(p.prompt)
 		}
 		p.prompt.Text().Label = p.uiState.Prompt
 		p.prompt.GetWidget().Visibility = widget.Visibility_Show
