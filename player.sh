@@ -123,10 +123,10 @@ else
 	no_tags='noprelude national'
 	case "$(date +%Y%m%d)" in
 		????12[01]?|????122[0-6])
-			# want_tags="$want_tags xmas"
+			# want_tags="$want_tags christmas"
 			;;
 		*)
-			no_tags="$no_tags xmas"
+			no_tags="$no_tags christmas"
 			;;
 	esac
 

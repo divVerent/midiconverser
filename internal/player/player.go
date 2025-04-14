@@ -39,9 +39,9 @@ func tagsDefault() map[string]bool {
 	// Go back to 1st Advent.
 	beginTime = beginTime.Add(-3 * 7 * 24 * time.Hour)
 	log.Printf("First Advent: %v.", beginTime)
-	log.Printf("Xmas ends: %v.", endTime)
+	log.Printf("Christmas ends: %v.", endTime)
 	if now.Before(beginTime) || !now.Before(endTime) {
-		tags["xmas"] = false
+		tags["christmas"] = false
 	}
 	return tags
 }
