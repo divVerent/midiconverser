@@ -1,3 +1,9 @@
+# Additional Permissions
+
+This project is subject to the below terms, with the exception of the following additonal permission:
+
+- This work may be combined with the hymn or music collection of a church or other religious organization. The license of that corpus shall apply to it, and no corresponding source needs be provided for data included in such a way. Instead, it shall be treated like mere aggregation.
+
 # GNU GENERAL PUBLIC LICENSE
 
 Version 3, 29 June 2007
