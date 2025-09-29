@@ -31,3 +31,6 @@ require (
 	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 )
+
+// Pin ebitenui for now due to API change.
+replace github.com/ebitenui/ebitenui => github.com/ebitenui/ebitenui v0.6.2
