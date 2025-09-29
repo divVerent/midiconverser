@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"cmp"
 	"fmt"
+	"strings"
+	"regexp"
 	go_image "image"
 	"image/color"
 	"io/fs"
@@ -166,12 +168,7 @@ func (p *UI) initWithFS(fsys fs.FS) error {
 
 	p.initDataVersion(fsys)
 
-	err := p.initHymnsList(fsys)
-	if err != nil {
-		return err
-	}
-
-	err = p.initBackend(fsys)
+	err := p.initBackend(fsys)
 	if err != nil {
 		return err
 	}
@@ -189,6 +186,11 @@ func (p *UI) initBackend(fsys fs.FS) error {
 	err = loadConfigOverride(p.configFile, p.config)
 	if err != nil {
 		log.Printf("Failed to load config override: %v.", err)
+	}
+
+	err = p.initHymnsList(fsys)
+	if err != nil {
+		return err
 	}
 
 	p.outPort, err = player.FindBestPort(p.requestedPort, p.config.OutputPort)
@@ -239,6 +241,28 @@ func (p *UI) initDataVersion(fsys fs.FS) {
 	p.dataVersion = string(bytes.TrimSpace(v))
 }
 
+var splitNumbersRE = regexp.MustCompile(`\d+`)
+
+func splitNumbers(s string) string {
+	parts := splitNumbersRE.FindAllStringIndex(s, -1)
+	var ret []string
+	lastIndex := 0
+	for _, part := range parts {
+		begin, end := part[0], part[1]
+		if begin > lastIndex {
+			ret = append(ret, s[lastIndex:begin])
+		}
+		var num int64
+		fmt.Sscanf(s[begin:end], "%d", &num)
+		ret = append(ret, fmt.Sprintf("\000%08d\000", num))
+		lastIndex = end
+	}
+	if len(s) > lastIndex {
+			ret = append(ret, s[lastIndex:len(s)])
+	}
+	return strings.Join(ret, "")
+}
+
 func listHymns(fsys fs.FS, subdir string) ([]string, []string, error) {
 	all, err := fs.Glob(fsys, path.Join(subdir, "*.yml"))
 	if err != nil {
@@ -266,13 +290,8 @@ func listHymns(fsys fs.FS, subdir string) ([]string, []string, error) {
 	}
 
 	slices.SortFunc(hymns, func(a, b string) int {
-		aNum, bNum := math.MaxInt, math.MaxInt
-		fmt.Sscanf(a, "%d", &aNum)
-		fmt.Sscanf(b, "%d", &bNum)
-		if aNum != bNum {
-			return cmp.Compare(aNum, bNum)
-		}
-		return cmp.Compare(a, b)
+		aNum, bNum := splitNumbers(a), splitNumbers(b)
+		return cmp.Compare(aNum, bNum)
 	})
 
 	var tags []string
