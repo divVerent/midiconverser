@@ -8,14 +8,17 @@ import (
 	"image/color"
 	"io/fs"
 	"log"
+	"path"
 	"math"
 	"reflect"
 	"slices"
 
 	"golang.org/x/image/font/gofont/goregular"
+	"golang.org/x/text/language"
 
 	"github.com/ebitenui/ebitenui"
 	"github.com/ebitenui/ebitenui/image"
+	"github.com/jeandeaual/go-locale"
 	"github.com/ebitenui/ebitenui/widget"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -236,8 +239,8 @@ func (p *UI) initDataVersion(fsys fs.FS) {
 	p.dataVersion = string(bytes.TrimSpace(v))
 }
 
-func listHymns(fsys fs.FS) ([]string, []string, error) {
-	all, err := fs.Glob(fsys, "*.yml")
+func listHymns(fsys fs.FS, subdir string) ([]string, []string, error) {
+	all, err := fs.Glob(fsys, path.Join(subdir, "*.yml"))
 	if err != nil {
 		return nil, nil, fmt.Errorf("glob: %w", err)
 	}
@@ -281,20 +284,50 @@ func listHymns(fsys fs.FS) ([]string, []string, error) {
 	return hymns, tags, nil
 }
 
-func (p *UI) initHymnsList(fsys fs.FS) error {
-	hymns, tags, err := listHymns(fsys)
+func (p *UI) hymnsSubdirs() []string {
+	var ret []string
+	if p.config.HymnsSubdir != "" {
+		ret = append(ret, p.config.HymnsSubdir)
+	}
+	locs, err := locale.GetLocales()
 	if err != nil {
-		return err
+		log.Printf("Could not detect locales - working without: %v.", err)
 	}
-	p.hymnsAny = make([]any, 0, len(hymns))
-	for _, h := range hymns {
-		p.hymnsAny = append(p.hymnsAny, h)
+	for _, loc := range locs {
+		lang, err := language.Parse(loc)
+		if err != nil {
+			ret = append(ret, loc)
+			continue
+		}
+		for lang != language.Und {
+			ret = append(ret, lang.String())
+			lang = lang.Parent()
+		}
 	}
-	p.tagsAny = make([]any, 0, len(tags))
-	for _, h := range tags {
-		p.tagsAny = append(p.tagsAny, h)
+	ret = append(ret, "en")
+	return ret
+}
+
+func (p *UI) initHymnsList(fsys fs.FS) error {
+	for _, hymnsSubdir := range p.hymnsSubdirs() {
+		hymns, tags, err := listHymns(fsys, hymnsSubdir)
+		if err != nil {
+			return err
+		}
+		if len(hymns) != 0 {
+			p.config.HymnsSubdir = hymnsSubdir
+			p.hymnsAny = make([]any, 0, len(hymns))
+			for _, h := range hymns {
+				p.hymnsAny = append(p.hymnsAny, h)
+			}
+			p.tagsAny = make([]any, 0, len(tags))
+			for _, h := range tags {
+				p.tagsAny = append(p.tagsAny, h)
+			}
+			return nil
+		}
 	}
-	return nil
+	return fmt.Errorf("could not find any hymns")
 }
 
 func (p *UI) initChannelsList() {

@@ -135,6 +135,9 @@ type Config struct {
 	// Device configuration. Used by the player.
 	OutputPort string `yaml:"output_port,omitempty"`
 
+	// Subdirectory to read the data, if needed. Typically matches a locale string.
+	HymnsSubdir string `yaml:"hymns_subdir,omitempty"`
+
 	// DataPassword to read the data, if needed.
 	DataPassword string `yaml:"data_password,omitempty"`
 }

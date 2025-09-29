@@ -6,9 +6,11 @@ require (
 	filippo.io/age v1.2.1
 	github.com/ebitenui/ebitenui v0.6.2
 	github.com/hajimehoshi/ebiten/v2 v2.8.8
+	github.com/jeandeaual/go-locale v0.0.0-20250612000132-0ef82f21eade
 	gitlab.com/gomidi/midi/v2 v2.3.14
 	golang.org/x/image v0.28.0
 	golang.org/x/term v0.32.0
+	golang.org/x/text v0.26.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -28,5 +30,4 @@ require (
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
 )
