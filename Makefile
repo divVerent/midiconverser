@@ -64,7 +64,7 @@ internal/ebiplayer/vfs.zip: ../midi
 	cd hymns-extra-abc; \
 	./build.sh; \
 	cd ..; \
-	$(7ZA) "$$pwd"/$@ version.txt *.yml */*.mid
+	$(7ZA) "$$pwd"/$@ version.txt *.yml */*.yml */*.mid
 
 internal/ebiplayer/vfs.zip.age: internal/ebiplayer/vfs.zip
 	$(AGE) --encrypt --passphrase -o $@ $<
